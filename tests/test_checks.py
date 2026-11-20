@@ -125,6 +125,11 @@ def test_an_eligible_book_may_hold_only_its_metadata(library_copy: Path) -> None
             "books/fixture-mirrored-book/chapters/03-recovering-a-sunk-boat.md",
             None,
         ),
+        (
+            "gate-content",
+            "books/fixture-mirrored-book/source/Paper-Boat-Engineering-v1.0.0.pdf",
+            None,
+        ),
     ]
 
 
@@ -201,12 +206,15 @@ def test_two_chapters_with_one_id_are_a_finding_that_names_both_files(library_co
 
     findings = run_checks(library_copy)
 
+    # The second file holds invented text under the id of a real section, so it also fails the
+    # comparison with the source.
     assert located(findings) == [
         (
             "chapter-duplicate-id",
             "books/fixture-mirrored-book/chapters/01-folding-the-hull.md",
             None,
-        )
+        ),
+        ("fidelity-chapter", "books/fixture-mirrored-book/chapters/04-folding-the-hull.md", None),
     ]
     assert "fixture-mirrored-book/folding-the-hull" in findings[0].message
     assert "books/fixture-mirrored-book/chapters/04-folding-the-hull.md" in findings[0].message
@@ -277,13 +285,15 @@ def test_a_broken_link_in_a_chapter_is_a_finding(library_copy: Path) -> None:
     )
 
     # The frontmatter and its two fences take 18 lines. A blank line, the heading, and another
-    # blank line come before the link.
+    # blank line come before the link. The added sentence is not in the source, so the chapter
+    # also fails the comparison with it.
     assert located(run_checks(library_copy)) == [
+        ("fidelity-chapter", "books/fixture-mirrored-book/chapters/01-folding-the-hull.md", None),
         (
             "link-missing-target",
             "books/fixture-mirrored-book/chapters/01-folding-the-hull.md",
             22,
-        )
+        ),
     ]
 
 
@@ -411,6 +421,7 @@ def test_findings_are_sorted_by_file_then_line_then_rule(library_copy: Path) -> 
     assert located(run_checks(library_copy)) == [
         ("gate-license-file", "books/fixture-reference-book/LICENSE", None),
         ("catalog-unknown-collection", "books/fixture-reference-book/metadata.yaml", None),
+        ("fidelity-source", "books/fixture-reference-book/metadata.yaml", None),
         ("gate-status", "books/fixture-reference-book/metadata.yaml", None),
         ("link-missing-target", "topics/paper-craft.md", 11),
         ("link-missing-target", "topics/tea-service.md", 11),

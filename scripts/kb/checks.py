@@ -32,6 +32,7 @@ from kb.catalog import (
     load_resource,
     load_topics,
 )
+from kb.fidelity import check_book
 from kb.gate import evaluate
 from kb.schema import LoadError, SchemaName
 
@@ -433,6 +434,47 @@ def _link_targets(body: str) -> Iterator[tuple[int, str]]:
             open_fence = None
 
 
+def _check_fidelity(library: Library) -> list[Finding]:
+    """Compare each chapter of a mirrored book with a fresh extraction of its source file.
+
+    A mirrored book must hold its pinned source file, because the comparison runs offline. A
+    source file that is not recorded, is missing, or has another SHA-256 than the metadata is
+    one finding, and no chapter of that book is compared.
+    """
+    findings: list[Finding] = []
+    for resource in library.resources:
+        if resource.mirror_status is not MirrorStatus.MIRRORED:
+            continue
+        chapters = library.chapters_of(resource.id)
+        report = check_book(library.root, resource, chapters)
+        if report.error is not None:
+            file = report.error.file
+            findings.append(
+                Finding(
+                    rule="fidelity-source",
+                    file=_metadata_path(resource.id) if file is None else file.as_posix(),
+                    message=report.error.message,
+                    fix=report.error.fix,
+                )
+            )
+            continue
+        findings.extend(
+            Finding(
+                rule="fidelity-chapter",
+                file=chapter_file.path.as_posix(),
+                message=result.message,
+                fix=(
+                    "Restore the wording of the source in the chapter. If the chapter is right "
+                    "and the extraction is wrong, list the words under accepted_differences in "
+                    f"{_metadata_path(resource.id)} with the chapter id and a reason."
+                ),
+            )
+            for chapter_file, result in zip(chapters, report.results, strict=True)
+            if not result.passed
+        )
+    return findings
+
+
 CHECKS: list[Check] = [
     _check_gate_status,
     _check_gate_content,
@@ -442,5 +484,6 @@ CHECKS: list[Check] = [
     _check_chapter_order,
     _check_chapter_location,
     _check_links,
+    _check_fidelity,
 ]
 """Every check, in the order it runs. A new check is one more entry at the end."""

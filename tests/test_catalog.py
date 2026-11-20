@@ -206,10 +206,10 @@ def test_mirrored_book_record_carries_license_permissions_and_pinned_source(
         repository="fixture-author/fixture-mirrored-book",
         commit="a" * 40,
         path="Paper-Boat-Engineering-v1.0.0.pdf",
-        sha256="e" * 64,
+        sha256="458ec5a4408cc54263b57c2d57877eca91197b660e8091de3c0a6d244d6b80d4",
         edition="v1.0.0",
         language="en",
-        local_path=None,
+        local_path="source/Paper-Boat-Engineering-v1.0.0.pdf",
     )
 
 
@@ -252,7 +252,7 @@ def test_mirrored_book_record_carries_the_extraction_profile(fixture_library_roo
         Role.CODE,
     ]
     assert profile.section_start == r"^§\d{2}$"
-    assert profile.excluded_pages == (1, 2)
+    assert profile.excluded_pages == (1, 2, 7)
     assert profile.sections == (
         SectionAssignment(
             title="Folding the Hull", slug="folding-the-hull", part="Part One: Paper"

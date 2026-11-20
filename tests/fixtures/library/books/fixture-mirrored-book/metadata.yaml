@@ -86,16 +86,20 @@ permissions:
 
 mirror_status: mirrored
 
-# The fixture commits no source file, so local_path is null and sha256 is a placeholder.
+# The source file is compiled from tests/fixtures/sample-book.typ. The upstream repository and
+# commit are invented, and the SHA-256 is the real digest of the committed file.
 pinned_source:
   repository: fixture-author/fixture-mirrored-book
   commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   path: Paper-Boat-Engineering-v1.0.0.pdf
-  sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+  sha256: 458ec5a4408cc54263b57c2d57877eca91197b660e8091de3c0a6d244d6b80d4
   edition: v1.0.0
   language: en
-  local_path: null
+  local_path: source/Paper-Boat-Engineering-v1.0.0.pdf
 
+# The font sizes and indents are the ones tests/fixtures/sample-book.typ sets. Body text starts
+# 40 points from the left edge and the quote callout 100 points from it. Pages 1, 2, and 7 are
+# the cover, the contents, and the back cover.
 extraction_profile:
   roles:
     - role: section-label
@@ -124,6 +128,7 @@ extraction_profile:
   excluded_pages:
     - 1
     - 2
+    - 7
   sections:
     - title: Folding the Hull
       slug: folding-the-hull
