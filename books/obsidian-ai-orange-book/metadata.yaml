@@ -1,0 +1,100 @@
+id: obsidian-ai-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: Obsidian + Claude Code：用AI重建你的第二大脑
+  english: "Obsidian + Claude Code: Rebuild Your Second Brain with AI"
+  english_official: true
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+  - en
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/obsidian-ai/
+  repository: https://github.com/alchaincyf/obsidian-ai-orange-book
+  hosted_editions:
+    - name: WorkBuddy
+      url: https://www.workbuddy.cn/space/d/g5E78ejX962o977geKeOjj
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+    - name: WorkBuddy, all Orange Books
+      url: https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+
+site_slug: obsidian-ai
+
+upstream:
+  kind: git
+  repository: alchaincyf/obsidian-ai-orange-book
+  default_branch: master
+  head_commit: 7ed9ac29fedba90932c5c02ce3f39fde7f524879
+
+editions:
+  - language: en
+    version: v1.0.0
+    format: pdf
+    path: Obsidian-AI-The-Complete-Guide-v1.0.0.pdf
+    blob_sha: 1279f433eb069ffb97a4a4a459c84a8cfc16bfd9
+  - language: zh
+    version: v261020
+    format: pdf
+    path: Obsidian-AI-v261020.pdf
+    blob_sha: c27f8b6753e317c18d1e7781e5fe721cd490bab0
+
+edition_patterns:
+  en: '^Obsidian-AI-The-Complete-Guide-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+  zh: '^Obsidian-AI-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+
+newest_editions:
+  en: v1.0.0
+  zh: v261020
+
+license:
+  spdx: null
+  evidence: readme-statement
+  statement: 本作品免费分享，用于学习交流。欢迎转载和引用，请注明出处。
+  permalink: https://github.com/alchaincyf/obsidian-ai-orange-book/blob/7ed9ac29fedba90932c5c02ce3f39fde7f524879/README.md?plain=1#L110
+  blob_sha: fa4831518a8f00d6f1c963dcfd002b3af0e38131
+  commit: 7ed9ac29fedba90932c5c02ce3f39fde7f524879
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      Repository tree of alchaincyf/obsidian-ai-orange-book at commit
+      7ed9ac29fedba90932c5c02ce3f39fde7f524879: no file named LICENSE, LICENSE.md, LICENSE.txt, or
+      COPYING.
+    - >-
+      README.md at commit 7ed9ac29fedba90932c5c02ce3f39fde7f524879 (blob
+      fa4831518a8f00d6f1c963dcfd002b3af0e38131): the heading "## 许可" holds text at line 110.
+    - >-
+      README_en.md at commit 7ed9ac29fedba90932c5c02ce3f39fde7f524879 (blob
+      9f584a504275a3c440f681c5a28399139889668e): the heading "## License" holds text at line 86.
+
+permissions:
+  redistribution: allowed
+  adaptation: unclear
+  commercial_use: unclear
+  attribution_required: true
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: reference-only
+
+notices:
+  - >-
+    The recorded statement comes from README.md, which is in Chinese. It welcomes reposting and
+    quoting with credit to the source.
+  - >-
+    The English edition v1.0.0 predates the Chinese edition v261020. The README says the English
+    edition has not followed the October revision.
+  - >-
+    README_en.md at the same commit states the terms in English at line 86: This work is shared
+    freely for educational purposes. Feel free to share and reference with attribution.

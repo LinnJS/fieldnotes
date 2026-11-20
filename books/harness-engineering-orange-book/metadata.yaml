@@ -1,0 +1,96 @@
+id: harness-engineering-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: Harness Engineering：缰绳工程学完全指南
+  english: "Harness Engineering: The Complete Guide"
+  english_official: true
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+  - en
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/harness/
+  repository: https://github.com/alchaincyf/harness-engineering-orange-book
+  hosted_editions:
+    - name: WorkBuddy
+      url: https://www.workbuddy.cn/space/d/XaAUeol6AD4lNQqk1NY00W
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+    - name: WorkBuddy, all Orange Books
+      url: https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+
+site_slug: harness
+
+upstream:
+  kind: git
+  repository: alchaincyf/harness-engineering-orange-book
+  default_branch: main
+  head_commit: a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71
+
+editions:
+  - language: en
+    version: v260411
+    format: pdf
+    path: Harness-Engineering-The-Complete-Guide-v260411.pdf
+    blob_sha: 7f3dab7a5759916b44ee7f4270ec0a657c05d894
+  - language: zh
+    version: v260411
+    format: pdf
+    path: Harness-Engineering-v260411-zh.pdf
+    blob_sha: 3a95ab9608b3dacac2e6c1f737c5fd5d016bb277
+
+edition_patterns:
+  en: '^Harness-Engineering-The-Complete-Guide-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+  zh: '^Harness-Engineering-(?P<version>v\d+(?:\.\d+)*)-zh\.pdf$'
+
+newest_editions:
+  en: v260411
+  zh: v260411
+
+license:
+  spdx: null
+  evidence: readme-statement
+  statement: >-
+    This work is shared for educational purposes. Please credit the author when referencing.
+  permalink: https://github.com/alchaincyf/harness-engineering-orange-book/blob/a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71/README.md?plain=1#L78
+  blob_sha: f42afb46eb7bb5ef9bd3e9b6304ef72ef01d8617
+  commit: a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      Repository tree of alchaincyf/harness-engineering-orange-book at commit
+      a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71: no file named LICENSE, LICENSE.md, LICENSE.txt, or
+      COPYING.
+    - >-
+      README.md at commit a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71 (blob
+      f42afb46eb7bb5ef9bd3e9b6304ef72ef01d8617): the heading "## License" holds text from line 78
+      to line 82.
+    - >-
+      README_zh.md at commit a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71 (blob
+      aadce27be73d17c8d7ebf95dc634555e9c09e921): the heading "## 许可" holds text from line 79 to
+      line 83.
+
+permissions:
+  redistribution: unclear
+  adaptation: unclear
+  commercial_use: unclear
+  attribution_required: true
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: reference-only
+
+notices:
+  - >-
+    README_zh.md at the same commit states the terms in Chinese at line 79: 本作品仅供学习交流使用。引用请注明出处。

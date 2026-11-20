@@ -1,0 +1,124 @@
+id: codex-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: OpenAI Codex 从入门到精通
+  english: "OpenAI Codex: The Complete Guide"
+  english_official: true
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+  - en
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/codex/
+  repository: https://github.com/alchaincyf/codex-orange-book
+  hosted_editions:
+    - name: WorkBuddy
+      url: https://www.workbuddy.cn/space/d/6X9tCSrgcsExJxZV9zSRhS
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+    - name: WorkBuddy, all Orange Books
+      url: https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+
+site_slug: codex
+
+upstream:
+  kind: git
+  repository: alchaincyf/codex-orange-book
+  default_branch: main
+  head_commit: 44487efa500bc65c1d1afde7c7b737613aad9df0
+
+editions:
+  - language: en
+    version: v2.0.1
+    format: pdf
+    path: Codex-Complete-Guide-en-v2.0.1.pdf
+    blob_sha: 3619f97a7818e9f45f2ec601210bae3531e8b422
+  - language: en
+    version: v2.0.1
+    format: epub
+    path: Codex-Complete-Guide-en-v2.0.1.epub
+    blob_sha: 360f0bd26af520a1b4a4354a07b46b3e8a133066
+  - language: en
+    version: v2.0.1
+    format: html
+    path: Codex-Complete-Guide-en-v2.0.1.html
+    blob_sha: a62c707f70f3e593c4989c61753d06b12eb4531a
+  - language: zh
+    version: v261020
+    format: pdf
+    path: Codex-Complete-Guide-zh-v261020.pdf
+    blob_sha: 258d28350158f527bbe173bab19347cb4259114f
+  - language: zh
+    version: v261020
+    format: epub
+    path: Codex-Complete-Guide-zh-v261020.epub
+    blob_sha: 0ad434678e70953e91e9e57455dfc5051a5ec4ae
+  - language: zh
+    version: v261020
+    format: html
+    path: Codex-Complete-Guide-zh-v261020.html
+    blob_sha: 55639fd710cc443b289250cc4dbaaacb6c08d08c
+
+edition_patterns:
+  en: '^Codex-Complete-Guide-en-(?P<version>v\d+(?:\.\d+)*)\.(?:pdf|epub|html)$'
+  zh: '^Codex-Complete-Guide-zh-(?P<version>v\d+(?:\.\d+)*)\.(?:pdf|epub|html)$'
+
+newest_editions:
+  en: v2.0.1
+  zh: v261020
+
+license:
+  spdx: CC-BY-NC-SA-4.0
+  evidence: readme-statement
+  statement: >-
+    This work is licensed under [CC BY-NC-SA
+    4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/). You are free to share and adapt for
+    non-commercial purposes with attribution.
+  permalink: https://github.com/alchaincyf/codex-orange-book/blob/44487efa500bc65c1d1afde7c7b737613aad9df0/README.md?plain=1#L140
+  blob_sha: 26f62e2da1163a8dbdb3da8e5bdcf6f70a2caf53
+  commit: 44487efa500bc65c1d1afde7c7b737613aad9df0
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      Repository tree of alchaincyf/codex-orange-book at commit
+      44487efa500bc65c1d1afde7c7b737613aad9df0: no file named LICENSE, LICENSE.md, LICENSE.txt, or
+      COPYING.
+    - >-
+      README.md at commit 44487efa500bc65c1d1afde7c7b737613aad9df0 (blob
+      26f62e2da1163a8dbdb3da8e5bdcf6f70a2caf53): the heading "## License" holds text from line 136
+      to line 140.
+    - >-
+      README_zh.md at commit 44487efa500bc65c1d1afde7c7b737613aad9df0 (blob
+      bca03e2211f44bdd2c4746a5b15d82a951dc822a): the heading "## 协议" holds text from line 146 to
+      line 150.
+
+permissions:
+  redistribution: allowed
+  adaptation: allowed
+  commercial_use: denied
+  attribution_required: true
+  share_alike: true
+  third_party_rights: false
+
+mirror_status: reference-only
+
+notices:
+  - >-
+    The English edition v2.0.1 predates the Chinese edition v261020. The README says the English
+    edition has not been updated yet.
+  - >-
+    The README calls the English edition a native-prose translation and names no translator.
+  - >-
+    README_zh.md at the same commit states the terms in Chinese at line 150: 本作品基于 [CC BY-NC-SA
+    4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) 协议发布。在保留署名的前提下，可自由分享和改编（非商用）。

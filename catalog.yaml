@@ -1,0 +1,36 @@
+library:
+  name: orange-books
+  title: Orange Books Knowledge Base
+  description: >-
+    An independent community library of AI engineering resources whose first collection is
+    HuaShu's AI Orange Books.
+  base_url: https://linnjs.github.io/orange-books/
+  repository: https://github.com/LinnJS/orange-books
+
+license_allowlist:
+  - MIT
+
+collections:
+  - id: orange-books
+    title: AI Orange Books
+
+resources:
+  - loop-engineering-orange-book
+  - hermes-agent-orange-book
+  - codex-orange-book
+  - claude-code-orange-book
+  - deepseek-harness-orange-book
+  - 3d-vibe-coding-handbook
+  - harness-engineering-orange-book
+  - obsidian-ai-orange-book
+  - polymarket-orange-book
+  - agent-skills-orange-book
+  - openclaw-orange-book
+  - claude-code-source-analysis-orange-book
+  - cursor-orange-book
+  - gemma4-orange-book
+  - opus-4-7-system-card-orange-book
+  - founders-playbook-orange-book
+  - doubao-work-orange-book
+  - amazon-quick-orange-book
+  - phone-skill-orange-book

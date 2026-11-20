@@ -1,0 +1,97 @@
+id: founders-playbook-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: 创始人行动手册
+  english: "The Founder’s Playbook: Building an AI-Native Startup"
+  english_official: true
+
+author:
+  name: Anthropic
+  native_name: null
+  url: null
+
+translator:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+languages:
+  - zh
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/founders-playbook/
+  repository: null
+  hosted_editions: []
+
+site_slug: founders-playbook
+
+upstream:
+  kind: url
+  url: https://www.huasheng.ai/orange-books/founders-playbook/
+
+editions:
+  - language: zh
+    version: null
+    format: html
+    path: https://pub-161ae4b5ed0644c4a43b5c6412287e03.r2.dev/latest/founders-playbook.html
+    blob_sha: null
+
+edition_patterns: {}
+
+newest_editions: {}
+
+license:
+  spdx: null
+  evidence: none
+  statement: null
+  permalink: null
+  blob_sha: null
+  commit: null
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      https://www.huasheng.ai/orange-books/founders-playbook/ fetched on 2026-11-20. The static
+      HTML was searched for License, 许可, 版权, 授权, 转载, CC BY, MIT, Copyright, and ©, and the visible
+      text was read. None of those words appears. The page's description of the book ends with a
+      sentence about use: 本译本仅供个人学习与内部研究，不做商业发行。
+    - >-
+      https://www.huasheng.ai/orange-books/ (the author's listing of all books) fetched on
+      2026-11-20. The static HTML was searched for License, 许可, 版权, 授权, 转载, CC BY, MIT, Copyright,
+      and ©. No terms were found.
+    - >-
+      https://pub-161ae4b5ed0644c4a43b5c6412287e03.r2.dev/latest/founders-playbook.html (the
+      online reading edition) fetched on 2026-11-20. The visible text was searched for License,
+      许可, 版权, 授权, 转载, CC BY, Copyright, ©, 商业, 仅供, All rights, and 著作权. The edition carries a
+      sentence about use: 本译本仅供个人学习与内部研究使用，不做商业发行。
+
+permissions:
+  redistribution: unclear
+  adaptation: unclear
+  commercial_use: denied
+  attribution_required: false
+  share_alike: false
+  third_party_rights: true
+
+mirror_status: reference-only
+
+notices:
+  - >-
+    The page credits the book as “Anthropic 原作 · 花叔 译”, so Anthropic is recorded as the author and
+    HuaShu as the translator. The page says the translation was produced with Claude Code.
+  - >-
+    The English title is the title of Anthropic's original handbook as the page gives it. The page
+    links the original at https://claude.com/blog/the-founders-playbook.
+  - >-
+    The page says the translation is for personal study and internal research only and is not
+    distributed commercially: 本译本仅供个人学习与内部研究，不做商业发行。 The sentence stands on a web page with no
+    commit to pin it to, so the license evidence stays none.
+  - The record flags third-party rights because the translated handbook is Anthropic's.
+  - >-
+    The edition URL points at a location named latest, so its content can change without the URL
+    changing. The page shows no version for the book.
+  - >-
+    The author's listing links no repository for this book. Its page offers the PDF through the
+    author's WeChat official account and gives no public file URL.
