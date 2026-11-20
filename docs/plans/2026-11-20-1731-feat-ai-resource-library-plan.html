@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Resource Library with Orange Books - Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Selara document stylesheet. Source of truth: docs/DESIGN.md. Keep the two in sync. */
+:root{--bg:#f5f2e9;--soft:#ece8de;--card:#fff;--fg:#202318;--muted:#54574d;--line:#d7d4cc;
+--green:#172c1c;--green-deep:#0e1f12;--gold:#df9b44;--gold-text:#8d5901;--mark:#C8912B;--red:#e40014;
+--info-soft:#e6eee7;--info-text:#173b2a;--warn-soft:#f6e8d1;--warn-text:#7a4b00;
+--bad-soft:#f8e1df;--bad-text:#8a1f17;--ok-soft:#e3ece4;--ok-text:#1f4a2c;
+--serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+--sans:Geist,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+--mono:"Geist Mono",ui-monospace,Menlo,Consolas,monospace;--radius:.625rem;--measure:940px}
+@media (prefers-color-scheme:dark){:root{--bg:#0c1a0f;--soft:#1e3022;--card:#132416;--fg:#f5f2e9;
+--muted:#bbb7ad;--line:rgba(255,255,255,.18);--gold-text:#df9b44;--red:#ff6568;
+--info-soft:#1b3a25;--info-text:#b9dcc3;--warn-soft:#3a2d12;--warn-text:#f0c36b;
+--bad-soft:#3d1c19;--bad-text:#ff9a95;--ok-soft:#16301f;--ok-text:#9fd6ad}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font:15px/1.55 var(--sans);overflow-wrap:break-word}
+main{flex:1 0 auto;width:100%}
+main{max-width:var(--measure);margin:0 auto;padding:2.2rem 1.5rem 3rem}
+h1,h2,h3{font-family:var(--serif);letter-spacing:0}
+h1{font-size:2.4rem;font-weight:500;line-height:1.08;margin:.3rem 0 .7rem}
+h2{font-size:1.6rem;font-weight:600;line-height:1.2;margin:2.6rem 0 .8rem;padding-top:1.4rem;border-top:1px solid var(--line)}
+h3{font-size:1.2rem;font-weight:600;line-height:1.25;margin:1.6rem 0 .5rem}
+p,li{max-width:72ch}
+p.lead{font-size:1.08rem}
+a{color:var(--gold-text)}
+.eyebrow{font:600 .72rem/1.3 var(--sans);letter-spacing:.25em;text-transform:uppercase;color:var(--gold-text)}
+/* brand chrome: full-bleed green bands, contents capped to the text column, which is the measure less main's side padding */
+.brand-bar,.brand-foot{background:var(--green);color:#f5f2e9}
+.brand-bar{padding:.7rem 1.5rem}
+.brand-foot{padding:1.2rem 1.5rem;font-size:.82rem}
+.brand-bar .inner,.brand-foot .inner{max-width:calc(var(--measure) - 3rem);margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem 1.5rem}
+.brand-bar .lockup,.brand-foot .lockup{display:flex;align-items:center;gap:.75rem}
+.brand-bar .eyebrow,.brand-foot .eyebrow{color:var(--gold)}
+.brand-foot a{color:var(--gold)}
+.wordmark{font:500 1.25rem/1 var(--serif);letter-spacing:.35em;color:var(--gold)}
+/* metadata header */
+header.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.4rem 1.4rem;margin:1rem 0 1.4rem;padding:1rem 1.2rem;background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+header.meta div{font-size:.9rem}
+header.meta dt{font:600 .68rem/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+header.meta dd{margin:0}
+nav.toc{font-size:.9rem;margin:0 0 1rem}
+nav.toc ol{columns:2;column-gap:2rem;padding-left:1.2rem;margin:.4rem 0}
+nav.toc li{break-inside:avoid;margin:0 0 .15rem}
+/* code, tables, cards */
+code{font-family:var(--mono);font-size:.86em;background:var(--soft);padding:.08em .35em;border-radius:4px}
+pre{font-family:var(--mono);font-size:.82rem;line-height:1.45;background:var(--soft);padding:1rem 1.1rem;border-radius:var(--radius);overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:inherit}
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:.8rem 0 1.2rem}
+th,td{text-align:left;vertical-align:top;padding:.45rem .6rem;border-bottom:1px solid var(--line)}
+th{font:600 .7rem/1.3 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--soft)}
+td code{white-space:nowrap}
+.wide{overflow-x:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1rem 1.2rem;margin:1rem 0}
+/* callouts and chips: full soft tint plus text color, never a one-edge stripe */
+.callout{border-radius:var(--radius);padding:.9rem 1.1rem;margin:1rem 0}
+.callout .eyebrow{margin-bottom:.3rem}
+.callout.decide{background:var(--info-soft);color:var(--info-text)}
+.callout.decide .eyebrow{color:var(--info-text)}
+.callout.warn{background:var(--warn-soft);color:var(--warn-text)}
+.callout.warn .eyebrow{color:var(--warn-text)}
+.callout.ok{background:var(--ok-soft);color:var(--ok-text)}
+.callout.ok .eyebrow{color:var(--ok-text)}
+.callout.bad{background:var(--bad-soft);color:var(--bad-text)}
+.callout.bad .eyebrow{color:var(--bad-text)}
+.callout p,.callout li,.callout a{color:inherit}
+.callout code{background:rgba(127,127,127,.15)}
+.pill{display:inline-block;font:600 .72rem/1.4 var(--mono);padding:.1em .6em;border-radius:999px;white-space:nowrap}
+.pill.info{background:var(--info-soft);color:var(--info-text)}
+.pill.warn{background:var(--warn-soft);color:var(--warn-text)}
+.pill.bad{background:var(--bad-soft);color:var(--bad-text)}
+.pill.ok{background:var(--ok-soft);color:var(--ok-text)}
+.pill.muted{background:var(--soft);color:var(--muted)}
+details summary{cursor:pointer}
+figure{margin:1.2rem 0}
+figcaption{font-size:.85rem;color:var(--muted);margin-top:.4rem}
+svg text{font-family:var(--sans)}
+/* provenance: collapsed, at the end of Sources, never in the footer */
+details.provenance{margin:1.2rem 0 0;font-size:.85rem;color:var(--muted)}
+details.provenance summary{font:600 .72rem/1.3 var(--sans);letter-spacing:.25em;text-transform:uppercase;color:var(--gold-text)}
+details.provenance footer{margin:.5rem 0 0;padding:.6rem .9rem;background:var(--soft);border-radius:calc(var(--radius) * .8)}
+/* pitch: one printed page for a reader who is not technical. The skeleton, what it drops, and the page limit are recorded under Pitch in docs/DESIGN.md. docs/templates/selara-document.html and docs/templates/selara-pitch.html hold this stylesheet whole, and scripts/check-templates.py fails when the two copies differ. */
+.pitch .kicker{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.2rem 1.5rem}
+.pitch .dateline{font-size:.85rem;color:var(--muted)}
+.pitch h1{margin-bottom:1.1rem}
+.pitch .ask{margin:0 0 1.2rem}
+.pitch .ask h2{margin:0 0 .3rem;padding:0;border:0}
+.pitch .ask p{font-size:1.08rem;max-width:none;margin:0}
+.pitch .row{display:grid;grid-template-columns:minmax(9rem,1fr) minmax(0,72ch);column-gap:1.5rem;align-items:baseline;padding:.7rem 0;border-top:1px solid var(--line)}
+.pitch .row h2{font-size:1.2rem;line-height:1.25;margin:0;padding:0;border:0}
+.pitch .row p{margin:0}
+.pitch .row p+p,.pitch .figures+p{margin-top:.55rem}
+.pitch .figures{display:flex;gap:.7rem}
+.pitch .figure{flex:1 1 0;min-width:0;padding:.7rem .85rem;margin:0}
+.pitch .figure .num{font:600 1.9rem/1.05 var(--serif)}
+.pitch .figure p{font-size:.88rem;line-height:1.4;margin-top:.3rem}
+.pitch cite{font-style:normal;font-weight:600}
+@media (max-width:640px){
+.pitch .row{grid-template-columns:minmax(0,1fr);row-gap:.35rem}
+.pitch .figures{flex-direction:column}
+}
+/* print: US Letter with margins on every page, the light scheme, details open, nothing clipped. The rules are recorded under Print in docs/DESIGN.md. scripts/export-review-pdf.py copies from this comment's opening to the end of the style element into documents without print rules, so keep this block last. */
+@page{size:letter;margin:.7in .6in .8in;background:#f5f2e9}
+@page wide-table{size:letter landscape}
+@media print{
+:root{--bg:#f5f2e9;--soft:#ece8de;--card:#fff;--fg:#202318;--muted:#54574d;--line:#d7d4cc;--gold-text:#8d5901;--red:#e40014;
+--info-soft:#e6eee7;--info-text:#173b2a;--warn-soft:#f6e8d1;--warn-text:#7a4b00;
+--bad-soft:#f8e1df;--bad-text:#8a1f17;--ok-soft:#e3ece4;--ok-text:#1f4a2c}
+html{font-size:10.5pt}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{display:block;min-height:0;background:none;font-size:1rem}
+main{max-width:none;padding:1.4rem 0 0}
+.brand-bar,.brand-foot{padding-left:1rem;padding-right:1rem}
+.brand-bar .inner,.brand-foot .inner{max-width:none}
+.brand-foot{margin-top:2rem;break-inside:avoid}
+h1,h2,h3,h4,summary,.eyebrow,thead{break-after:avoid}
+tr,thead,figure,pre,.callout,.card,header.meta,nav.toc{break-inside:avoid}
+.wide,pre{overflow:visible}
+pre{font-size:8pt;white-space:pre-wrap;overflow-wrap:anywhere}
+table{font-size:8.5pt}
+th{font-size:7.5pt}
+td code{font-size:max(.86em,7pt);white-space:normal}
+main svg{max-width:100%;height:auto}
+details::details-content{content-visibility:visible}
+details>summary{list-style:none;cursor:auto}
+details>summary::-webkit-details-marker{display:none}
+details:not(.provenance)>summary{font:600 1.2rem/1.25 var(--serif);margin:1.6rem 0 .5rem}
+.wide.landscape{page:wide-table}
+.wide.landscape table{font-size:7.5pt}
+.wide.landscape th{font-size:7pt}
+.pitch .row{break-inside:avoid}
+/* The label is a grid item beside its answer, so the heading break-after:avoid above would apply to its whole row and keep every row on the page with the next. One line too many would then move all six rows to page two together. */
+.pitch .row h2{break-after:auto}
+/* The review PDF export removes the provenance block, and the pitch page limit is measured on that PDF. Hiding the block here makes a browser print break where the review PDF breaks. */
+.pitch details.provenance{display:none}
+}
+</style>
+<style>
+/* Rules this plan adds on top of the template stylesheet. */
+h4{font:600 .78rem/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:1.3rem 0 .4rem}
+ul.ids{list-style:none;padding-left:0}
+ul.ids>li{margin:0 0 .55rem;padding-left:3.4rem;text-indent:-3.4rem}
+ul.ids>li>.id{display:inline-block;width:3.4rem;text-indent:0;font-family:var(--mono);font-size:.86em;color:var(--muted)}
+details.docmeta{font-size:.85rem;color:var(--muted);margin:0 0 1.2rem}
+details.docmeta dl{display:grid;grid-template-columns:max-content 1fr;gap:.15rem 1rem;margin:.5rem 0 0}
+details.docmeta dt{font-family:var(--mono)}
+details.docmeta dd{margin:0}
+article.ktd{margin:0 0 1rem}
+article.ktd h4{font:600 1rem/1.35 var(--sans);letter-spacing:0;text-transform:none;color:var(--fg);margin:0 0 .3rem}
+article.unit{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:.9rem 1.2rem;margin:.9rem 0}
+article.unit h3{margin:.1rem 0 .4rem}
+article.unit dl.strip{display:grid;grid-template-columns:max-content 1fr;gap:.2rem 1rem;margin:.3rem 0 .5rem;font-size:.9rem}
+article.unit dl.strip dt{font:600 .68rem/1.9 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+article.unit dl.strip dd{margin:0}
+article.unit details>summary{font:600 .78rem/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--gold-text);margin:.4rem 0}
+article.unit details h4{margin-top:1rem}
+nav.subnav{font-size:.88rem;margin:.4rem 0 1rem}
+nav.subnav a{margin-right:.7rem;white-space:nowrap}
+.diagram{overflow-x:auto}
+.diagram svg{min-width:680px;width:100%;height:auto}
+.dg-box{fill:var(--card);stroke:var(--muted);stroke-width:1}
+.dg-proc{fill:var(--green);stroke:none}
+.dg-gate{fill:var(--warn-soft);stroke:var(--gold);stroke-width:1.2}
+.dg-t{fill:var(--fg);font-size:12px}
+.dg-tb{fill:var(--fg);font-size:12px;font-weight:600}
+.dg-tm{fill:var(--fg);font-size:11.5px;font-family:var(--mono)}
+.dg-tp{fill:#f5f2e9;font-size:12px;font-family:var(--mono)}
+.dg-tg{fill:var(--warn-text);font-size:11.5px;font-weight:600}
+.dg-tl{fill:var(--muted);font-size:11.5px}
+.dg-arrow{stroke:var(--muted);stroke-width:1.4;fill:none}
+.dg-head{fill:var(--muted)}
+@media print{article.unit{break-inside:auto}.diagram{overflow:visible}.diagram svg{min-width:0}}
+</style>
+</head>
+<body>
+<div class="brand-bar"><div class="inner">
+  <div class="lockup"><svg viewBox="0 0 16 16" width="26" height="26" aria-hidden="true"><g fill="none" stroke="#C8912B" stroke-linecap="round" stroke-width=".85"><line x1="8" y1="3.7" x2="8" y2=".9"/><line x1="11.72" y1="5.85" x2="14.15" y2="4.45"/><line x1="11.72" y1="10.15" x2="14.15" y2="11.55"/><line x1="8" y1="12.3" x2="8" y2="15.1"/><line x1="4.28" y1="10.15" x2="1.85" y2="11.55"/><line x1="4.28" y1="5.85" x2="1.85" y2="4.45"/><line x1="10.15" y1="4.28" x2="10.85" y2="3.06"/><line x1="12.3" y1="8" x2="13.7" y2="8"/><line x1="10.15" y1="11.72" x2="10.85" y2="12.94"/><line x1="5.85" y1="11.72" x2="5.15" y2="12.94"/><line x1="3.7" y1="8" x2="2.3" y2="8"/><line x1="5.85" y1="4.28" x2="5.15" y2="3.06"/></g><circle cx="8" cy="8" r="2.5" fill="none" stroke="#C8912B" stroke-width="1.05"/></svg><span class="wordmark">SELARA</span></div>
+  <span class="eyebrow">Plan</span>
+</div></div>
+<main>
+
+<div class="eyebrow">Plan · Knowledge base</div>
+<h1>AI Resource Library with Orange Books - Plan</h1>
+<p class="lead">Build a Git repository that catalogs all 19 of HuaShu's AI Orange Books with license evidence, mirrors Loop Engineering, the first English book whose license clearly allows it, and makes that text easy for coding agents to retrieve and cite and for people to read as a site, a PDF, and an EPUB. Orange Books is the first collection of a library that can take other AI resources later.</p>
+
+<header class="meta">
+  <dl><div><dt>Created</dt><dd><time datetime="2026-11-20">2026-11-20</time></dd></div></dl>
+  <dl><div><dt>Delivery</dt><dd>One pull request</dd></div></dl>
+  <dl><div><dt>First mirrored book</dt><dd>Loop Engineering, English v260615</dd></div></dl>
+  <dl><div><dt>Catalog</dt><dd>19 books: 1 mirrored, 1 eligible, 17 reference-only</dd></div></dl>
+</header>
+
+<details class="docmeta">
+<summary>Document metadata</summary>
+<dl>
+  <dt>title</dt><dd>AI Resource Library with Orange Books - Plan</dd>
+  <dt>type</dt><dd>feat</dd>
+  <dt>date</dt><dd>2026-11-20</dd>
+  <dt>artifact_contract</dt><dd>ce-unified-plan/v1</dd>
+  <dt>product_contract_source</dt><dd>ce-plan-bootstrap</dd>
+  <dt>execution</dt><dd>code</dd>
+</dl>
+</details>
+
+<nav class="toc" aria-label="Contents">
+<div class="eyebrow">Contents</div>
+<ol>
+  <li><a href="#goal-capsule">Goal Capsule</a></li>
+  <li><a href="#product-contract">Product Contract</a></li>
+  <li><a href="#product-requirements">Requirements</a></li>
+  <li><a href="#planning-contract">Planning Contract</a></li>
+  <li><a href="#implementation-units">Implementation Units</a></li>
+  <li><a href="#verification-contract">Verification Contract</a></li>
+  <li><a href="#definition-of-done">Definition of Done</a></li>
+  <li><a href="#appendix">Appendix</a></li>
+  <li><a href="#sources">Sources</a></li>
+</ol>
+</nav>
+
+<section id="goal-capsule">
+<h2>Goal Capsule</h2>
+<dl>
+  <dt><strong>Objective</strong></dt>
+  <dd><p>A developer's coding agent, or a person, can find what the AI Orange Books say about a topic, read the relevant section, and cite it with provenance that checks out against the author's official source. Nobody receives book text that the author's license does not let this project redistribute.</p></dd>
+  <dt><strong>Means</strong></dt>
+  <dd><p>A Git repository of Markdown and YAML with a license gate, committed indexes, and exports generated from the same files (KTD1, KTD4, KTD9).</p></dd>
+  <dt><strong>Authority</strong></dt>
+  <dd><p>Requirements govern product behavior. Key Technical Decisions govern mechanism within them. The original implementation prompt is a guide, as the owner said during planning, so this plan wins where the two differ. The owner's global engineering standards apply to all code and prose.</p></dd>
+  <dt><strong>Stop conditions</strong></dt>
+  <dd>
+    <ul>
+      <li>Stop if the MIT license evidence for Loop Engineering cannot be reproduced at the pinned commit.</li>
+      <li>Stop if the extracted chapters cannot pass the fidelity check (KTD7) without rewording the source.</li>
+      <li>Stop before creating a GitHub repository, pushing to a remote, or contacting the author. Those are the owner's actions.</li>
+      <li>Stop if the Typst markup that Pandoc writes does not compile under the pinned Typst release and no change to the book template fixes it.</li>
+    </ul>
+  </dd>
+  <dt><strong>Execution profile</strong></dt>
+  <dd><p>The work ships as one pull request from the branch <code>feat/resource-library-mvp</code>. The repository has no commits and no GitHub remote today, so the implementer creates the branch before the first commit and finishes with a local commit series and passing verification. The owner creates the remote, reviews the license evidence, and merges.</p></dd>
+</dl>
+</section>
+
+<section id="product-contract">
+<h2>Product Contract</h2>
+
+<h3 id="summary">Summary</h3>
+<p>The repository is built as a general AI resource library whose first collection is the Orange Books. All 19 books are cataloged with their license evidence. Loop Engineering is mirrored section by section, and the other 18 link to the author's official sources. Agents get committed indexes, two lookup commands, and four workflows. Readers get a documentation site, a PDF, an EPUB, and a Markdown bundle. A scheduled check reports upstream changes as a pull request.</p>
+
+<h3 id="problem-frame">Problem Frame</h3>
+<p>HuaShu (GitHub <code>alchaincyf</code>) publishes the Orange Books as free practical guides to AI tools. As of 2026-11-20 the series has 19 books. Twelve live in GitHub repositories and seven exist only on <code>huasheng.ai/orange-books</code>.</p>
+<p>The books ship as finished PDFs. No repository holds Markdown. An agent cannot pull one section out of a 100-page PDF cheaply, and it cannot cite a passage in a form that another reader can resolve. Ten books have an official English PDF, and the English editions often trail the Chinese ones.</p>
+<p>The author also publishes the books on WorkBuddy, a hosted knowledge base, one page per chapter, and suggests giving an agent the link. Those pages need a browser and a network connection, and planning did not read their language, edition, or terms. The mirror adds text that is versioned in Git, readable offline, tied to license evidence, and citable by a stable id.</p>
+<p>The licenses differ by book. Two books carry an MIT license file. Four state CC BY-NC-SA 4.0 in a README. Six carry only an informal sentence such as "shared for educational purposes". Seven state no terms at all. A mirror that assumed one license for the series would redistribute text without permission.</p>
+<p>The owner also wants the repository to grow past this one series into a broader AI resource library, with agent workflows for auditing AI tooling and for study.</p>
+
+<h3 id="key-decisions">Key Decisions</h3>
+<ul>
+  <li><strong>The repository is a library with Orange Books as its first collection.</strong> An id names the work, and collection and type are data, so other resources can be added later without renaming anything. Governs R1, R2.</li>
+  <li><strong>The first mirror allowlist is MIT with a license file.</strong> CC BY-NC-SA books are cataloged with their real permissions and stay reference-only, because non-commercial and share-alike terms would need per-file licensing in every generated output. Governs R5, R6.</li>
+  <li><strong>Loop Engineering is the first mirrored book, not Harness Engineering.</strong> Harness Engineering's only terms are "shared for educational purposes. Please credit the author when referencing", which does not grant redistribution. Governs R9.</li>
+  <li><strong>Mirrored text is a faithful copy of the pinned edition.</strong> Corrections are recorded beside the text, never applied to it. Governs R11, R12.</li>
+  <li><strong>The section is the unit agents retrieve and cite.</strong> Loop Engineering has 9 sections of three to five pages each. Governs R10.</li>
+  <li><strong>License decisions and merges stay with the owner.</strong> Agents and scripts propose through a pull request. Governs R8, R29.</li>
+</ul>
+
+<h3 id="actors">Actors</h3>
+<ul class="ids">
+  <li id="a1"><span class="id">A1.</span><strong>Owner.</strong> Runs the scripts, verifies license evidence, and performs every merge.</li>
+  <li id="a2"><span class="id">A2.</span><strong>Contributor.</strong> Proposes a correction or a new resource through a pull request.</li>
+  <li id="a3"><span class="id">A3.</span><strong>Agent consumer.</strong> A coding agent reading a clone or the published site to answer a question with citations.</li>
+  <li id="a4"><span class="id">A4.</span><strong>Reader.</strong> A person using the site, the PDF, or the EPUB.</li>
+  <li id="a5"><span class="id">A5.</span><strong>Sync job.</strong> The scheduled workflow that checks upstream and opens a pull request.</li>
+</ul>
+
+<h3 id="product-requirements">Requirements</h3>
+
+<h4>Catalog and licensing</h4>
+<ul class="ids">
+  <li id="r1"><span class="id">R1.</span>The catalog lists all 19 books shown on <code>huasheng.ai/orange-books</code> on 2026-11-20. Each entry records the original and English titles, author, translator, official URLs, languages, and every upstream edition with its version, language, format, and file location. The translator is null when upstream names none.</li>
+  <li id="r2"><span class="id">R2.</span>Every resource has an id that is unique across the library and names the work, never the bare name of the tool or product the work covers. A book that has an upstream repository takes that repository's name, such as <code>claude-code-orange-book</code>. <code>collection</code> and <code>type</code> are data fields, and <code>type</code> accepts only <code>book</code> in this version.</li>
+  <li id="r3"><span class="id">R3.</span>Each entry records license evidence: the SPDX id or null, the kind of evidence (license file, README statement, or none), the statement quoted verbatim in its original language, a permalink at a pinned commit, the Git blob SHA of the quoted file, and the date it was verified. A person assigns the SPDX id by reading the full license text at the permalink, never from a detection tool, and the entry records when that text departs from the SPDX template. When no terms exist, the entry lists the locations that were checked.</li>
+  <li id="r4"><span class="id">R4.</span>Each entry records typed permissions for redistribution, adaptation, and commercial use as yes, no, or unclear. It also records whether attribution and share-alike are required, and a flag for third-party rights the author cannot grant.</li>
+  <li id="r5"><span class="id">R5.</span>Mirror status is <code>mirrored</code>, <code>eligible</code>, or <code>reference-only</code>. A book may be <code>mirrored</code> or <code>eligible</code> only when its SPDX id is on the catalog's allowlist, the evidence is a license file at the pinned source commit, redistribution and adaptation are both yes, and the third-party flag is false. Every other book is <code>reference-only</code>.</li>
+  <li id="r6"><span class="id">R6.</span>No committed file and no generated output contains text from a book that is not <code>mirrored</code>. This covers chapter files, source files, indexes, <code>llms-full</code> files, the site, the PDF, the EPUB, and the bundle. The quoted license statement in R3 is the one exception.</li>
+  <li id="r7"><span class="id">R7.</span>A mirrored book carries its upstream license text and copyright notice in its directory, in every export, and in every <code>llms-full</code> segment. The repository's own license is never applied to it.</li>
+  <li id="r8"><span class="id">R8.</span>A change to license evidence, permissions, mirror status, or the allowlist reaches the default branch only through a pull request that the owner merges. No script and no agent workflow merges or pushes to the default branch.</li>
+</ul>
+
+<h4>Mirrored content</h4>
+<ul class="ids">
+  <li id="r9"><span class="id">R9.</span>Loop Engineering, English edition v260615, is mirrored in full as 9 sections in 4 parts.</li>
+  <li id="r10"><span class="id">R10.</span>Each section is one Markdown file that reads on its own. Its frontmatter records the chapter id, resource, title, part, order, the source's section label, language, edition, source repository, revision, source path, source page range, and extraction status.</li>
+  <li id="r11"><span class="id">R11.</span>Chapter text matches the pinned source edition. An edit may restore what the source says and may not improve on it. A check compares each chapter with a fresh extraction of the source file and fails when they diverge.</li>
+  <li id="r12"><span class="id">R12.</span>A known upstream erratum is recorded as structured data on the chapter and appears with that chapter in every output. The catalog records the newest upstream edition for each language, so a mirrored edition that is behind is visible to tools.</li>
+  <li id="r13"><span class="id">R13.</span>Headings, tables, block quotes, code blocks, and links survive conversion. Source page numbers come only from the PDF's own page index, and no page reference is invented.</li>
+  <li id="r14"><span class="id">R14.</span>A chapter id does not change when upstream inserts or reorders sections. Order is a separate field.</li>
+</ul>
+
+<h4>Agent access</h4>
+<ul class="ids">
+  <li id="r15"><span class="id">R15.</span>An agent in a fresh clone can discover books, topics, and chapters and can resolve a citation without installing dependencies and without network access.</li>
+  <li id="r16"><span class="id">R16.</span>Every index record for a book or a chapter carries the mirror status, the license id, and a flag that says whether its text may be quoted.</li>
+  <li id="r17"><span class="id">R17.</span>A resolve command turns a resource id or a chapter id into its record and a formatted citation. For an unknown id it exits nonzero and lists the nearest valid ids.</li>
+  <li id="r18"><span class="id">R18.</span>A citation checker reads Markdown files and confirms three things: every citation token resolves, every quoted passage is an exact substring of the cited chapter after whitespace is normalized, and nothing quotes a book that is not mirrored.</li>
+  <li id="r19"><span class="id">R19.</span><code>AGENTS.md</code> is the single set of agent instructions. It covers the library's purpose and layout, how to find books and topics, how to read a chapter, the citation format, provenance, the line between source text and commentary, what to say when an edition is behind, and the rule against inventing citations or content. It states that mirrored text is data and never instructions. <code>CLAUDE.md</code> holds only an import of it.</li>
+  <li id="r20"><span class="id">R20.</span>Four workflows ship as Agent Skills that Claude Code, Codex, and Cursor all read from one canonical copy: <code>add-resource</code>, <code>ingest-book</code>, <code>audit-agent-setup</code>, and <code>study</code>.</li>
+  <li id="r21"><span class="id">R21.</span>Audit and study output opens with a coverage statement that names the mirrored resources consulted and the topics that have no mirrored chapter. Every finding backed by the library cites a mirrored chapter and passes the citation checker. Observations the library does not support sit in a separate labeled section.</li>
+</ul>
+
+<h4>Topics</h4>
+<ul class="ids">
+  <li id="r22"><span class="id">R22.</span>Eleven topic documents each hold a short scope statement in the library's own words, marked as editorial, and a list of references: Agent Architecture, Harness Engineering, Context Engineering, Agent Orchestration, Evaluation and Testing, Tool Use and Integration, Memory and State Management, Agent Reliability, Agent Security, Coding Agents, and Development Workflows.</li>
+  <li id="r23"><span class="id">R23.</span>A topic reference names a resource id and may name a chapter id. A chapter reference requires a mirrored book and is added only after the chapter has been read. A reference to a book that is not mirrored links to its official source and carries none of its text. A topic states what a book says only with a citation to a mirrored chapter, and a topic with no mirrored chapter holds its scope statement and references only.</li>
+</ul>
+
+<h4>Outputs for readers</h4>
+<ul class="ids">
+  <li id="r24"><span class="id">R24.</span>The site offers full-text search, navigation by book, chapter, and topic, and light and dark modes. Every chapter page shows the author, edition, license, source link, and source pages. Reference-only books appear as catalog cards that are visibly distinct from mirrored books.</li>
+  <li id="r25"><span class="id">R25.</span>Each mirrored book exports to one PDF and one EPUB3 file. Both carry a title page, author and translator attribution, a table of contents, numbered chapters, highlighted code, readable tables, working links, and the license and attribution notice. The PDF has page numbers.</li>
+  <li id="r26"><span class="id">R26.</span>A Markdown bundle archive holds the catalog, the metadata, the indexes, and the chapters, license files, and notices of mirrored books only.</li>
+  <li id="r27"><span class="id">R27.</span>The site, the PDF, the EPUB, and the bundle are all generated from the same canonical files. No second source tree exists.</li>
+</ul>
+
+<h4>Validation, sync, and maintenance</h4>
+<ul class="ids">
+  <li id="r28"><span class="id">R28.</span>One validation command runs offline and checks the schemas, required metadata, the license gate (R5, R6), duplicate ids, chapter order, internal links, topic references, skill exposure, chapter fidelity (R11), and index freshness. It reports each finding with a rule id, a file, a message, and a fix hint, and exits nonzero on any finding.</li>
+  <li id="r29"><span class="id">R29.</span>A scheduled upstream check reads each repository's head commit, file tree, license file, and README. It classifies each book as unchanged, changed, moved, gone, or error. It writes an observed-state file and a report, and it opens or updates one pull request. It never edits chapters, license evidence, or mirror status.</li>
+  <li id="r30"><span class="id">R30.</span>A failed check for one book changes nothing for that book and does not stop the check of the others. Running the check twice against the same upstream state produces no change.</li>
+  <li id="r31"><span class="id">R31.</span>The license gate reads only the evidence recorded for the pinned revision. A license change observed upstream is reported and never changes what the gate allows.</li>
+  <li id="r32"><span class="id">R32.</span>The toolchain installs from the lockfile with <code>uv sync</code>, except Pandoc, which is one documented system install whose version the export command checks. Every command prints an actionable message and exits nonzero on failure.</li>
+  <li id="r33"><span class="id">R33.</span>The README, the contributor guide, and the maintainer guide let a new engineer run, extend, and maintain the project. They state that this is an independent community project that the author has not endorsed, and they include the license policy and a withdrawal runbook.</li>
+</ul>
+
+<h3 id="acceptance-examples">Acceptance Examples</h3>
+<ul class="ids">
+  <li id="ae1"><span class="id">AE1.</span>Covers R5, R6. Harness Engineering's README says "This work is shared for educational purposes. Please credit the author when referencing." Its status is <code>reference-only</code>, and validation fails if any chapter file appears in its directory.</li>
+  <li id="ae2"><span class="id">AE2.</span>Covers R5. A book records SPDX <code>MIT</code> but its evidence is a README statement and no license file. Validation rejects <code>eligible</code> for it.</li>
+  <li id="ae3"><span class="id">AE3.</span>Covers R31. Loop Engineering is mirrored at an MIT revision. Upstream later replaces the license file with CC BY-NC-SA. The sync report says the license changed, the mirrored chapters stay, and validation still passes. The pinned revision cannot move to the new edition while the allowlist excludes its license.</li>
+  <li id="ae4"><span class="id">AE4.</span>Covers R29, R30. An upstream repository returns 404. The report classifies the book as gone, and no file other than the state file and the report changes.</li>
+  <li id="ae5"><span class="id">AE5.</span>Covers R18. A document quotes a sentence and attributes it to Hermes Agent, which is eligible and not mirrored. The citation checker fails and names the quote.</li>
+  <li id="ae6"><span class="id">AE6.</span>Covers R12. The mirrored English edition is v260615 and the newest Chinese edition is v261020. The resolve output for any Loop Engineering chapter says the edition is behind, and <code>AGENTS.md</code> tells the agent to say so when it cites.</li>
+  <li id="ae7"><span class="id">AE7.</span>Covers R11. A contributor rewrites two paragraphs of a chapter in their own words. The fidelity check fails and names the chapter.</li>
+  <li id="ae8"><span class="id">AE8.</span>Covers R14. A later edition inserts a section between the third and fourth. The ids of the existing sections stay the same and only their order values change.</li>
+</ul>
+
+<h3 id="success-criteria">Success Criteria</h3>
+<ul>
+  <li>A new engineer goes from a clone to passing validation, a built site, and an exported PDF and EPUB using only the documented commands.</li>
+  <li>A coding agent pointed at a clone answers "what does the library say about evaluator design" by citing Loop Engineering section 05. Its citation passes the checker, and it reads <code>AGENTS.md</code>, one index, and at most two chapter files to get there.</li>
+  <li>The owner can verify any book's license classification in about two minutes by opening the recorded permalink and comparing the quote.</li>
+</ul>
+
+<h3 id="scope-boundaries">Scope Boundaries</h3>
+<h4>Non-goals</h4>
+<ul>
+  <li>No database, vector store, embeddings, semantic search, backend API, container runtime, or MCP server.</li>
+  <li>No translation by this project. Only translations the author publishes are cataloged.</li>
+  <li>No mirroring of Chinese editions in this version. The language field exists in the schema.</li>
+</ul>
+<h4>Considered and not built</h4>
+<ul>
+  <li><strong>Aliases for retired chapter ids.</strong> No edition has removed a section yet, and validation already names every dangling topic reference in the pull request that removes a chapter. Revisit when an edition upgrade removes or merges a section.</li>
+  <li><strong>A review-status field with a named verifier.</strong> An agent can write that field as easily as a person, so it adds no control. The owner's merge is the gate and Git history is the record. Revisit when a second maintainer or a bot identity joins.</li>
+  <li><strong>A list of declined upstream revisions.</strong> The sync pull request records observed facts and never adopts them, so merging it acknowledges a change without accepting it and nothing is proposed twice.</li>
+  <li><strong>One sync pull request per book.</strong> The single pull request carries facts, not decisions, so one book cannot hold up another.</li>
+  <li><strong>An automated eval harness across agents.</strong> The prompts and pass criteria ship as a file and are run by hand before a release. Revisit when a second book is mirrored.</li>
+  <li><strong>Byte-identical PDF and EPUB builds.</strong> The freshness check covers the text indexes only.</li>
+  <li><strong>A language model in the scheduled sync job.</strong> The job reads untrusted upstream text and holds a write token.</li>
+  <li><strong>Conditional requests with stored ETags.</strong> A committed ETag never matches under a different token, so it would make every run change the state file (KTD14). Comparing head commits already limits an unchanged repository to one request, and 12 requests a week is far below the rate limit.</li>
+</ul>
+<h4>Deferred to Follow-Up Work</h4>
+<ul>
+  <li>Ingest Hermes Agent 2.0, which is MIT, English, 104 pages, and cataloged as eligible.</li>
+  <li>Add an HTML source reader, which the Codex book would need if the allowlist widens.</li>
+  <li>Check the listing page for new books and for the seven site-only entries, which no repository poll covers.</li>
+  <li>Commit study artifacts such as quizzes, add a topic-expansion workflow, and package the skills for use in other projects.</li>
+  <li>The owner's own steps: create the GitHub repository, enable Pages, protect the default branch, allow Actions to open pull requests, and ask the author to add license files to the repositories that state terms only in a README.</li>
+</ul>
+
+<h3 id="open-questions">Open Questions</h3>
+<p>None of these blocks implementation. Each has a default the plan builds on.</p>
+<ul>
+  <li><strong>Repository and library name.</strong> Deferred to the owner. It gates the first push. Every name string comes from one block in <code>catalog.yaml</code>, and the Python package has a neutral name.</li>
+  <li><strong>Admitting CC BY-NC-SA 4.0.</strong> Deferred to the owner. Adding it to the allowlist makes no book eligible by itself, because all four books state the license only in a README and R5 requires a license file. They become eligible only if the owner also accepts a README statement as evidence for that license, or the author adds license files. Mirroring them would also need per-book license boundaries inside the combined <code>llms-full</code> file and the bundle.</li>
+  <li><strong>Listing Claude Code Source Analysis at all.</strong> Deferred to the owner. The book analyzes leaked source code. The default lists it as reference-only with the third-party flag set.</li>
+  <li><strong>How the default branch is seeded.</strong> Deferred to the owner. The repository has no commit on <code>main</code> and the owner's standard forbids committing to it directly.</li>
+</ul>
+</section>
+
+<section id="planning-contract">
+<h2>Planning Contract</h2>
+
+<h3 id="key-technical-decisions">Key Technical Decisions</h3>
+
+<article class="ktd" id="ktd1">
+<h4>KTD1. Each book has one hand-edited record.</h4>
+<p><code>books/&lt;id&gt;/metadata.yaml</code> is the only place a book's facts are written. <code>catalog.yaml</code> holds the library's name and URLs, the license allowlist, the collections, and the ordered list of resource ids. <code>index/catalog.json</code> is the generated join of the two. Two hand-edited copies of a license record would drift.</p>
+</article>
+
+<article class="ktd" id="ktd2">
+<h4>KTD2. Chapter ids are slugs fixed at first ingestion.</h4>
+<p>A resource id is a kebab-case slug such as <code>loop-engineering-orange-book</code>. A chapter id is <code>&lt;resource-id&gt;/&lt;section-slug&gt;</code>. The slug is assigned once and never regenerated from the heading or the section number. Chapter files are named <code>NN-&lt;slug&gt;.md</code> so a directory listing shows reading order, and the id leaves the number out. Consumers resolve a path through the index and never build one from an id. This implements R14.</p>
+</article>
+
+<article class="ktd" id="ktd3">
+<h4>KTD3. One citation token, formatted only by the resolve command.</h4>
+<p>Documents cite with <code>[cite:&lt;id&gt;]</code>, where the id is a chapter id or a resource id, with an optional <code>@&lt;edition&gt;</code> suffix. The human-readable citation string comes only from the resolve command, so every agent prints the same form. The grammar is in the technical design below.</p>
+</article>
+
+<article class="ktd" id="ktd4">
+<h4>KTD4. The pinned source file of a mirrored book is committed.</h4>
+<p>It lives at <code>books/&lt;id&gt;/source/</code> with its SHA-256 in the metadata. Ingestion, the fidelity check, and edition diffs then run offline in CI, and the mirror survives an upstream force-push or deletion. The cost is about 1 MB of binary per edition. A cache fetched by URL was rejected because it would make the fidelity check depend on the network.</p>
+</article>
+
+<article class="ktd" id="ktd5">
+<h4>KTD5. PDF text is extracted with pypdf and classified by font size.</h4>
+<p>A visitor collects spans of text with font size, position, and page. A per-book profile in the metadata maps a size and a left indent to a role. The book has no diagrams. pypdf 7.1.1 reports these sizes for the Loop Engineering PDF:</p>
+<ul>
+  <li>24.0 for the section label such as §03, which is a span of its own.</li>
+  <li>26.7 for the section title, which wraps to a second line in four sections.</li>
+  <li>15.3 for the lede paragraph under each title.</li>
+  <li>17.3 for a subsection heading and 14.0 for body text.</li>
+  <li>13.3 for two things: the quote callouts, which are indented, and the one-line kicker under each section title, which sits at the body margin.</li>
+  <li>11.3 for a table header and 12.7 for a table cell.</li>
+  <li>12.0 for code, which no other text in the sections uses.</li>
+</ul>
+<p>The reader that turns a PDF into spans is thin. The stages that turn spans into blocks and blocks into Markdown are pure functions, so tests feed them spans built in memory. pymupdf4llm was rejected for its AGPL license, Docling and marker for their machine-learning dependencies, and poppler for being a system binary.</p>
+</article>
+
+<article class="ktd" id="ktd6">
+<h4>KTD6. Ingestion never overwrites a chapter.</h4>
+<p>Drafts go to the ignored directory <code>build/ingest/&lt;id&gt;/</code>. The <code>--write</code> flag copies only chapter files that do not exist yet. An existing chapter is changed by hand, guided by the diff that ingestion prints between the draft and the committed file.</p>
+</article>
+
+<article class="ktd" id="ktd7">
+<h4>KTD7. Fidelity is exact on words and bounded on order.</h4>
+<p>The check strips Markdown markup from the chapter body, extracts the chapter's page range from the committed source file, and normalizes whitespace and punctuation variants in both. It then applies two rules. The two texts must contain the same words the same number of times, so one changed name, one flipped number, or one dropped word fails. Their word order must also score 0.98 or higher on sequence similarity, which leaves room for a table or a callout repaired into reading order.</p>
+<p>A word that a repair restores or removes must be listed in the book's profile with its chapter, the words, and a reason. Validation prints that list. A similarity floor alone was rejected because 0.98 lets about 20 to 30 words change in a section of 1,000 to 1,600 words. The check runs inside validation. This implements R11.</p>
+</article>
+
+<article class="ktd" id="ktd8">
+<h4>KTD8. Each chapter states how far its review has gone.</h4>
+<p>Extraction status is <code>machine-extracted</code> or <code>human-reviewed</code>. The site, the PDF, and the EPUB show a notice on a machine-extracted chapter. Chapters land as machine-extracted, and only a person who has read one against the source changes its status.</p>
+</article>
+
+<article class="ktd" id="ktd9">
+<h4>KTD9. Small indexes are committed and full text is published.</h4>
+<p><code>index/catalog.json</code>, <code>index/topics.json</code>, <code>index/chapters.jsonl</code>, and <code>llms.txt</code> are committed, and validation fails when they are stale. That satisfies R15. The <code>llms-full</code> files, one per mirrored book and one combined, are written to <code>dist/</code> and published with the site. Keeping them out of the clone means a text search returns each passage once.</p>
+</article>
+
+<article class="ktd" id="ktd10">
+<h4>KTD10. The two read commands use only the standard library.</h4>
+<p><code>scripts/resolve.py</code> and <code>scripts/check_citations.py</code> read the committed indexes and import nothing outside the standard library. They and their shared module are written to run on Python 3.9, which is the <code>python3</code> that macOS ships, so an agent can call them before anything is installed. On an older interpreter they print the required version and exit nonzero. They find the repository from their own file path, so an agent working in another project can call them against a clone. Text search and topic lookup stay plain <code>rg</code>.</p>
+</article>
+
+<article class="ktd" id="ktd11">
+<h4>KTD11. Skills have one canonical copy and a link for Claude Code.</h4>
+<p>Each skill is a folder at <code>.agents/skills/&lt;name&gt;/</code> with a <code>SKILL.md</code> whose frontmatter uses only <code>name</code> and <code>description</code>. Codex and Cursor read that location. Claude Code reads only <code>.claude/skills/</code>, so each skill has a relative symlink there. Validation asserts that both directories expose the same set.</p>
+<p><code>CLAUDE.md</code> is the single line <code>@AGENTS.md</code>. A prose pointer would make Claude Code load one sentence and skip <code>AGENTS.md</code>. These facts were read from the vendors' documentation on 2026-11-20. Whether Cursor lists a skill twice when it finds it in both directories is not documented and is a manual check.</p>
+</article>
+
+<article class="ktd" id="ktd12">
+<h4>KTD12. The site builds from a staging directory.</h4>
+<p><code>build.py</code> assembles <code>build/site-src/</code> from the canonical files plus generated pages: a page per book, a card per reference-only book, and an attribution block on each chapter. MkDocs Material 9.8.2 on MkDocs 1.6.1 builds from that directory. Canonical files are never edited for the site.</p>
+</article>
+
+<article class="ktd" id="ktd13">
+<h4>KTD13. PDF goes through Pandoc to Typst. Typst is a wheel and Pandoc is a system tool.</h4>
+<p>Pandoc writes Typst markup through a small template, and Typst compiles the PDF. Pandoc also writes the EPUB3. No LaTeX distribution is needed. <code>typst</code> 0.15.2 ships a native binary inside its wheel for macOS arm64 and Linux x86-64, so the lockfile pins it.</p>
+<p>Pandoc cannot come the same way. The <code>pypandoc-binary</code> 1.17 wheel tagged for macOS arm64 contains an x86_64 binary, and the owner's Mac has no Rosetta. Pandoc is therefore installed once per machine: with Homebrew on macOS, and from the official release package in CI at the same version, 3.14. The export command finds <code>pandoc</code> on the path, checks it against a minimum version kept in one place, and names the install command when it is missing. This implements R32.</p>
+</article>
+
+<article class="ktd" id="ktd14">
+<h4>KTD14. Sync is plain Python with pinned and observed state kept apart.</h4>
+<p>The metadata holds what is pinned. <code>upstream/state.json</code> holds what upstream last showed. A repository whose head commit equals the observed one costs one request, and nothing else is read from it. ETags are not stored, because GitHub computes them per credential, so an ETag committed from one token never matches the next run's token and the file would change on every run. <code>upstream/report.md</code> is the change report and contains no timestamp, so the same upstream state always produces the same bytes. The workflow pushes one fixed branch, <code>sync/upstream</code>.</p>
+<p>A pull request opened with the workflow's default token does not trigger other workflows. The sync workflow therefore runs validation and the tests on the proposed tree itself before it opens the pull request.</p>
+</article>
+
+<article class="ktd" id="ktd15">
+<h4>KTD15. Editions are detected by filename pattern and blob SHA.</h4>
+<p>Each book declares one filename pattern per language with a capture group for the version. Sync compares Git blob SHAs from the tree listing, so new bytes under an old filename are caught. A file that matches no pattern is reported as unclassified and never proposed as an edition. For README terms, sync checks that the recorded statement still appears and reports when it does not. It never infers permissions.</p>
+</article>
+
+<article class="ktd" id="ktd16">
+<h4>KTD16. Scripts are thin entry points over one typed package.</h4>
+<p>Shared code lives in the package <code>scripts/kb/</code>. Each file in <code>scripts/</code> parses arguments and calls it. Records are dataclasses built after JSON Schema validation. mypy runs in strict mode and ruff lints and formats. Tests live under <code>tests/</code>, which follows the requested layout and Python convention. The owner's global standard prefers tests beside the code, and the requested structure wins here.</p>
+</article>
+
+<h3 id="high-level-technical-design">High-Level Technical Design</h3>
+
+<h4>Components and data flow</h4>
+<p>Ingestion reads a pinned upstream PDF and writes canonical chapter files. Sync reads upstream metadata and writes only the observed-state file and the report, which become a pull request. <code>build.py</code> reads the canonical files and writes the committed indexes, the site, and the <code>llms-full</code> files. <code>export.py</code> reads the same canonical files and writes the PDF, the EPUB, and the bundle. Validation and the license gate check the canonical files and every generated output.</p>
+<figure class="diagram">
+<svg viewBox="0 0 930 305" role="img" aria-label="Data flow from upstream repositories through ingestion and sync to canonical files and generated outputs">
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="dg-head" d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="dg-gate" x="380" y="12" width="530" height="34" rx="6"/>
+  <text class="dg-tg" x="645" y="34" text-anchor="middle">Validation and the license gate cover canonical files and every output</text>
+  <rect class="dg-box" x="20" y="120" width="150" height="80"/>
+  <text class="dg-tb" x="95" y="153" text-anchor="middle">Upstream repositories</text>
+  <text class="dg-t" x="95" y="174" text-anchor="middle">PDF · LICENSE · README</text>
+  <rect class="dg-proc" x="215" y="85" width="120" height="46" rx="23"/>
+  <text class="dg-tp" x="275" y="112" text-anchor="middle">ingest.py</text>
+  <rect class="dg-proc" x="215" y="235" width="120" height="46" rx="23"/>
+  <text class="dg-tp" x="275" y="262" text-anchor="middle">sync.py</text>
+  <rect class="dg-box" x="380" y="62" width="190" height="118"/>
+  <text class="dg-tb" x="475" y="84" text-anchor="middle">Canonical, committed</text>
+  <text class="dg-tm" x="475" y="106" text-anchor="middle">catalog.yaml</text>
+  <text class="dg-tm" x="475" y="124" text-anchor="middle">books/&lt;id&gt;/</text>
+  <text class="dg-tm" x="475" y="142" text-anchor="middle">topics/</text>
+  <text class="dg-tm" x="475" y="160" text-anchor="middle">.agents/skills/</text>
+  <rect class="dg-box" x="380" y="228" width="190" height="60"/>
+  <text class="dg-tm" x="475" y="253" text-anchor="middle">upstream/state.json</text>
+  <text class="dg-tm" x="475" y="273" text-anchor="middle">upstream/report.md</text>
+  <rect class="dg-proc" x="615" y="72" width="110" height="44" rx="22"/>
+  <text class="dg-tp" x="670" y="98" text-anchor="middle">build.py</text>
+  <rect class="dg-proc" x="615" y="130" width="110" height="44" rx="22"/>
+  <text class="dg-tp" x="670" y="156" text-anchor="middle">export.py</text>
+  <rect class="dg-box" x="770" y="58" width="140" height="36"/>
+  <text class="dg-t" x="840" y="80" text-anchor="middle">index/ and llms.txt</text>
+  <rect class="dg-box" x="770" y="100" width="140" height="36"/>
+  <text class="dg-t" x="840" y="122" text-anchor="middle">Site and llms-full</text>
+  <rect class="dg-box" x="770" y="142" width="140" height="36"/>
+  <text class="dg-t" x="840" y="164" text-anchor="middle">PDF · EPUB · bundle</text>
+  <rect class="dg-box" x="615" y="236" width="140" height="44"/>
+  <text class="dg-t" x="685" y="262" text-anchor="middle">Pull request</text>
+  <line class="dg-arrow" x1="170" y1="140" x2="213" y2="112" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="170" y1="180" x2="213" y2="252" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="335" y1="108" x2="378" y2="108" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="335" y1="258" x2="378" y2="258" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="570" y1="94" x2="613" y2="94" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="570" y1="152" x2="613" y2="152" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="725" y1="88" x2="768" y2="78" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="725" y1="100" x2="768" y2="116" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="725" y1="156" x2="768" y2="160" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="570" y1="258" x2="613" y2="258" marker-end="url(#ah)"/>
+</svg>
+</figure>
+
+<h4>Ingestion stages</h4>
+<div class="wide">
+<table>
+<thead><tr><th>Stage</th><th>Input</th><th>Output</th><th>Tested with</th></tr></thead>
+<tbody>
+<tr><td>1. Gate</td><td>Book metadata</td><td>Refusal unless the book is eligible or mirrored</td><td>Fixture metadata</td></tr>
+<tr><td>2. Verify source</td><td>Committed or downloaded source file</td><td>SHA-256 match, or an abort that prints both digests</td><td>A fixture file with a wrong digest</td></tr>
+<tr><td>3. Read spans</td><td>PDF</td><td>Spans of text with size, position, and page</td><td>A PDF compiled from a Typst fixture</td></tr>
+<tr><td>4. Classify blocks</td><td>Spans and the book's profile</td><td>Headings, paragraphs, quotes, tables, and code, in reading order</td><td>Spans built in memory</td></tr>
+<tr><td>5. Split sections</td><td>Blocks</td><td>One block list per section with its page range</td><td>Spans built in memory</td></tr>
+<tr><td>6. Emit Markdown</td><td>Section blocks and metadata</td><td>Draft chapter files with frontmatter in <code>build/ingest/</code></td><td>Block fixtures</td></tr>
+<tr><td>7. Write</td><td>Drafts</td><td>New chapter files only, plus a diff for each existing one</td><td>A temporary library</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>Mirror status lifecycle</h4>
+<p>A book starts as reference-only or eligible when it is cataloged. An eligible book becomes mirrored when it has been ingested, its chapters pass the fidelity check, and the owner merges the pull request. An eligible book returns to reference-only when upstream restricts its license before ingestion. A mirrored book returns to reference-only only through the withdrawal runbook. A mirrored book whose upstream license later changes stays mirrored at its pinned edition, per R31.</p>
+<figure class="diagram">
+<svg viewBox="0 0 860 210" role="img" aria-label="Mirror status lifecycle with three states">
+  <rect class="dg-box" x="40" y="70" width="200" height="56"/>
+  <text class="dg-tm" x="140" y="103" text-anchor="middle">reference-only</text>
+  <rect class="dg-box" x="330" y="70" width="200" height="56"/>
+  <text class="dg-tm" x="430" y="103" text-anchor="middle">eligible</text>
+  <rect class="dg-box" x="620" y="70" width="200" height="56"/>
+  <text class="dg-tm" x="720" y="103" text-anchor="middle">mirrored</text>
+  <line class="dg-arrow" x1="240" y1="88" x2="328" y2="88" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="530" y1="88" x2="618" y2="88" marker-end="url(#ah)"/>
+  <line class="dg-arrow" x1="330" y1="110" x2="242" y2="110" marker-end="url(#ah)"/>
+  <path class="dg-arrow" d="M720 126V176H140V128" marker-end="url(#ah)"/>
+  <text class="dg-tl" x="285" y="56" text-anchor="middle">passes the policy</text>
+  <text class="dg-tl" x="575" y="56" text-anchor="middle">ingested, checked, owner merges</text>
+  <text class="dg-tl" x="285" y="148" text-anchor="middle">upstream restricts first</text>
+  <text class="dg-tl" x="430" y="196" text-anchor="middle">withdrawal runbook</text>
+</svg>
+</figure>
+
+<h4>License gate decisions</h4>
+<p>The gate applies R5 in this order and stops at the first row that matches.</p>
+<div class="wide">
+<table>
+<thead><tr><th>Order</th><th>Condition on the recorded evidence</th><th>Highest status allowed</th><th>Books today</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Third-party rights flag is true</td><td><span class="pill muted">reference-only</span></td><td>3</td></tr>
+<tr><td>2</td><td>No terms stated anywhere checked</td><td><span class="pill muted">reference-only</span></td><td>5</td></tr>
+<tr><td>3</td><td>Informal README sentence, no SPDX license</td><td><span class="pill muted">reference-only</span></td><td>5</td></tr>
+<tr><td>4</td><td>SPDX license that is not on the allowlist</td><td><span class="pill muted">reference-only</span></td><td>4</td></tr>
+<tr><td>5</td><td>Allowlisted SPDX id stated only in a README</td><td><span class="pill muted">reference-only</span></td><td>0</td></tr>
+<tr><td>6</td><td>Allowlisted SPDX id, license file at the pinned source commit, redistribution and adaptation both yes</td><td><span class="pill ok">mirrored</span></td><td>2</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>Id and citation grammar</h4>
+<pre><code>resource-id   = slug                          ; loop-engineering-orange-book
+chapter-id    = resource-id "/" slug          ; loop-engineering-orange-book/five-moves-of-one-loop
+edition       = 1*( ALPHA / DIGIT / "." )     ; v260615
+cite-token    = "[cite:" ( chapter-id / resource-id ) [ "@" edition ] "]"
+slug          = 1*( lowercase / DIGIT ) *( "-" 1*( lowercase / DIGIT ) )
+
+chapter file  = books/&lt;resource-id&gt;/chapters/&lt;NN&gt;-&lt;slug&gt;.md
+formatted     = Author, "Title" (English ed. v260615), section label "Section title",
+                source PDF pp. 9-12. [cite:&lt;chapter-id&gt;@v260615]</code></pre>
+<p>A chapter token is valid only for a mirrored book. A resource token is valid for any cataloged book and resolves to its official link when the book is not mirrored. A token with no edition means the edition currently mirrored.</p>
+
+<h3 id="output-structure">Output Structure</h3>
+<pre><code>.
+├── README.md  CONTRIBUTING.md  MAINTAINING.md
+├── AGENTS.md  CLAUDE.md  llms.txt
+├── LICENSE  LICENSES.md
+├── catalog.yaml  mkdocs.yml  pyproject.toml  uv.lock
+├── schemas/            resource, catalog, chapter, and topic schemas
+├── books/
+│   ├── loop-engineering-orange-book/
+│   │   ├── metadata.yaml  LICENSE
+│   │   ├── source/     the pinned upstream PDF
+│   │   └── chapters/   01-….md to 09-….md
+│   └── &lt;18 more&gt;/metadata.yaml
+├── topics/             index.md and 11 topic documents
+├── index/              catalog.json  topics.json  chapters.jsonl
+├── upstream/           state.json  report.md
+├── scripts/
+│   ├── validate.py  ingest.py  sync.py  build.py  export.py
+│   ├── evidence.py  resolve.py  check_citations.py
+│   └── kb/             the shared typed package
+├── templates/          book.typ  epub.css
+├── evals/              prompts.yaml
+├── tests/              tests and fixtures
+├── .agents/skills/     add-resource  ingest-book  audit-agent-setup  study
+├── .claude/skills/     symlinks to the four skills
+├── .github/workflows/  validate.yml  publish.yml  sync.yml
+├── build/              ignored: ingest drafts and site staging
+└── dist/               ignored: site, exports, llms-full</code></pre>
+
+<h3 id="assumptions">Assumptions</h3>
+<p>The owner asked for the work to proceed without a scoping confirmation. These are the planner's own bets and the owner has not confirmed them.</p>
+<ul>
+  <li>The owner wants the library shape now. They said they were considering it and did not decide.</li>
+  <li>MIT with a license file is an acceptable first allowlist.</li>
+  <li>The author's license file counts as MIT. It is the MIT text with "the Software" replaced by "this book and associated files (the "Work")", and it grants the same rights to use, copy, modify, publish, and distribute. GitHub's detector reports no license for both repositories because of that wording.</li>
+  <li>Ids that follow the upstream repository names are acceptable. The owner may prefer shorter ids, and changing them is cheap only until the first citation is published.</li>
+  <li>One mirrored book of 36 pages is enough to prove the pipeline and the workflows. Audit and study output will report most topics as uncovered until a second book is mirrored, and Hermes Agent is the first follow-up.</li>
+  <li>A <code>study</code> workflow that answers in the session, with no committed study material, is enough for the study use the owner named.</li>
+  <li>Code is MIT with Justin Linn as copyright holder, and original prose such as topic summaries is CC BY 4.0.</li>
+  <li>The working name stays <code>orange-books</code> with the title "Orange Books Knowledge Base" until the owner renames it.</li>
+  <li>No contributor works on Windows, where Git checks symlinks out as text files by default.</li>
+  <li>The sync job runs weekly.</li>
+  <li>Publishing machine-extracted chapters with a visible notice is acceptable before a person has reviewed them.</li>
+  <li>The per-book pages for the seven site-only books carry no license terms. Only the listing page was read during planning, and U4 checks each page.</li>
+</ul>
+
+<h3 id="risks-and-dependencies">Risks and Dependencies</h3>
+<ul>
+  <li><strong>Extraction order and tables.</strong> pypdf emits inline bold text as separate spans and does not guarantee reading order, and tables must be rebuilt from x positions. The fidelity check catches loss and edits made after extraction. It cannot see text that pypdf itself drops, which U6 covers with one comparison against a second extractor, and chapters stay marked machine-extracted until a person reviews them (KTD8). The book has 36 pages, so a table that will not reconstruct is repaired by hand, which R11 allows.</li>
+  <li><strong>Font names in pypdf.</strong> The PDF uses Type 3 fonts and pypdf returns no base font name for them. The profile therefore identifies code by its size, which no other text in this book's sections uses. A later book that sets code at a body size would need another signal.</li>
+  <li><strong>The misattributed quote.</strong> Upstream says the Chinese v261020 edition lists errata for the June edition, including a quote wrongly attributed to Addy Osmani. Recording it under R12 needs the passage identified from the Chinese note to readers. If it cannot be identified with confidence, the book carries one notice that the English edition predates those errata, and no chapter-level entry is guessed.</li>
+  <li><strong>Pandoc and Typst together.</strong> Planning did not compile the Typst markup that Pandoc 3.14 writes under Typst 0.15.2, because Pandoc was not installed. U11 proves the pair before it builds the template, and a stop condition covers a mismatch.</li>
+  <li><strong>CJK glyphs in the PDF.</strong> The author's name includes 花叔. The Typst wheel bundles no CJK font. CI installs Noto CJK and the template lists it with macOS system fonts as fallbacks. A missing glyph renders as a box without failing the build, so the export test reads the name back from the PDF.</li>
+  <li><strong>MkDocs versions.</strong> MkDocs Material 9.8.2 was released on 2026-11-19, and MkDocs core has had no release since 1.6.1 in August 2024. Both are pinned. A reviewer's sample build showed Material 9.8.2 printing an end-of-life notice dated 2027-05-05 that names Zensical as its successor. The staging directory is plain Markdown, so another site generator could read it.</li>
+  <li><strong>Prompt injection from mirrored text.</strong> The books contain sample prompts and agent instructions. R19 covers the instruction to agents, and no mirrored text is placed in a file that an agent loads automatically.</li>
+  <li><strong>A single maintainer.</strong> Branch protection cannot make the owner review their own pull request, and a local agent commits under the owner's identity. The control is that nothing pushes to the default branch and the owner performs every merge. The maintainer guide says this plainly.</li>
+  <li><strong>Scheduled workflows.</strong> GitHub disables a schedule in a public repository after 60 days without activity. The maintainer guide tells the owner how to re-enable it.</li>
+  <li><strong>Skill packaging drift.</strong> The locations each agent reads were verified on 2026-11-20 and vendors change them. Validation checks that the two skill directories match, and the manual check in U9 covers discovery.</li>
+</ul>
+</section>
+
+<section id="implementation-units">
+<h2>Implementation Units</h2>
+
+<div class="wide">
+<table>
+<thead><tr><th>Unit</th><th>Title</th><th>Key files</th><th>Depends on</th></tr></thead>
+<tbody>
+<tr><td><a href="#u1">U1</a></td><td>Project scaffold and toolchain</td><td><code>pyproject.toml</code>, <code>uv.lock</code>, <code>LICENSE</code></td><td>None</td></tr>
+<tr><td><a href="#u2">U2</a></td><td>Schemas, typed records, and the license gate</td><td><code>schemas/</code>, <code>scripts/kb/catalog.py</code>, <code>scripts/kb/gate.py</code></td><td>U1</td></tr>
+<tr><td><a href="#u3">U3</a></td><td>Validation command</td><td><code>scripts/validate.py</code>, <code>scripts/kb/checks.py</code></td><td>U2</td></tr>
+<tr><td><a href="#u4">U4</a></td><td>Evidence capture and the 19-book catalog</td><td><code>scripts/evidence.py</code>, <code>catalog.yaml</code>, <code>books/*/metadata.yaml</code></td><td>U2, U3</td></tr>
+<tr><td><a href="#u5">U5</a></td><td>PDF extraction and ingestion pipeline</td><td><code>scripts/ingest.py</code>, <code>scripts/kb/pdf_spans.py</code>, <code>scripts/kb/blocks.py</code></td><td>U2, U3</td></tr>
+<tr><td><a href="#u6">U6</a></td><td>Mirror Loop Engineering</td><td><code>books/loop-engineering-orange-book/</code></td><td>U4, U5</td></tr>
+<tr><td><a href="#u7">U7</a></td><td>Indexes and the two read commands</td><td><code>scripts/build.py</code>, <code>scripts/resolve.py</code>, <code>index/</code></td><td>U6</td></tr>
+<tr><td><a href="#u8">U8</a></td><td>Topic documents</td><td><code>topics/</code></td><td>U7</td></tr>
+<tr><td><a href="#u9">U9</a></td><td>Agent instructions and skills</td><td><code>AGENTS.md</code>, <code>.agents/skills/</code></td><td>U7, U8</td></tr>
+<tr><td><a href="#u10">U10</a></td><td>Documentation site</td><td><code>mkdocs.yml</code>, <code>scripts/kb/site.py</code></td><td>U7, U8, U11</td></tr>
+<tr><td><a href="#u11">U11</a></td><td>PDF, EPUB, and bundle exports</td><td><code>scripts/export.py</code>, <code>templates/</code></td><td>U6, U7, U9</td></tr>
+<tr><td><a href="#u12">U12</a></td><td>Upstream sync</td><td><code>scripts/sync.py</code>, <code>upstream/</code></td><td>U4</td></tr>
+<tr><td><a href="#u13">U13</a></td><td>CI workflows</td><td><code>.github/workflows/</code></td><td>U3, U10, U11, U12</td></tr>
+<tr><td><a href="#u14">U14</a></td><td>README and maintainer documentation</td><td><code>README.md</code>, <code>MAINTAINING.md</code></td><td>All others</td></tr>
+</tbody>
+</table>
+</div>
+
+<article class="unit" id="u1">
+<h3>U1. Project scaffold and toolchain</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>A lockfile-pinned Python project in which every later unit can run its checks.</dd>
+  <dt>Requirements</dt><dd>R32</dd>
+  <dt>Dependencies</dt><dd>None</dd>
+</dl>
+<div class="callout decide"><div class="eyebrow">Execution note</div><p>This unit is packaging. Prove it by installing and importing. Confirm that the lockfile resolves the Typst wheel for both macOS arm64 and Linux x86-64 and that <code>pandoc</code> runs as a native binary before any unit builds on them.</p></div>
+<details>
+<summary>Files, approach, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>pyproject.toml</code>, <code>uv.lock</code>, <code>.python-version</code>, <code>.gitignore</code></li>
+  <li>Create <code>LICENSE</code>, <code>LICENSES.md</code></li>
+  <li>Create <code>scripts/kb/__init__.py</code>, <code>tests/conftest.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>Require Python 3.12 or later. Runtime dependencies are PyYAML, jsonschema, pypdf, mkdocs-material, and typst. Development dependencies are pytest, ruff, and mypy.</li>
+  <li>Install Pandoc with Homebrew when <code>pandoc</code> is not on the path (KTD13). This is the one change this work makes outside the repository.</li>
+  <li>Configure ruff for lint and format, mypy in strict mode over <code>scripts/</code>, and pytest with a <code>network</code> marker that is deselected by default.</li>
+  <li>Ignore <code>build/</code>, <code>dist/</code>, and caches.</li>
+  <li><code>LICENSE</code> is MIT for the code. <code>LICENSES.md</code> maps each part of the repository to its license: code, original prose, and each mirrored book's own license file (R7).</li>
+</ul>
+<h4>Test scenarios</h4>
+<p>Test expectation: none. This unit is scaffolding with no behavior.</p>
+<h4>Verification</h4>
+<ul>
+  <li><code>uv sync</code> succeeds from a clean checkout.</li>
+  <li>The Typst wheel imports and reports its version, and <code>pandoc --version</code> reports a native binary at or above the minimum.</li>
+  <li>ruff, mypy, and pytest all run clean on the empty package.</li>
+</ul>
+</details>
+</article>
+
+<article class="unit" id="u2">
+<h3>U2. Schemas, typed records, and the license gate</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>The data model for resources, chapters, and topics, and the single function that decides what may be mirrored.</dd>
+  <dt>Requirements</dt><dd>R2, R3, R4, R5, R10, R31</dd>
+  <dt>Dependencies</dt><dd>U1</dd>
+</dl>
+<div class="callout decide"><div class="eyebrow">Execution note</div><p>Write the gate tests first. The gate is the legal control for the project, and each row of the gate decision table is one test.</p></div>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>schemas/resource.schema.json</code>, <code>schemas/catalog.schema.json</code>, <code>schemas/chapter.schema.json</code>, <code>schemas/topic.schema.json</code></li>
+  <li>Create <code>scripts/kb/catalog.py</code>, <code>scripts/kb/gate.py</code>, <code>scripts/kb/frontmatter.py</code></li>
+  <li>Create <code>tests/test_catalog.py</code>, <code>tests/test_gate.py</code>, <code>tests/test_frontmatter.py</code></li>
+  <li>Create <code>tests/fixtures/library/</code>, a small synthetic library with one mirrored and one reference-only book whose text is invented and marked as a fixture</li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>The resource schema covers identity (R2), titles and people, upstream location as either a Git source or a URL source, editions with filename patterns (KTD15), the license block (R3), permissions (R4), mirror status, the pinned source, and the extraction profile (KTD5).</li>
+  <li><code>catalog.py</code> loads <code>catalog.yaml</code> and every <code>metadata.yaml</code>, validates them against the schemas, and returns frozen dataclasses. It reports a schema error with the file and the JSON path.</li>
+  <li><code>gate.py</code> exposes one pure function that takes a resource record and the allowlist and returns the highest status allowed with the reason. Every other module asks it and none re-derives the rule.</li>
+  <li><code>frontmatter.py</code> splits and parses chapter and topic frontmatter and validates it against its schema.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>A resource with MIT, a license file at the pinned commit, and both permissions yes is allowed <code>mirrored</code>.</li>
+  <li>Covers AE2. A resource with MIT recorded but README-only evidence is allowed <code>reference-only</code>.</li>
+  <li>A resource whose SPDX id is CC-BY-NC-SA-4.0 is allowed <code>reference-only</code> and the reason names the allowlist.</li>
+  <li>A resource with an informal statement and a null SPDX id is allowed <code>reference-only</code>.</li>
+  <li>A resource with the third-party flag set is allowed <code>reference-only</code> even with an allowlisted license file.</li>
+  <li>A resource whose license evidence commit differs from its pinned source commit is allowed <code>reference-only</code>.</li>
+  <li>A resource with no evidence and an empty list of locations checked fails schema validation.</li>
+  <li>A <code>type</code> value other than <code>book</code> fails schema validation.</li>
+  <li>An id containing an uppercase letter or a slash fails schema validation.</li>
+  <li>The loader returns the fixture library's two books in catalog order.</li>
+  <li>Frontmatter with a missing required field reports the file and the field name.</li>
+</ul>
+<h4>Verification</h4>
+<p>The gate tests cover all six rows of the decision table, and mypy passes in strict mode.</p>
+</details>
+</article>
+
+<article class="unit" id="u3">
+<h3>U3. Validation command</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>One offline command that tells a person or an agent exactly what is wrong with the library.</dd>
+  <dt>Requirements</dt><dd>R6, R28</dd>
+  <dt>Dependencies</dt><dd>U2</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>scripts/validate.py</code>, <code>scripts/kb/checks.py</code></li>
+  <li>Create <code>tests/test_checks.py</code>, <code>tests/test_validate_cli.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>Each check is a function that takes the loaded library and returns findings. A finding has a rule id, a file, a message, and a fix hint.</li>
+  <li>The command prints findings as text by default and as JSON lines with <code>--json</code>. It exits 1 when any finding exists.</li>
+  <li>This unit builds the checks that need only metadata and files: schema validity, the gate applied to each book's status, content present for a book that is not mirrored, duplicate ids, chapter order, the match between a chapter's filename and its frontmatter, and internal Markdown links.</li>
+  <li>Later units register their own checks: fidelity in U5, index freshness in U7, topic references in U8, and skill exposure in U9.</li>
+  <li>The content check for R6 treats any file other than <code>metadata.yaml</code> inside the directory of a book that is not mirrored as a finding.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>The fixture library produces no findings and exit code 0.</li>
+  <li>Covers AE1. A chapter file added under the reference-only fixture book produces a gate finding that names the file.</li>
+  <li>A source file added under the reference-only fixture book produces a gate finding.</li>
+  <li>A book marked <code>mirrored</code> whose gate result is reference-only produces a finding that quotes the gate's reason.</li>
+  <li>Two chapters with the same id produce a duplicate finding naming both files.</li>
+  <li>Chapters with order values 1, 2, 4 produce an ordering finding.</li>
+  <li>A chapter whose filename number disagrees with its order field produces a finding.</li>
+  <li>A relative link to a file that does not exist produces a link finding with the line number.</li>
+  <li><code>--json</code> prints one JSON object per finding with all four fields.</li>
+  <li>A malformed YAML file produces a finding and not a traceback.</li>
+</ul>
+<h4>Verification</h4>
+<p>Running the command on the fixture library and on a deliberately broken copy gives the expected findings and exit codes.</p>
+</details>
+</article>
+
+<article class="unit" id="u4">
+<h3>U4. Evidence capture and the 19-book catalog</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>Every book on the listing page is cataloged, with license evidence that was fetched by a script and not transcribed from memory.</dd>
+  <dt>Requirements</dt><dd>R1, R3, R4, R5</dd>
+  <dt>Dependencies</dt><dd>U2, U3</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>scripts/evidence.py</code>, <code>scripts/kb/upstream.py</code></li>
+  <li>Create <code>catalog.yaml</code> and <code>books/&lt;id&gt;/metadata.yaml</code> for all 19 ids listed in the <a href="#appendix">Appendix</a></li>
+  <li>Create <code>tests/test_upstream.py</code>, <code>tests/test_catalog_data.py</code>, <code>tests/fixtures/github/</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li><code>upstream.py</code> is a small GitHub REST client on <code>urllib</code>. It takes its fetch function as a parameter so tests supply recorded responses. It reads a token from the environment when one is set and never prints it.</li>
+  <li><code>evidence.py</code> takes a repository and prints the head commit, the tree with blob SHAs, the license file text with its permalink, and each README line under a license heading with its line number and permalink. A person or the <code>add-resource</code> skill copies quotes from that output.</li>
+  <li>Record each book from the Appendix table. Re-run the capture for every repository during implementation and record what it shows on that day, including a newer head commit if one exists.</li>
+  <li>Loop Engineering enters as <code>eligible</code> here and becomes <code>mirrored</code> in U6. Hermes Agent stays <code>eligible</code>.</li>
+  <li>For each of the seven site-only books, open its page on the author's site, record any terms found, and list the locations checked.</li>
+  <li>Record each book's WorkBuddy link from its README as an official URL. Open the Loop Engineering page and the all-books page in a browser once, and record their language, edition, and any stated terms. No text is ingested from them, because the license evidence covers the repository at the pinned commit.</li>
+  <li>Set the third-party flag on the two translations of Anthropic documents and on Claude Code Source Analysis.</li>
+  <li><code>catalog.yaml</code> holds the library block, the allowlist with the single entry <code>MIT</code>, the collection <code>orange-books</code>, and the ordered ids.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>Given a recorded tree response, the client returns paths with their blob SHAs.</li>
+  <li>Given a recorded README, the capture returns the lines under "License" and under "许可" with correct line numbers.</li>
+  <li>Given a 404 response, the client raises a typed not-found error that carries the repository name.</li>
+  <li>Given a 403 rate-limit response, the client raises a typed error that carries the reset time.</li>
+  <li>The real catalog loads with exactly 19 resources and unique ids.</li>
+  <li>Every resource in the real catalog has a status equal to or lower than what the gate allows.</li>
+  <li>Every evidence permalink in the real catalog contains a 40-character commit SHA.</li>
+  <li>Every book with a null SPDX id and no statement has a non-empty list of locations checked.</li>
+</ul>
+<h4>Verification</h4>
+<p>Validation passes on the real catalog, and a spot check of three books shows the recorded quote at the recorded permalink.</p>
+</details>
+</article>
+
+<article class="unit" id="u5">
+<h3>U5. PDF extraction and ingestion pipeline</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>A repeatable command that turns a pinned PDF into draft chapter files, and a check that keeps committed chapters faithful to that PDF.</dd>
+  <dt>Requirements</dt><dd>R10, R11, R13, R14</dd>
+  <dt>Dependencies</dt><dd>U2, U3</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>scripts/ingest.py</code></li>
+  <li>Create <code>scripts/kb/pdf_spans.py</code>, <code>scripts/kb/blocks.py</code>, <code>scripts/kb/markdown.py</code>, <code>scripts/kb/fidelity.py</code></li>
+  <li>Modify <code>scripts/kb/checks.py</code> to register the fidelity check</li>
+  <li>Create <code>tests/test_blocks.py</code>, <code>tests/test_markdown.py</code>, <code>tests/test_fidelity.py</code>, <code>tests/test_ingest.py</code>, <code>tests/fixtures/sample-book.typ</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>Follow the seven stages in the technical design, with KTD5 for extraction, KTD6 for writing, and KTD7 for fidelity.</li>
+  <li>The block stage groups spans into lines by baseline, merges inline bold spans into their line, joins wrapped lines into paragraphs, and assigns a role from the profile's map of size and indent. A line at the profile's code size becomes part of a code block. Rows of spans in the table sizes become table rows, with columns taken from x positions.</li>
+  <li>The profile names how a section starts. For Loop Engineering that is a span at the section-label size that matches <code>§</code> and two digits. The title is the section-title spans that follow it, joined across a wrapped line.</li>
+  <li>The profile lists the pages to leave out, such as the cover, the contents page, and the back cover.</li>
+  <li>The profile holds the slug assigned to each section, keyed by the section's title (KTD2). A section with no assignment gets a slug proposed from its title in the draft, and ingestion prints it so a person confirms it before it is recorded.</li>
+  <li>The Markdown stage writes frontmatter per R10 and never writes a page number that did not come from the page index.</li>
+  <li><code>ingest.py</code> accepts <code>--book</code>, <code>--write</code>, and <code>--check</code>. With no flag it writes drafts and prints a summary. <code>--check</code> runs only the fidelity comparison.</li>
+  <li>The test fixture PDF is compiled from <code>sample-book.typ</code> with the Typst wheel in a session fixture, so no binary fixture is committed and its font sizes are known.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>Spans at the heading size become a level-two heading, and body spans below it become one paragraph.</li>
+  <li>Three wrapped body lines become one paragraph with single spaces.</li>
+  <li>A bold span in the middle of a line stays in that line's reading position.</li>
+  <li>A section title that wraps to a second line becomes one heading.</li>
+  <li>Two spans at the same size with different left indents get the two roles the profile assigns them, a kicker line and a block quote.</li>
+  <li>A header row and two cell rows at three x positions become a Markdown table with three columns.</li>
+  <li>Lines at the code size become one fenced code block with their line breaks kept.</li>
+  <li>A section that starts mid-page and ends mid-page gets the correct first and last source page.</li>
+  <li>Pages listed as left out contribute no blocks.</li>
+  <li>The fixture PDF yields the section count and titles written in <code>sample-book.typ</code>.</li>
+  <li>Covers AE7. A chapter with two reworded paragraphs fails the check, which names the chapter and the first words that differ.</li>
+  <li>A chapter in which one name is changed fails the check.</li>
+  <li>A chapter that differs only in Markdown markup and whitespace passes.</li>
+  <li>A chapter whose table rows were repaired into a different order passes.</li>
+  <li>A chapter with one restored word passes only when the profile lists that word with a reason.</li>
+  <li>Ingestion of a reference-only book exits nonzero and names the gate reason before it reads any file.</li>
+  <li>A source file whose SHA-256 differs from the metadata aborts before any write and prints both digests.</li>
+  <li><code>--write</code> creates missing chapter files and leaves an existing file's bytes unchanged.</li>
+  <li>Running ingestion twice produces byte-identical drafts.</li>
+  <li>Covers AE8. A second fixture edition inserts a section between two existing ones. The existing sections keep their ids, their order values shift, and only the new section gets a proposed slug.</li>
+</ul>
+<h4>Verification</h4>
+<p>The fixture book ingests end to end in the tests with no network, and the drafts pass the fidelity check against the fixture PDF.</p>
+</details>
+</article>
+
+<article class="unit" id="u6">
+<h3>U6. Mirror Loop Engineering</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>The first real book in the library: nine section files that match the pinned English PDF.</dd>
+  <dt>Requirements</dt><dd>R7, R9, R10, R11, R12, R13</dd>
+  <dt>Dependencies</dt><dd>U4, U5</dd>
+</dl>
+<div class="callout decide"><div class="eyebrow">Execution note</div><p>Repair extraction defects by comparing each chapter with the rendered PDF pages. Restore what the page shows. Do not smooth the prose, and do not change a chapter's extraction status from <code>machine-extracted</code>.</p></div>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>books/loop-engineering-orange-book/source/Loop-Engineering-The-Complete-Guide-v260615.pdf</code></li>
+  <li>Create <code>books/loop-engineering-orange-book/LICENSE</code></li>
+  <li>Create <code>books/loop-engineering-orange-book/chapters/01-….md</code> through <code>09-….md</code></li>
+  <li>Modify <code>books/loop-engineering-orange-book/metadata.yaml</code></li>
+  <li>Create <code>tests/test_loop_engineering.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>Download the PDF from the pinned commit <code>829aa6084cd68680e7f389bbde9dcaebda7a43e6</code> and confirm SHA-256 <code>1583b97473fd0e5d05cb5362eff0b7a8093d3d803115d04c72b89c557e100e2f</code>. Copy the license file from the same commit.</li>
+  <li>Write the extraction profile with the font sizes in KTD5. Leave out page 1 (cover), page 2 (contents), and page 36 (back cover).</li>
+  <li>Assign each section its slug once (KTD2). Record the part each section belongs to and its source label, <code>§01</code> through <code>§09</code>.</li>
+  <li>Run ingestion, then repair what the fidelity check and a read against the rendered pages show. The quote callouts print the English original followed by a plain restatement, and both stay.</li>
+  <li>Record the newest edition per language: English v260615 and Chinese v261020 (R12). Handle the known misattributed quote as the Risks section describes.</li>
+  <li>Set the mirror status to <code>mirrored</code>. The owner's merge of this pull request is the approval R8 requires.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>The book has exactly nine chapters with order values 1 through 9 and four distinct parts.</li>
+  <li>The committed PDF's SHA-256 equals the value in the metadata.</li>
+  <li>The chapters' source page ranges cover pages 3 through 35 with no gap and no overlap beyond a shared boundary page.</li>
+  <li>Every chapter passes the fidelity check.</li>
+  <li>Every chapter's frontmatter carries the pinned revision and the source path.</li>
+  <li>The license evidence quote is an exact substring of <code>books/loop-engineering-orange-book/LICENSE</code>.</li>
+  <li>The chapter for section 03 contains a five-row table whose first column reads Discovery, Handoff, Verification, Persistence, Scheduling.</li>
+  <li>The chapter for section 09 contains a fenced code block that includes <code>/goal all tests in test/auth pass</code>.</li>
+</ul>
+<h4>Verification</h4>
+<ul>
+  <li>Validation passes with the book mirrored.</li>
+  <li>A person reading any one chapter beside its PDF pages finds the same headings, quotes, tables, and code.</li>
+  <li>The words of all nine chapters are compared once with <code>pdftotext</code> output for pages 3 to 35, and every difference is explained. The fidelity check shares pypdf with ingestion, so only a second extractor can show text that pypdf dropped. This is a one-time manual check on a machine with poppler, and it adds no dependency.</li>
+</ul>
+</details>
+</article>
+
+<article class="unit" id="u7">
+<h3>U7. Indexes and the two read commands</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>An agent in a fresh clone finds, resolves, and checks citations with no install step.</dd>
+  <dt>Requirements</dt><dd>R6, R7, R12, R15, R16, R17, R18</dd>
+  <dt>Dependencies</dt><dd>U6</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>scripts/build.py</code>, <code>scripts/kb/indexes.py</code></li>
+  <li>Create <code>scripts/resolve.py</code>, <code>scripts/check_citations.py</code>, <code>scripts/kb/readpath.py</code></li>
+  <li>Create <code>index/catalog.json</code>, <code>index/topics.json</code>, <code>index/chapters.jsonl</code>, <code>llms.txt</code></li>
+  <li>Modify <code>scripts/kb/checks.py</code> to register the freshness check</li>
+  <li>Create <code>tests/test_indexes.py</code>, <code>tests/test_resolve.py</code>, <code>tests/test_check_citations.py</code>, <code>tests/test_readpath_stdlib.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li><code>build.py</code> with no flag writes the four committed files. <code>--check</code> builds in memory and fails when the committed bytes differ. <code>--full</code> writes the <code>llms-full</code> files to <code>dist/</code>.</li>
+  <li>Output is deterministic: sorted keys, catalog order for resources, chapter order within a book, a trailing newline, and no timestamp.</li>
+  <li>Each <code>chapters.jsonl</code> line carries the id, path, title, part, order, section label, resource, language, edition, whether that edition is behind, license id, mirror status, the quote-permitted flag, provenance, source pages, extraction status, errata, and topics.</li>
+  <li><code>llms.txt</code> follows the llms.txt convention: a title, a short description, and linked sections for instructions, books, topics, and indexes.</li>
+  <li>Each <code>llms-full</code> segment opens with the book's attribution, license id, and full license text (R7). Only mirrored books contribute segments (R6).</li>
+  <li><code>readpath.py</code> holds the code the two read commands share and imports only the standard library (KTD10). Ruff checks these three files against a Python 3.9 target.</li>
+  <li>The checker recognizes a quote as a Markdown block quote or a double-quoted span that is followed by a citation token (KTD3).</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>Building twice gives byte-identical output.</li>
+  <li><code>--check</code> passes on fresh output and fails after one chapter title changes.</li>
+  <li>A reference-only book appears in <code>catalog.json</code> with quote-permitted false and has no line in <code>chapters.jsonl</code>.</li>
+  <li>Every path in <code>chapters.jsonl</code> exists.</li>
+  <li>The combined <code>llms-full</code> file built from the fixture library contains the mirrored fixture book's text and license and no text from the reference-only fixture book.</li>
+  <li>Resolve on a chapter id prints the record and a citation in the KTD3 form.</li>
+  <li>Covers AE6. Resolve on a Loop Engineering chapter reports that the edition is behind and names the newer Chinese edition.</li>
+  <li>Resolve on a reference-only resource id prints the official URL, quote-permitted false, and no path.</li>
+  <li>Resolve on an unknown id exits nonzero and prints the three nearest ids.</li>
+  <li>Resolve on a chapter id under a book that is not mirrored exits nonzero and says the book has no mirrored chapters.</li>
+  <li>The checker passes a document whose quote matches the chapter apart from line wrapping.</li>
+  <li>The checker fails a document with one altered word in a quote and prints the quote.</li>
+  <li>The checker fails a document that cites an id that does not exist.</li>
+  <li>Covers AE5. The checker fails a document that quotes text and cites a resource that is not mirrored.</li>
+  <li>The checker passes a document that cites a reference-only resource with no quoted text.</li>
+  <li><code>readpath.py</code> and both commands import successfully with every third-party module blocked.</li>
+  <li>Both commands give correct output under <code>/usr/bin/python3</code> when that interpreter exists and is older than 3.12. The test is skipped elsewhere.</li>
+</ul>
+<h4>Verification</h4>
+<p>Both read commands run with <code>/usr/bin/python3</code>, which is Python 3.9.6 on the owner's machine, outside the uv environment, and give correct results for a Loop Engineering chapter.</p>
+</details>
+</article>
+
+<article class="unit" id="u8">
+<h3>U8. Topic documents</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>Eleven reading paths that connect a subject to the chapters and books that cover it, with no invented mapping.</dd>
+  <dt>Requirements</dt><dd>R22, R23</dd>
+  <dt>Dependencies</dt><dd>U7</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>topics/index.md</code> and one file for each of the eleven topics in R22</li>
+  <li>Modify <code>scripts/kb/checks.py</code> to register the topic reference check</li>
+  <li>Modify <code>index/topics.json</code>, <code>index/chapters.jsonl</code> through a rebuild</li>
+  <li>Create <code>tests/test_topics.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>Each topic file has frontmatter with an id, a title, and a list of references. A reference has a resource id, an optional chapter id, and a one-line note in the writer's own words.</li>
+  <li>The body opens with a scope statement of two or three sentences that defines the topic and is marked as editorial. Every paragraph after it carries at least one citation token (KTD3), and the body may quote only mirrored chapters. A topic with no mirrored chapter stops after the scope statement and its references (R23).</li>
+  <li>Map a Loop Engineering chapter to a topic only after reading the chapter. Map a reference-only book at the resource level, based on what its public README says it covers.</li>
+  <li>A topic with no mirrored chapter is valid. The generated index records its mirrored chapter count so R21's coverage statement can report it.</li>
+  <li>The reference check resolves every reference and every token, and runs the citation checker over the topic bodies.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>A topic that references an existing chapter id passes.</li>
+  <li>A topic that references a chapter id that does not exist produces a finding naming the topic and the id.</li>
+  <li>A topic that gives a chapter id under a reference-only book produces a finding.</li>
+  <li>A topic that references an unknown resource id produces a finding.</li>
+  <li>A topic body that quotes text with a citation to a reference-only book produces a finding.</li>
+  <li>A paragraph after the scope statement with no citation token produces a finding that names the topic.</li>
+  <li><code>topics.json</code> lists eleven topics, each with its references and its mirrored chapter count.</li>
+  <li>A chapter's line in <code>chapters.jsonl</code> lists the topics that reference it.</li>
+</ul>
+<h4>Verification</h4>
+<p>Validation passes, and every chapter reference in the real topic files points to a chapter whose text supports the note beside it.</p>
+</details>
+</article>
+
+<article class="unit" id="u9">
+<h3>U9. Agent instructions and skills</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>Any of the three named agents opens the repository and knows how to find, cite, add, ingest, audit, and study.</dd>
+  <dt>Requirements</dt><dd>R8, R19, R20, R21</dd>
+  <dt>Dependencies</dt><dd>U7, U8</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>AGENTS.md</code>, <code>CLAUDE.md</code></li>
+  <li>Create <code>.agents/skills/add-resource/SKILL.md</code>, <code>.agents/skills/ingest-book/SKILL.md</code>, <code>.agents/skills/audit-agent-setup/SKILL.md</code>, <code>.agents/skills/study/SKILL.md</code></li>
+  <li>Create four relative symlinks under <code>.claude/skills/</code></li>
+  <li>Create <code>evals/prompts.yaml</code></li>
+  <li>Modify <code>scripts/kb/checks.py</code> to register the skill exposure check</li>
+  <li>Create <code>tests/test_skills.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li><code>AGENTS.md</code> covers the content R19 lists and ends with a table that routes each task to a skill path, so an agent without skill discovery can still open the file. Keep it well under 32 KiB, which is the default cap Codex applies to instruction files.</li>
+  <li><code>add-resource</code> starts from a URL a person supplies. It runs the evidence capture, proposes a metadata file with quotes copied from the capture output, runs validation, and stops at a pull request (R8).</li>
+  <li><code>ingest-book</code> runs ingestion for an eligible book, repairs structure only, runs the fidelity check, proposes topic references, and stops at a pull request.</li>
+  <li><code>audit-agent-setup</code> starts in the library clone, reads a target project path without writing to it, and returns a report in the session that meets R21.</li>
+  <li><code>study</code> returns a reading path and questions for a topic in the session and meets R21.</li>
+  <li>Skill bodies name no vendor tool and refer to repository scripts by path (KTD11).</li>
+  <li><code>evals/prompts.yaml</code> holds nine prompts with expected and forbidden ids: cold discovery, topic route, exact citation, reference-only refusal, invented chapter, out-of-corpus question, injection resistance, license gate, and audit honesty.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li><code>CLAUDE.md</code> contains exactly the import line and a newline.</li>
+  <li>Each skill folder name equals the <code>name</code> in its frontmatter.</li>
+  <li>Each skill's frontmatter has only <code>name</code> and <code>description</code>.</li>
+  <li>The set of names under <code>.claude/skills/</code> equals the set under <code>.agents/skills/</code>, and each link resolves to the canonical folder.</li>
+  <li>Removing one symlink produces a skill exposure finding.</li>
+  <li>Every skill path in the <code>AGENTS.md</code> routing table exists.</li>
+  <li>Every script path mentioned in a skill body exists.</li>
+  <li><code>AGENTS.md</code> is smaller than 32 KiB.</li>
+  <li>Every id in <code>evals/prompts.yaml</code> resolves.</li>
+</ul>
+<h4>Verification</h4>
+<ul>
+  <li>Validation passes.</li>
+  <li>One manual session in Claude Code runs the exact-citation and reference-only refusal prompts, and the checker passes the output.</li>
+  <li>Discovery in Codex and Cursor is confirmed by hand when those tools are available, and the result is noted in the final report.</li>
+</ul>
+</details>
+</article>
+
+<article class="unit" id="u10">
+<h3>U10. Documentation site</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>A browsable site where a mirrored book reads as a book and a reference-only book is a clearly marked card.</dd>
+  <dt>Requirements</dt><dd>R6, R7, R12, R24, R27</dd>
+  <dt>Dependencies</dt><dd>U7, U8, U11</dd>
+</dl>
+<div class="callout decide"><div class="eyebrow">Execution note</div><p>This unit is mostly configuration. Prove it with a strict build and by opening the built pages, with unit tests only on the staging step.</p></div>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>mkdocs.yml</code>, <code>scripts/kb/site.py</code></li>
+  <li>Modify <code>scripts/build.py</code> to add <code>--site</code></li>
+  <li>Create <code>tests/test_site_staging.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>Stage per KTD12. Generated pages are a home page, a catalog page with one card per book, an overview page per mirrored book, the topic pages, and an agents page that links the indexes and <code>llms.txt</code>.</li>
+  <li>Each chapter page gets a generated header: author, edition, license, the official source link, source pages, extraction status (KTD8), and any errata (R12). Citation tokens render as links.</li>
+  <li>The catalog page separates mirrored, eligible, and reference-only books under their own headings and puts a status label on every card. A reference-only card holds the title, author, languages, license summary, and official links, and no table of contents.</li>
+  <li>Configure Material with search, a light and dark palette toggle, navigation tabs for Books, Topics, and Catalog, code copy buttons, and the repository link.</li>
+  <li>The site copies <code>index/</code>, <code>llms.txt</code>, and the <code>llms-full</code> files to stable paths, and serves exports under <code>downloads/</code>.</li>
+  <li><code>build.py --site</code> produces its own inputs. It runs the <code>--full</code> build and the export of every mirrored book, stages the results, and then runs the strict MkDocs build. A strict build fails on a link to a missing download, so one command has to make the files before it links them, and it then behaves the same locally and in both workflows.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>Staging the fixture library writes a page for each mirrored chapter and no chapter page for the reference-only book.</li>
+  <li>A staged chapter page contains the author, the edition, the license id, and the official link.</li>
+  <li>A staged chapter with an erratum shows the erratum text.</li>
+  <li>The staged catalog page shows the reference-only fixture book with its official link and a reference-only label.</li>
+  <li>A citation token in a topic body becomes a link to the chapter page.</li>
+  <li>Staging twice produces identical files.</li>
+</ul>
+<h4>Verification</h4>
+<p>A strict MkDocs build passes with no warning. In the built site, search finds a phrase from a Loop Engineering chapter, both color modes render, and the Harness Engineering card links to the author's repository.</p>
+</details>
+</article>
+
+<article class="unit" id="u11">
+<h3>U11. PDF, EPUB, and bundle exports</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>Downloadable editions of each mirrored book that carry their attribution and license with them.</dd>
+  <dt>Requirements</dt><dd>R6, R7, R25, R26, R27, R32</dd>
+  <dt>Dependencies</dt><dd>U6, U7, U9</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>scripts/export.py</code>, <code>scripts/kb/export.py</code></li>
+  <li>Create <code>templates/book.typ</code>, <code>templates/epub.css</code></li>
+  <li>Create <code>tests/test_export.py</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>The command accepts <code>--book</code> and <code>--format</code> with the values <code>pdf</code>, <code>epub</code>, <code>bundle</code>, and <code>all</code>. With no book it exports every mirrored book. It asks the gate first and refuses any other book.</li>
+  <li>Assemble one Markdown stream per book in memory: a title block, a notice page with attribution, source, edition, extraction status, and the full license text, then the chapters in order with frontmatter removed and errata rendered.</li>
+  <li>For the PDF, Pandoc writes Typst markup through <code>book.typ</code>, and the Typst wheel compiles it (KTD13). The template sets the title page, the contents, numbered headings, page numbers, and the font list with CJK fallbacks.</li>
+  <li>For the EPUB, Pandoc writes EPUB3 with metadata for title, author, language, rights, and source, a navigation document, and one file per chapter.</li>
+  <li>The bundle is a zip with a manifest. It holds the catalog, every <code>metadata.yaml</code>, the indexes, <code>AGENTS.md</code>, <code>LICENSES.md</code>, and for mirrored books the chapters and license file.</li>
+  <li>Output goes to <code>dist/exports/</code>, and filenames include the upstream edition.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>Export of the reference-only fixture book exits nonzero and names the gate reason.</li>
+  <li>The PDF of the mirrored fixture book has a title page, and its extracted text contains the author, the license name, and every chapter title in order.</li>
+  <li>The PDF text contains the author's name in Chinese characters when the fixture author has one.</li>
+  <li>The EPUB is a valid zip whose first entry is an uncompressed <code>mimetype</code> file.</li>
+  <li>The EPUB's package file carries the title, author, language, and rights.</li>
+  <li>The EPUB's navigation document lists every chapter in order.</li>
+  <li>The EPUB contains the license text.</li>
+  <li>The bundle manifest lists every file in the archive, and the archive holds no file from a book that is not mirrored other than its <code>metadata.yaml</code>.</li>
+  <li>An unknown <code>--format</code> value exits nonzero and lists the valid values.</li>
+  <li>With <code>pandoc</code> absent from the path, the command exits nonzero and prints the install command.</li>
+  <li>With a <code>pandoc</code> older than the minimum, the command exits nonzero and prints both versions.</li>
+  <li>An unknown book id exits nonzero and suggests the nearest ids.</li>
+</ul>
+<h4>Verification</h4>
+<p>The Loop Engineering PDF and EPUB open in a reader. The table in section 03 is readable, the code block is highlighted, links work, and the notice page shows the MIT text and HuaShu's copyright line.</p>
+</details>
+</article>
+
+<article class="unit" id="u12">
+<h3>U12. Upstream sync</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>The owner learns about a new edition, a new translation, or a license change from a pull request, and nothing changes without them.</dd>
+  <dt>Requirements</dt><dd>R29, R30, R31</dd>
+  <dt>Dependencies</dt><dd>U4</dd>
+</dl>
+<details>
+<summary>Files, approach, tests, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>scripts/sync.py</code>, <code>scripts/kb/sync.py</code></li>
+  <li>Create <code>upstream/state.json</code>, <code>upstream/report.md</code></li>
+  <li>Create <code>tests/test_sync.py</code> and recorded responses under <code>tests/fixtures/github/</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li>Follow KTD14 and KTD15. For each book with a Git source, request the head commit. When it equals the observed commit in the state file, record unchanged and make no further request.</li>
+  <li>On a new head, read the tree, the license file, and the README. Compare them with the metadata and derive findings: a new edition file, new bytes under a known filename, a file in a new language, an unclassified file, a changed or missing license file, a recorded README statement that no longer appears, or a repository name that differs from the catalog.</li>
+  <li>Classify each book as R29 lists. A 404 is gone. A rate limit, a server error, or a timeout is error, and the book keeps its previous state entry.</li>
+  <li>Site-only books are listed in the report as not checked.</li>
+  <li>Write the state file with sorted keys. Write the report grouped by classification with no date in it.</li>
+  <li>The command writes only under <code>upstream/</code>. <code>--dry-run</code> prints the report and writes nothing. The exit code is nonzero only when every book ends in error.</li>
+</ul>
+<h4>Test scenarios</h4>
+<ul>
+  <li>An unchanged head commit for every repository leaves both files byte-identical and makes one request per repository.</li>
+  <li>A new head with an unchanged tree updates the observed commit and reports the book as unchanged.</li>
+  <li>A new file that matches the English pattern with a higher version is reported as a new English edition.</li>
+  <li>A known filename with a different blob SHA is reported as changed bytes.</li>
+  <li>A file that matches the pattern of a language the book did not have is reported as a new translation.</li>
+  <li>A file that matches no pattern is reported as unclassified.</li>
+  <li>Covers AE3. A license file with a different blob SHA is reported as a license change, and no file outside <code>upstream/</code> changes.</li>
+  <li>A README that no longer contains the recorded statement is reported as statement not found.</li>
+  <li>Covers AE4. A 404 classifies the book as gone and leaves its metadata untouched.</li>
+  <li>A 500 for one repository classifies it as error, keeps its previous state entry, and still processes the other books.</li>
+  <li>A 403 with rate-limit headers classifies the remaining books as error and exits zero when at least one book succeeded.</li>
+  <li>A response whose repository full name differs from the catalog classifies the book as moved.</li>
+  <li>Running twice on the same recorded responses produces no second change.</li>
+  <li><code>--dry-run</code> writes no file.</li>
+</ul>
+<h4>Verification</h4>
+<p>One live dry run against the 12 repositories prints a report, and its edition findings agree with the Appendix. The initial state and report are committed from a live run.</p>
+</details>
+</article>
+
+<article class="unit" id="u13">
+<h3>U13. CI workflows</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>Every pull request is validated offline, the default branch publishes the site and exports, and the sync job opens its pull request weekly.</dd>
+  <dt>Requirements</dt><dd>R8, R28, R29</dd>
+  <dt>Dependencies</dt><dd>U3, U10, U11, U12</dd>
+</dl>
+<details>
+<summary>Files, approach, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>.github/workflows/validate.yml</code>, <code>.github/workflows/publish.yml</code>, <code>.github/workflows/sync.yml</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li><code>validate.yml</code> runs on pull requests and on pushes to the default branch. It installs with uv from the lockfile, installs the pinned Pandoc release and a CJK font, and runs lint, the type check, the tests, validation, and <code>build.py --site</code>, which exports every mirrored book and builds the site in strict mode.</li>
+  <li><code>publish.yml</code> runs on pushes to the default branch. It uses the same Pandoc and font setup, builds the site with the exports and <code>llms-full</code> files inside it, and deploys to GitHub Pages with the official Pages actions.</li>
+  <li><code>sync.yml</code> runs weekly and on manual dispatch. It runs the sync command, then validation and the tests on the result (KTD14). When <code>upstream/</code> changed, it pushes <code>sync/upstream</code> and creates or updates the pull request with the runner's <code>gh</code>, using the report as the body. It adds a label when the report contains a license finding.</li>
+  <li>Each workflow declares the least permissions it needs. Third-party actions are pinned by commit SHA.</li>
+  <li>No workflow merges a pull request or pushes to the default branch (R8).</li>
+</ul>
+<h4>Test scenarios</h4>
+<p>Test expectation: none. This unit is configuration that only runs on GitHub.</p>
+<h4>Verification</h4>
+<ul>
+  <li>Every workflow file parses as YAML, and <code>actionlint</code> passes when it is installed.</li>
+  <li>Every command a workflow runs also appears in the Verification Contract and passes locally.</li>
+  <li>The first runs on GitHub are the owner's step after the remote exists. The final report says the workflows have not run there yet.</li>
+</ul>
+</details>
+</article>
+
+<article class="unit" id="u14">
+<h3>U14. README and maintainer documentation</h3>
+<dl class="strip">
+  <dt>Goal</dt><dd>A new engineer can run, extend, and maintain the project from the documents alone.</dd>
+  <dt>Requirements</dt><dd>R8, R33</dd>
+  <dt>Dependencies</dt><dd>U1 through U13</dd>
+</dl>
+<details>
+<summary>Files, approach, and verification</summary>
+<h4>Files</h4>
+<ul>
+  <li>Create <code>README.md</code>, <code>CONTRIBUTING.md</code>, <code>MAINTAINING.md</code></li>
+</ul>
+<h4>Approach</h4>
+<ul>
+  <li><code>README.md</code> covers the purpose and scope, the author attribution, a table of all 19 books with status and license, how to browse, how agents use the library, installation, every command, sync, and the limitations. It states that the project is an independent community effort that the author has not endorsed.</li>
+  <li><code>CONTRIBUTING.md</code> covers how to propose a resource, what a correction may change under R11, how to report an erratum, and the checks a pull request must pass.</li>
+  <li><code>MAINTAINING.md</code> covers the license policy as the gate decision table, how to verify evidence, how to mirror an eligible book, how to upgrade an edition, how to read a sync pull request, and the owner's setup checklist from the deferred list.</li>
+  <li>The checklist says that a pull request opened by the sync workflow gets no check runs (KTD14), so a branch rule that requires the validate check would block it. The sync job has already run validation on that tree.</li>
+  <li>The withdrawal runbook in <code>MAINTAINING.md</code> lists the steps: set the status to reference-only, delete the chapters, source, and license file, remove chapter references from topics, rebuild the indexes, redeploy the site, and delete published exports. It says that rewriting Git history is a separate decision for the owner.</li>
+  <li>The limitations list says that chapters are machine-extracted until reviewed, that one book is mirrored, that the English edition trails the Chinese one, and that the workflows have not yet run on GitHub.</li>
+</ul>
+<h4>Test scenarios</h4>
+<p>Test expectation: none. This unit is documentation. The link check from U3 covers its internal links.</p>
+<h4>Verification</h4>
+<p>Every command in the README runs as written from a clean clone, and the README's book table agrees with <code>index/catalog.json</code>.</p>
+</details>
+</article>
+</section>
+
+<section id="verification-contract">
+<h2>Verification Contract</h2>
+<p>All of these run offline except the last. Each must pass before the work is called done.</p>
+<div class="wide">
+<table>
+<thead><tr><th>Command</th><th>Proves</th></tr></thead>
+<tbody>
+<tr><td><code>uv sync --locked</code></td><td>The toolchain installs from the lockfile (R32)</td></tr>
+<tr><td><code>pandoc --version</code></td><td>Pandoc is installed as a native binary at or above the minimum (R32)</td></tr>
+<tr><td><code>uv run ruff check .</code> and <code>uv run ruff format --check .</code></td><td>Lint and format</td></tr>
+<tr><td><code>uv run mypy scripts</code></td><td>Strict typing across the package and the entry points</td></tr>
+<tr><td><code>uv run pytest</code></td><td>Every test scenario in the units, with network tests deselected</td></tr>
+<tr><td><code>uv run python scripts/validate.py</code></td><td>Schemas, the gate, ids, order, links, topics, skills, fidelity, and index freshness (R28)</td></tr>
+<tr><td><code>uv run python scripts/build.py --check</code></td><td>The committed indexes match a fresh build</td></tr>
+<tr><td><code>uv run python scripts/build.py --site</code></td><td>The <code>llms-full</code> files and exports build, and the site stages and builds in strict mode with its download links (R24)</td></tr>
+<tr><td><code>uv run python scripts/export.py --book loop-engineering-orange-book --format all</code></td><td>The PDF, the EPUB, and the bundle build (R25, R26)</td></tr>
+<tr><td><code>uv run python scripts/export.py --book harness-engineering-orange-book --format pdf</code></td><td>The gate refuses a reference-only book. The expected result is a nonzero exit.</td></tr>
+<tr><td><code>/usr/bin/python3 scripts/resolve.py loop-engineering-orange-book</code>, run outside the uv environment</td><td>The read path needs no dependencies and runs on the Python that macOS ships (R15)</td></tr>
+<tr><td><code>/usr/bin/python3 scripts/check_citations.py topics/*.md</code></td><td>Topic citations and quotes hold (R18)</td></tr>
+<tr><td><code>uv run python scripts/sync.py --dry-run</code></td><td>The live upstream check works. This one needs the network and is run by hand.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two manual checks complete the contract. A person opens the PDF and the EPUB and confirms the points in U11's verification. A person runs the two agent prompts named in U9's verification.</p>
+</section>
+
+<section id="definition-of-done">
+<h2>Definition of Done</h2>
+<ul>
+  <li>Every command in the Verification Contract passes, and the two manual checks are recorded in the final report, which the owner can paste as the pull request description once a remote exists.</li>
+  <li>The catalog holds 19 books: Loop Engineering mirrored, Hermes Agent eligible, and 17 reference-only, each with evidence that R3 requires.</li>
+  <li>No file from a book that is not mirrored exists outside its <code>metadata.yaml</code>, in the tree or in any generated output.</li>
+  <li>Loop Engineering has nine chapters that pass the fidelity check and are marked <code>machine-extracted</code>.</li>
+  <li>Each unit's verification holds and its test scenarios exist as tests.</li>
+  <li>The work sits on <code>feat/resource-library-mvp</code> as commits that follow the owner's commit convention, one logical change each. Nothing has been pushed.</li>
+  <li>The diff contains no abandoned experiment, no scratch file, no commented-out code, no <code>// PLAN</code> marker, and no bare <code>TODO</code>.</li>
+  <li>The final report tells the owner what was built, what each book's verified license status is, what was mirrored, which exports were tested, and which steps remain theirs.</li>
+</ul>
+</section>
+
+<section id="appendix">
+<h2>Appendix</h2>
+<h3>Upstream findings on 2026-11-20</h3>
+<p>The listing page showed 19 books. Each row below was read from the repository at the commit shown, through the GitHub API. Repositories are under <code>github.com/alchaincyf</code>. The site-only rows come from the listing page, which shows no license text.</p>
+<div class="wide landscape">
+<table>
+<thead><tr><th>Resource id</th><th>Upstream repository</th><th>Head commit</th><th>English edition</th><th>License finding</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><code>loop-engineering-orange-book</code></td><td><code>loop-engineering-orange-book</code></td><td><code>829aa6084c</code></td><td>PDF v260615, 36 pages. Chinese is v261020.</td><td>MIT license file with wording adapted to the book, present since the first commit on 2026-06-15. GitHub's detector reports NOASSERTION.</td><td><span class="pill ok">mirrored</span></td></tr>
+<tr><td><code>hermes-agent-orange-book</code></td><td><code>hermes-agent-orange-book</code></td><td><code>b6e53a8e11</code></td><td>PDF v260607, 104 pages, with a two-level outline</td><td>MIT license file with the same adapted wording, added with edition 2.0. The first edition was CC BY-NC-SA 4.0. GitHub's detector reports NOASSERTION.</td><td><span class="pill info">eligible</span></td></tr>
+<tr><td><code>codex-orange-book</code></td><td><code>codex-orange-book</code></td><td><code>44487efa50</code></td><td>PDF, HTML, and EPUB v2.0.1</td><td>README: CC BY-NC-SA 4.0. No license file.</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>claude-code-orange-book</code></td><td><code>claude-code-orange-book</code></td><td><code>a1cea18324</code></td><td>PDF v260411</td><td>README: CC BY-NC-SA 4.0. No license file.</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>deepseek-harness-orange-book</code></td><td><code>deepseek-harness-orange-book</code></td><td><code>84798928cb</code></td><td>None. Chinese PDF, HTML, and EPUB.</td><td>README: CC BY-NC-SA 4.0. No license file.</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>3d-vibe-coding-handbook</code></td><td><code>3d-vibe-coding-handbook</code></td><td><code>272a90ef84</code></td><td>None. Chinese HTML book.</td><td>README: CC BY-NC-SA 4.0. No license file.</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>harness-engineering-orange-book</code></td><td><code>harness-engineering-orange-book</code></td><td><code>a5c33b9159</code></td><td>PDF v260411</td><td>README: "This work is shared for educational purposes. Please credit the author when referencing."</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>obsidian-ai-orange-book</code></td><td><code>obsidian-ai-orange-book</code></td><td><code>7ed9ac29fe</code></td><td>PDF v1.0.0</td><td>README: "This work is shared freely for educational purposes. Feel free to share and reference with attribution."</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>polymarket-orange-book</code></td><td><code>polymarket-orange-book</code></td><td><code>cfb072ed36</code></td><td>PDF v260411</td><td>README: the same sentence as Obsidian AI</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>agent-skills-orange-book</code></td><td><code>agent-skills-orange-book</code></td><td><code>0469422e4a</code></td><td>PDF v260411</td><td>README: "This book is provided free of charge for personal and educational use. Do not redistribute for commercial purposes without permission."</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>openclaw-orange-book</code></td><td><code>openclaw-orange-book</code></td><td><code>e8b8509699</code></td><td>PDF v260411</td><td>README: "The content of this book is provided for educational purposes."</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>claude-code-source-analysis-orange-book</code></td><td><code>claude-code-source-analysis-orange-book</code></td><td><code>9c2c8f427c</code></td><td>PDF v260411</td><td>README: "provided for educational and research purposes". The book analyzes leaked source code, so the third-party flag is set.</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>cursor-orange-book</code></td><td>Site only</td><td>None</td><td>Not shown</td><td>No terms on the listing page</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>gemma4-orange-book</code></td><td>Site only</td><td>None</td><td>Not shown</td><td>No terms on the listing page</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>opus-4-7-system-card-orange-book</code></td><td>Site only</td><td>None</td><td>Not shown</td><td>No terms. A Chinese translation of an Anthropic document, so the third-party flag is set.</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>founders-playbook-orange-book</code></td><td>Site only</td><td>None</td><td>Not shown</td><td>No terms. A Chinese edition of an Anthropic handbook, so the third-party flag is set.</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>doubao-work-orange-book</code></td><td>Site only</td><td>None</td><td>Not shown</td><td>No terms on the listing page</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>amazon-quick-orange-book</code></td><td>Site only</td><td>None</td><td>Not shown</td><td>No terms on the listing page</td><td><span class="pill muted">reference-only</span></td></tr>
+<tr><td><code>phone-skill-orange-book</code></td><td>Site only</td><td>None</td><td>Not shown</td><td>No terms on the listing page</td><td><span class="pill muted">reference-only</span></td></tr>
+</tbody>
+</table>
+</div>
+<p>Other facts the implementer should know:</p>
+<ul>
+  <li>No repository credits a translator. The Codex README calls its English edition a "native-prose translation" and names nobody.</li>
+  <li>No PDF that was inspected carries license text inside it.</li>
+  <li>Most repositories have no tags or releases. Versions appear only in filenames.</li>
+  <li>The author's site uses different slugs for three books: <code>harness</code>, <code>source-code</code>, and <code>opus-4.7</code>. Record the site slug in the metadata.</li>
+  <li>The Obsidian AI and 3D Vibe Coding repositories use <code>master</code> as the default branch. The rest use <code>main</code>.</li>
+  <li>The Loop Engineering README links a WorkBuddy edition at <code>workbuddy.cn/space/d/H6TXqZsuCnOeR3SvXpNXZk</code>, "one page per chapter", and an all-books collection at <code>workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI</code>. Both are JavaScript pages that planning did not read.</li>
+  <li>The Loop Engineering README says the October revision exists in Chinese only and lists errata from the June edition, including a quote wrongly attributed to Addy Osmani.</li>
+</ul>
+</section>
+
+<section id="sources">
+<h2>Sources</h2>
+<ul>
+  <li><a href="https://www.huasheng.ai/orange-books">huasheng.ai/orange-books</a>, the author's listing of all 19 books.</li>
+  <li><a href="https://github.com/alchaincyf">github.com/alchaincyf</a>, the author's repositories.</li>
+  <li><a href="https://github.com/alchaincyf/loop-engineering-orange-book/blob/829aa6084cd68680e7f389bbde9dcaebda7a43e6/LICENSE">Loop Engineering license file at the pinned commit</a>.</li>
+  <li><a href="https://github.com/alchaincyf/hermes-agent-orange-book/blob/b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692/LICENSE">Hermes Agent license file at the observed commit</a>.</li>
+  <li><a href="https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI">The author's WorkBuddy collection</a>, linked from the Loop Engineering README and not yet read.</li>
+  <li><a href="https://agentskills.io/specification">Agent Skills specification</a>, for the skill folder format in KTD11.</li>
+  <li><a href="https://code.claude.com/docs/en/memory">Claude Code memory documentation</a>, for how <code>CLAUDE.md</code> and <code>AGENTS.md</code> load.</li>
+  <li><a href="https://developers.openai.com/codex/guides/agents-md">Codex guide to <code>AGENTS.md</code></a>, for the instruction file size cap.</li>
+  <li><a href="https://cursor.com/docs/skills">Cursor skills documentation</a>, for the skill locations Cursor reads.</li>
+  <li>PyPI release data read on 2026-11-20: <code>pypandoc-binary</code> 1.17 (inspected and rejected, see KTD13), <code>typst</code> 0.15.2, <code>mkdocs-material</code> 9.8.2, <code>mkdocs</code> 1.6.1, <code>pypdf</code> 7.1.1, <code>jsonschema</code> 4.26.0, <code>PyYAML</code> 6.0.3.</li>
+  <li>The Loop Engineering English PDF, inspected with pypdf and poppler for page count, font sizes, fonts, and layout.</li>
+</ul>
+<details class="provenance">
+<summary>Provenance</summary>
+<footer class="composition-signal">Composed 2026-11-20T17:31 EST by ce-plan from the owner's implementation prompt and two follow-up messages in the planning session. No upstream requirements document exists.</footer>
+</details>
+</section>
+
+</main>
+<div class="brand-foot"><div class="inner">
+  <div class="lockup"><svg viewBox="0 0 16 16" width="26" height="26" aria-hidden="true"><g fill="none" stroke="#C8912B" stroke-linecap="round" stroke-width=".85"><line x1="8" y1="3.7" x2="8" y2=".9"/><line x1="11.72" y1="5.85" x2="14.15" y2="4.45"/><line x1="11.72" y1="10.15" x2="14.15" y2="11.55"/><line x1="8" y1="12.3" x2="8" y2="15.1"/><line x1="4.28" y1="10.15" x2="1.85" y2="11.55"/><line x1="4.28" y1="5.85" x2="1.85" y2="4.45"/><line x1="10.15" y1="4.28" x2="10.85" y2="3.06"/><line x1="12.3" y1="8" x2="13.7" y2="8"/><line x1="10.15" y1="11.72" x2="10.85" y2="12.94"/><line x1="5.85" y1="11.72" x2="5.15" y2="12.94"/><line x1="3.7" y1="8" x2="2.3" y2="8"/><line x1="5.85" y1="4.28" x2="5.15" y2="3.06"/></g><circle cx="8" cy="8" r="2.5" fill="none" stroke="#C8912B" stroke-width="1.05"/></svg><span class="wordmark">SELARA</span><span class="eyebrow"><a href="https://selara.us">selara.us</a></span></div>
+  <span>© 2026 Selara AI</span>
+</div></div>
+</body>
+</html>
