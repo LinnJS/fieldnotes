@@ -1,0 +1,55 @@
+[project]
+name = "resource-library-tools"
+version = "0.1.0"
+description = "Validation, ingestion, indexing, export, and sync tooling for a Markdown-first AI resource library."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "jsonschema>=4.26.0",
+    "mkdocs==1.6.1",
+    "mkdocs-material==9.8.2",
+    "pypdf>=7.1.1",
+    "pyyaml>=6.0.3",
+    "typst==0.15.2",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18",
+    "pytest>=8.4",
+    "ruff>=0.14",
+    "types-jsonschema>=4.25",
+    "types-pyyaml>=6.0.12",
+]
+
+# The repository holds scripts and content, not an installable distribution.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]
+markers = ["network: needs live network access and is deselected by default"]
+addopts = "-m 'not network' --strict-markers"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "scripts"
+explicit_package_bases = true
+files = ["scripts"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["build", "dist"]
+
+[tool.ruff.lint]
+select = ["B", "D", "E", "F", "I", "N", "PTH", "RUF", "SIM", "UP"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
