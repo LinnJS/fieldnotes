@@ -1,0 +1,18 @@
+{
+  "note": "Recorded 2026-11-20 for a repository name that does not exist.",
+  "url": "https://api.github.com/repos/alchaincyf/no-such-orange-book",
+  "status": 404,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4991",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "message": "Not Found",
+    "documentation_url": "https://docs.github.com/rest/repos/repos#get-a-repository",
+    "status": "404"
+  }
+}

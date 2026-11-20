@@ -22,6 +22,13 @@ other cataloged work is reference-only. Its `metadata.yaml` links to the
 author's official source and holds none of the work's text beyond the quoted
 license statement.
 
+## Test fixtures
+
+`tests/fixtures/github/` holds trimmed recordings of GitHub API responses for the
+Loop Engineering repository, including its MIT license text and excerpts of its
+README. They are the author's words, kept under that repository's MIT license.
+Everything under `tests/fixtures/library/` is invented for the tests.
+
 ## Attribution
 
 The first collection in this library is the AI Orange Books by HuaShu (花叔),

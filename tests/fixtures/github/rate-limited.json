@@ -1,0 +1,17 @@
+{
+  "note": "Not recorded. Written from GitHub's documented response to a request made after the primary rate limit is used up, with an address from the documentation range.",
+  "url": "https://api.github.com/repos/alchaincyf/hermes-agent-orange-book",
+  "status": 403,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "60",
+    "x-ratelimit-remaining": "0",
+    "x-ratelimit-reset": "1795219200",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "message": "API rate limit exceeded for 203.0.113.7. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)",
+    "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"
+  }
+}

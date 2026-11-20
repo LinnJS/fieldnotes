@@ -1,0 +1,23 @@
+{
+  "note": "Recorded 2026-11-20.",
+  "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/ref/heads/main",
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4993",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "ref": "refs/heads/main",
+    "node_id": "REF_kwDOS6-HNa9yZWZzL2hlYWRzL21haW4",
+    "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/refs/heads/main",
+    "object": {
+      "sha": "829aa6084cd68680e7f389bbde9dcaebda7a43e6",
+      "type": "commit",
+      "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/commits/829aa6084cd68680e7f389bbde9dcaebda7a43e6"
+    }
+  }
+}
