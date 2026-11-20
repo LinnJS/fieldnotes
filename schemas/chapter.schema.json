@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Chapter frontmatter",
+  "description": "The YAML frontmatter of books/<resource-id>/chapters/<NN>-<slug>.md. One file holds one section of a mirrored book.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "resource",
+    "title",
+    "part",
+    "order",
+    "section_label",
+    "language",
+    "edition",
+    "source",
+    "extraction_status"
+  ],
+  "properties": {
+    "id": {
+      "description": "Chapter id in the form <resource-id>/<slug>. It is assigned once and never changes.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "resource": {
+      "description": "Id of the resource the chapter belongs to.",
+      "$ref": "#/$defs/slug"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "part": {
+      "description": "Name of the part of the book that holds the section.",
+      "type": "string",
+      "minLength": 1
+    },
+    "order": {
+      "description": "Reading position within the book, starting at 1. It may change between editions while the id stays.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "section_label": {
+      "description": "The label the source prints for the section, such as a section number.",
+      "type": "string",
+      "minLength": 1
+    },
+    "language": { "$ref": "#/$defs/language" },
+    "edition": { "$ref": "#/$defs/version" },
+    "source": {
+      "description": "Where the text came from.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "revision", "path", "pages"],
+      "properties": {
+        "repository": {
+          "description": "Upstream Git repository as owner/name.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+        },
+        "revision": {
+          "description": "Full commit SHA of the pinned source.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "path": {
+          "description": "Path of the source file inside the upstream repository.",
+          "type": "string",
+          "minLength": 1
+        },
+        "pages": {
+          "description": "First and last page of the section, counted from 1 in the source file's own page index.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["first", "last"],
+          "properties": {
+            "first": { "type": "integer", "minimum": 1 },
+            "last": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "extraction_status": {
+      "description": "How far review has gone. Only a person who has read the chapter against the source sets human-reviewed.",
+      "enum": ["machine-extracted", "human-reviewed"]
+    },
+    "errata": {
+      "description": "Known upstream errata. They are recorded here and never applied to the text.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "source_url"],
+        "properties": {
+          "description": { "type": "string", "minLength": 1 },
+          "source_url": { "$ref": "#/$defs/url" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "description": "Kebab-case slug of lowercase letters and digits.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "language": {
+      "description": "Language code such as en or zh.",
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$"
+    },
+    "version": {
+      "description": "Edition version made of letters, digits, and dots, such as v260615.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9.]+$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https?://\\S+$"
+    }
+  }
+}

@@ -1,0 +1,140 @@
+# Test fixture. This book does not exist.
+# Every title, name, URL, commit, and hash in this file is invented for automated tests.
+id: fixture-mirrored-book
+type: book
+collection: fixture-books
+
+title:
+  original: 纸船工程测试夹具
+  english: Paper Boat Engineering (Test Fixture)
+  english_official: true
+
+author:
+  name: Fixture Author
+  native_name: 夹具作者
+  url: https://example.invalid/fixture-author
+
+translator: null
+
+languages:
+  - zh
+  - en
+
+official_urls:
+  site: https://example.invalid/books/paper-boat
+  repository: https://example.invalid/fixture-author/fixture-mirrored-book
+  hosted_editions:
+    - name: Fixture Reader
+      url: https://example.invalid/reader/paper-boat
+      note: One page per chapter. Invented for tests.
+
+site_slug: paper-boat
+
+upstream:
+  kind: git
+  repository: fixture-author/fixture-mirrored-book
+  default_branch: main
+  head_commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+editions:
+  - language: en
+    version: v1.0.0
+    format: pdf
+    path: Paper-Boat-Engineering-v1.0.0.pdf
+    blob_sha: cccccccccccccccccccccccccccccccccccccccc
+  - language: zh
+    version: v1.1.0
+    format: pdf
+    path: 纸船工程-v1.1.0.pdf
+    blob_sha: dddddddddddddddddddddddddddddddddddddddd
+
+edition_patterns:
+  en: '^Paper-Boat-Engineering-(?P<version>v\d+\.\d+\.\d+)\.pdf$'
+  zh: '^纸船工程-(?P<version>v\d+\.\d+\.\d+)\.pdf$'
+
+# The mirrored English edition is behind the newest Chinese edition on purpose.
+newest_editions:
+  en: v1.0.0
+  zh: v1.1.0
+
+license:
+  spdx: MIT
+  evidence: license-file
+  statement: |-
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+  permalink: https://example.invalid/fixture-author/fixture-mirrored-book/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/LICENSE
+  blob_sha: 2b83b85f5d96ee4d65a4a46d8f8614161569df54
+  commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - LICENSE
+    - README.md
+
+permissions:
+  redistribution: allowed
+  adaptation: allowed
+  commercial_use: allowed
+  attribution_required: true
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: mirrored
+
+# The fixture commits no source file, so local_path is null and sha256 is a placeholder.
+pinned_source:
+  repository: fixture-author/fixture-mirrored-book
+  commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  path: Paper-Boat-Engineering-v1.0.0.pdf
+  sha256: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+  edition: v1.0.0
+  language: en
+  local_path: null
+
+extraction_profile:
+  roles:
+    - role: section-label
+      font_size: 24.0
+    - role: section-title
+      font_size: 26.7
+    - role: lede
+      font_size: 15.3
+    - role: heading
+      font_size: 17.3
+    - role: body
+      font_size: 14.0
+    - role: kicker
+      font_size: 13.3
+      max_indent: 80.0
+    - role: quote
+      font_size: 13.3
+      min_indent: 80.0
+    - role: table-header
+      font_size: 11.3
+    - role: table-cell
+      font_size: 12.7
+    - role: code
+      font_size: 12.0
+  section_start: '^§\d{2}$'
+  excluded_pages:
+    - 1
+    - 2
+  sections:
+    - title: Folding the Hull
+      slug: folding-the-hull
+      part: "Part One: Paper"
+    - title: Choosing a Pond
+      slug: choosing-a-pond
+      part: "Part One: Paper"
+    - title: Recovering a Sunk Boat
+      slug: recovering-a-sunk-boat
+      part: "Part Two: Water"
+  accepted_differences: []
+
+notices:
+  - Test fixture. This book and its text are invented for automated tests.

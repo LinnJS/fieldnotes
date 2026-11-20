@@ -1,0 +1,495 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Resource metadata",
+  "description": "The hand-edited books/<id>/metadata.yaml. It is the only place a resource's facts are written.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "collection",
+    "title",
+    "author",
+    "translator",
+    "languages",
+    "official_urls",
+    "site_slug",
+    "upstream",
+    "editions",
+    "edition_patterns",
+    "newest_editions",
+    "license",
+    "permissions",
+    "mirror_status"
+  ],
+  "properties": {
+    "id": {
+      "description": "Unique id that names the work. It equals the directory name under books/.",
+      "$ref": "#/$defs/slug"
+    },
+    "type": {
+      "description": "Kind of resource. Only book is accepted in this version.",
+      "enum": ["book"]
+    },
+    "collection": {
+      "description": "Id of a collection declared in catalog.yaml.",
+      "$ref": "#/$defs/slug"
+    },
+    "title": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["original", "english", "english_official"],
+      "properties": {
+        "original": {
+          "description": "Title in the language the work was first published in.",
+          "type": "string",
+          "minLength": 1
+        },
+        "english": { "type": "string", "minLength": 1 },
+        "english_official": {
+          "description": "True when the author publishes this English title. False when the cataloger translated the original title because the author gives none.",
+          "type": "boolean"
+        }
+      }
+    },
+    "author": { "type": "object", "$ref": "#/$defs/person" },
+    "translator": {
+      "description": "Null when upstream names no translator.",
+      "type": ["object", "null"],
+      "$ref": "#/$defs/person"
+    },
+    "languages": {
+      "description": "Languages the work is published in upstream.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/language" }
+    },
+    "official_urls": {
+      "description": "The author's own locations for the work.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site", "repository", "hosted_editions"],
+      "properties": {
+        "site": {
+          "description": "The work's page on the author's site.",
+          "$ref": "#/$defs/nullable_url"
+        },
+        "repository": {
+          "description": "The upstream repository's web page.",
+          "$ref": "#/$defs/nullable_url"
+        },
+        "hosted_editions": {
+          "description": "Reading editions the author hosts elsewhere.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "url"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "url": { "$ref": "#/$defs/url" },
+              "note": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "site_slug": {
+      "description": "The slug the author's site uses for the work. It can differ from the id.",
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "upstream": {
+      "description": "Where the work is published. A Git source has kind git and a URL source has kind url.",
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["git", "url"] }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "git" } } },
+          "then": { "$ref": "#/$defs/git_source" }
+        },
+        {
+          "if": { "required": ["kind"], "properties": { "kind": { "const": "url" } } },
+          "then": { "$ref": "#/$defs/url_source" }
+        }
+      ]
+    },
+    "editions": {
+      "description": "Every edition upstream publishes.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/edition" }
+    },
+    "edition_patterns": {
+      "description": "One filename regex per language code. Each has a named capture group called version.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/language" },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "\\(\\?P<version>"
+      }
+    },
+    "newest_editions": {
+      "description": "The newest upstream version per language code.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/language" },
+      "additionalProperties": { "$ref": "#/$defs/version" }
+    },
+    "license": { "$ref": "#/$defs/license" },
+    "permissions": { "$ref": "#/$defs/permissions" },
+    "mirror_status": {
+      "description": "The status the owner has approved. The license gate decides the highest status allowed.",
+      "enum": ["mirrored", "eligible", "reference-only"]
+    },
+    "pinned_source": {
+      "description": "The exact upstream file a mirrored or eligible book is extracted from.",
+      "type": ["object", "null"],
+      "$ref": "#/$defs/pinned_source"
+    },
+    "extraction_profile": {
+      "description": "How to turn the pinned source into chapters. Books that are not mirrored leave it out.",
+      "type": ["object", "null"],
+      "$ref": "#/$defs/extraction_profile"
+    },
+    "notices": {
+      "description": "Free-text notices shown with the resource.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "description": "Kebab-case slug of lowercase letters and digits.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "chapter_id": {
+      "description": "Chapter id in the form <resource-id>/<slug>.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "language": {
+      "description": "Language code such as en or zh.",
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$"
+    },
+    "version": {
+      "description": "Edition version made of letters, digits, and dots, such as v260615.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9.]+$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https?://\\S+$"
+    },
+    "nullable_url": {
+      "type": ["string", "null"],
+      "pattern": "^https?://\\S+$"
+    },
+    "git_sha": {
+      "description": "Full 40-character Git object id in lowercase hex.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "nullable_git_sha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "git_repository": {
+      "description": "Git repository as owner/name.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "person": {
+      "additionalProperties": false,
+      "required": ["name", "native_name", "url"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "native_name": {
+          "description": "The name in its native script, when that differs from name.",
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "url": { "$ref": "#/$defs/nullable_url" }
+      }
+    },
+    "git_source": {
+      "additionalProperties": false,
+      "required": ["kind", "repository", "default_branch", "head_commit"],
+      "properties": {
+        "kind": { "const": "git" },
+        "repository": { "$ref": "#/$defs/git_repository" },
+        "default_branch": { "type": "string", "minLength": 1 },
+        "head_commit": {
+          "description": "Head of the default branch when the record was last verified by hand.",
+          "$ref": "#/$defs/git_sha"
+        }
+      }
+    },
+    "url_source": {
+      "additionalProperties": false,
+      "required": ["kind", "url"],
+      "properties": {
+        "kind": { "const": "url" },
+        "url": { "$ref": "#/$defs/url" }
+      }
+    },
+    "edition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "version", "format", "path", "blob_sha"],
+      "properties": {
+        "language": { "$ref": "#/$defs/language" },
+        "version": {
+          "description": "Null when upstream gives the edition no version.",
+          "type": ["string", "null"],
+          "pattern": "^[A-Za-z0-9.]+$"
+        },
+        "format": {
+          "description": "Lowercase file format such as pdf, html, or epub.",
+          "type": "string",
+          "pattern": "^[a-z0-9]+$"
+        },
+        "path": {
+          "description": "Path inside the upstream repository for a Git source, or the file's URL for a URL source.",
+          "type": "string",
+          "minLength": 1
+        },
+        "blob_sha": {
+          "description": "Git blob id of the file at the recorded head commit. Null for a URL source.",
+          "$ref": "#/$defs/nullable_git_sha"
+        }
+      }
+    },
+    "license": {
+      "description": "License evidence a person read at the permalink. A detection tool never assigns the SPDX id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spdx",
+        "evidence",
+        "statement",
+        "permalink",
+        "blob_sha",
+        "commit",
+        "verified_on",
+        "departs_from_template",
+        "locations_checked"
+      ],
+      "properties": {
+        "spdx": {
+          "description": "SPDX license id, or null when the terms name no SPDX license.",
+          "type": ["string", "null"],
+          "pattern": "^[A-Za-z0-9.+-]+$"
+        },
+        "evidence": {
+          "description": "Where the terms were found.",
+          "enum": ["license-file", "readme-statement", "none"]
+        },
+        "statement": {
+          "description": "The terms quoted verbatim in their original language.",
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "permalink": {
+          "description": "Link to the quoted file at a full commit SHA.",
+          "type": ["string", "null"],
+          "pattern": "^https?://\\S*[0-9a-f]{40}\\S*$"
+        },
+        "blob_sha": {
+          "description": "Git blob id of the quoted file.",
+          "$ref": "#/$defs/nullable_git_sha"
+        },
+        "commit": {
+          "description": "Commit the evidence was read at.",
+          "$ref": "#/$defs/nullable_git_sha"
+        },
+        "verified_on": {
+          "description": "Date a person verified the evidence, as YYYY-MM-DD.",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "departs_from_template": {
+          "description": "True when the license text differs from the SPDX template for its id.",
+          "type": "boolean"
+        },
+        "locations_checked": {
+          "description": "Every place that was searched for terms.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "if": {
+        "required": ["evidence"],
+        "properties": { "evidence": { "const": "none" } }
+      },
+      "then": {
+        "properties": {
+          "spdx": { "type": "null" },
+          "statement": { "type": "null" },
+          "permalink": { "type": "null" },
+          "blob_sha": { "type": "null" },
+          "commit": { "type": "null" },
+          "locations_checked": { "minItems": 1 }
+        }
+      },
+      "else": {
+        "properties": {
+          "statement": { "type": "string" },
+          "permalink": { "type": "string" },
+          "blob_sha": { "type": "string" },
+          "commit": { "type": "string" }
+        }
+      }
+    },
+    "permission": {
+      "description": "Three-valued answer. The words are chosen so that YAML does not read them as booleans.",
+      "enum": ["allowed", "denied", "unclear"]
+    },
+    "permissions": {
+      "description": "What the recorded terms let a reader do.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "redistribution",
+        "adaptation",
+        "commercial_use",
+        "attribution_required",
+        "share_alike",
+        "third_party_rights"
+      ],
+      "properties": {
+        "redistribution": { "$ref": "#/$defs/permission" },
+        "adaptation": { "$ref": "#/$defs/permission" },
+        "commercial_use": { "$ref": "#/$defs/permission" },
+        "attribution_required": { "type": "boolean" },
+        "share_alike": { "type": "boolean" },
+        "third_party_rights": {
+          "description": "True when the work contains material whose rights the author cannot grant.",
+          "type": "boolean"
+        }
+      }
+    },
+    "pinned_source": {
+      "additionalProperties": false,
+      "required": ["repository", "commit", "path", "sha256", "edition", "language", "local_path"],
+      "properties": {
+        "repository": { "$ref": "#/$defs/git_repository" },
+        "commit": { "$ref": "#/$defs/git_sha" },
+        "path": {
+          "description": "Path of the source file inside the upstream repository.",
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "description": "SHA-256 of the source file in lowercase hex.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "edition": { "$ref": "#/$defs/version" },
+        "language": { "$ref": "#/$defs/language" },
+        "local_path": {
+          "description": "Committed copy of the source file, relative to the book directory. Null until the file is committed.",
+          "type": ["string", "null"],
+          "pattern": "^source/[^/]+$"
+        }
+      }
+    },
+    "extraction_profile": {
+      "additionalProperties": false,
+      "required": ["roles", "section_start", "excluded_pages", "sections", "accepted_differences"],
+      "properties": {
+        "roles": {
+          "description": "Rules that give a span of text its role. They are tried in order and the first match wins.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "font_size"],
+            "properties": {
+              "role": {
+                "enum": [
+                  "section-label",
+                  "section-title",
+                  "lede",
+                  "heading",
+                  "body",
+                  "kicker",
+                  "quote",
+                  "table-header",
+                  "table-cell",
+                  "code"
+                ]
+              },
+              "font_size": {
+                "description": "Font size in points as the extractor reports it.",
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "min_indent": {
+                "description": "Smallest left position in points the rule matches, inclusive.",
+                "type": ["number", "null"]
+              },
+              "max_indent": {
+                "description": "Largest left position in points the rule matches, inclusive.",
+                "type": ["number", "null"]
+              }
+            }
+          }
+        },
+        "section_start": {
+          "description": "Regex that a section-label span must match to start a new section.",
+          "type": "string",
+          "minLength": 1
+        },
+        "excluded_pages": {
+          "description": "Pages left out of extraction, counted from 1.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "sections": {
+          "description": "The slug and part fixed for each section, found by the section's title.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "slug", "part"],
+            "properties": {
+              "title": { "type": "string", "minLength": 1 },
+              "slug": { "$ref": "#/$defs/slug" },
+              "part": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "accepted_differences": {
+          "description": "Word differences between a chapter and a fresh extraction that a person has accepted.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["chapter", "words_removed", "words_added", "reason"],
+            "properties": {
+              "chapter": { "$ref": "#/$defs/chapter_id" },
+              "words_removed": {
+                "description": "Words the extraction has and the chapter leaves out.",
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "words_added": {
+                "description": "Words the chapter has and the extraction lacks.",
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
