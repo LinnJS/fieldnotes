@@ -1,0 +1,16 @@
+{
+  "note": "Not recorded. Written as GitHub answers when it fails on its own side.",
+  "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/ref/heads/main",
+  "status": 500,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4990",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "message": "Server Error"
+  }
+}

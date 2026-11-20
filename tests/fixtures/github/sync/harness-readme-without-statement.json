@@ -1,0 +1,14 @@
+{
+  "note": "Not recorded. The body is the README recorded on 2026-11-20 with the middle sections removed and the sentence under the License heading replaced by an invented one, served at an invented commit id.",
+  "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/contents/README.md?ref=2222222222222222222222222222222222222222",
+  "status": 200,
+  "headers": {
+    "content-type": "application/vnd.github.raw+json; charset=utf-8",
+    "x-github-media-type": "github.v3; param=raw; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4990",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "text_file": "sync/harness-readme-without-statement.md"
+}

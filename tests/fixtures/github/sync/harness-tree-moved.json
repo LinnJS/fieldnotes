@@ -1,0 +1,91 @@
+{
+  "note": "Not recorded. Written from the recorded response of 2026-11-20 with an invented commit id. The tree is complete, and README.md has an invented blob id.",
+  "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/trees/2222222222222222222222222222222222222222?recursive=1",
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4990",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "sha": "2222222222222222222222222222222222222222",
+    "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/trees/2222222222222222222222222222222222222222",
+    "tree": [
+      {
+        "path": ".gitignore",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "879df49d16d09dcdd0b18d32d0d979736f03dbde",
+        "size": 30,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/879df49d16d09dcdd0b18d32d0d979736f03dbde"
+      },
+      {
+        "path": "Harness-Engineering-The-Complete-Guide-v260411.pdf",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7f3dab7a5759916b44ee7f4270ec0a657c05d894",
+        "size": 1514336,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/7f3dab7a5759916b44ee7f4270ec0a657c05d894"
+      },
+      {
+        "path": "Harness-Engineering-v260411-zh.pdf",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3a95ab9608b3dacac2e6c1f737c5fd5d016bb277",
+        "size": 8579324,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/3a95ab9608b3dacac2e6c1f737c5fd5d016bb277"
+      },
+      {
+        "path": "README.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+        "size": 1010,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+      },
+      {
+        "path": "README_zh.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "aadce27be73d17c8d7ebf95dc634555e9c09e921",
+        "size": 3713,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/aadce27be73d17c8d7ebf95dc634555e9c09e921"
+      },
+      {
+        "path": "screenshots",
+        "mode": "040000",
+        "type": "tree",
+        "sha": "948a85ae8bef6447c46390068b04339146bc6823",
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/trees/948a85ae8bef6447c46390068b04339146bc6823"
+      },
+      {
+        "path": "screenshots/chapter-sample-en.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "fbba8c971d187cb266f7b030f98b060f55503b15",
+        "size": 155201,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/fbba8c971d187cb266f7b030f98b060f55503b15"
+      },
+      {
+        "path": "screenshots/cover-en.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "59db313b20cbceaf9ed42e57be9a9acb281123ed",
+        "size": 218233,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/59db313b20cbceaf9ed42e57be9a9acb281123ed"
+      },
+      {
+        "path": "screenshots/toc-en.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "899551bdb896e697cc8aeb14909c7f56a03cf76a",
+        "size": 100773,
+        "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book/git/blobs/899551bdb896e697cc8aeb14909c7f56a03cf76a"
+      }
+    ],
+    "truncated": false
+  }
+}

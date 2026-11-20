@@ -1,0 +1,99 @@
+{
+  "note": "Not recorded. Written from the recorded response of 2026-11-20 with an invented commit id. The tree is trimmed to nine entries. An invented Japanese PDF is added.",
+  "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/trees/1111111111111111111111111111111111111111?recursive=1",
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4990",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "sha": "1111111111111111111111111111111111111111",
+    "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/trees/1111111111111111111111111111111111111111",
+    "tree": [
+      {
+        "path": ".gitignore",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "e43b0f988953ae3a84b00331d0ccf5f7d51cb3cf",
+        "size": 10,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/e43b0f988953ae3a84b00331d0ccf5f7d51cb3cf"
+      },
+      {
+        "path": "LICENSE",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ee690880bf3c5d502623b427ce7e21381b0c986f",
+        "size": 1022,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/ee690880bf3c5d502623b427ce7e21381b0c986f"
+      },
+      {
+        "path": "Loop-Engineering-The-Complete-Guide-v260615.pdf",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d9624d19bafb87314ad7d86e40560a365d475851",
+        "size": 859142,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/d9624d19bafb87314ad7d86e40560a365d475851"
+      },
+      {
+        "path": "Loop-Engineering-ja-v260701.pdf",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+        "size": 902118,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+      },
+      {
+        "path": "Loop-Engineering橙皮书-v261020.pdf",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "fa841400d12a1ca5cc9f589202687fbd56963fb5",
+        "size": 5208049,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/fa841400d12a1ca5cc9f589202687fbd56963fb5"
+      },
+      {
+        "path": "README.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "fc4050c0f8c73bcbb8131085228eb6cbb5b2af05",
+        "size": 5081,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/fc4050c0f8c73bcbb8131085228eb6cbb5b2af05"
+      },
+      {
+        "path": "README_zh.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0572ff1511f188eb843cc5c8c4f54bffa6b716bc",
+        "size": 5107,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/0572ff1511f188eb843cc5c8c4f54bffa6b716bc"
+      },
+      {
+        "path": "cover.jpg",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7408255feac85c0d33d9e21c67f8ec6d0bad357c",
+        "size": 588191,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/7408255feac85c0d33d9e21c67f8ec6d0bad357c"
+      },
+      {
+        "path": "screenshots",
+        "mode": "040000",
+        "type": "tree",
+        "sha": "c361cf2d57ea88f494d73c1496c605cd3c89c5f4",
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/trees/c361cf2d57ea88f494d73c1496c605cd3c89c5f4"
+      },
+      {
+        "path": "screenshots/page-toc.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b09a22b0840e4f9d57baa3dce8e7cd9deae9b91c",
+        "size": 67151,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/b09a22b0840e4f9d57baa3dce8e7cd9deae9b91c"
+      }
+    ],
+    "truncated": false
+  }
+}

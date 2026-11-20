@@ -1,0 +1,23 @@
+{
+  "note": "Recorded 2026-11-20. The body is trimmed to the fields shown.",
+  "url": "https://api.github.com/repos/alchaincyf/harness-engineering-orange-book",
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4794",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "name": "harness-engineering-orange-book",
+    "full_name": "alchaincyf/harness-engineering-orange-book",
+    "private": false,
+    "html_url": "https://github.com/alchaincyf/harness-engineering-orange-book",
+    "description": "Harness Engineering · 橙皮书系列 · AI Agent 缰绳工程学实战指南",
+    "fork": false,
+    "default_branch": "main",
+    "license": null
+  }
+}
