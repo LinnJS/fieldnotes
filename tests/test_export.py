@@ -505,6 +505,25 @@ def test_reference_only_book_is_refused_with_the_gate_reason(
     assert not (tmp_path / "out").exists()
 
 
+def test_book_recorded_as_mirrored_is_refused_when_the_gate_rejects_its_record(
+    repo_root: Path, library_copy: Path
+) -> None:
+    metadata = library_copy / "books" / MIRRORED / "metadata.yaml"
+    metadata.write_text(
+        metadata.read_text(encoding="utf-8").replace(
+            "redistribution: allowed", "redistribution: unclear"
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_command(repo_root, "--root", str(library_copy), "--book", MIRRORED)
+
+    assert result.returncode == 1
+    assert "The license gate does not allow" in result.stderr
+    assert "redistribution is unclear" in result.stderr
+    assert not (library_copy / "dist").exists()
+
+
 def test_eligible_book_is_refused_as_not_yet_mirrored(repo_root: Path, library_copy: Path) -> None:
     metadata = library_copy / "books" / MIRRORED / "metadata.yaml"
     metadata.write_text(

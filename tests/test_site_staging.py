@@ -216,6 +216,28 @@ def test_eligible_book_gets_a_card_that_says_so_and_no_pages(
         assert b"A paper boat begins as a rectangle" not in data, name
 
 
+def test_book_recorded_as_eligible_gets_a_reference_only_card_when_the_gate_rejects_it(
+    library_root: Path, tmp_path: Path
+) -> None:
+    metadata = library_root / f"books/{MIRRORED}/metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    metadata.write_text(
+        text.replace("mirror_status: mirrored", "mirror_status: eligible").replace(
+            "redistribution: allowed", "redistribution: unclear"
+        ),
+        encoding="utf-8",
+    )
+    shutil.rmtree(library_root / "topics")
+    staging_dir = tmp_path / "site-src"
+
+    stage(load_library(library_root), staging_dir)
+
+    sections = catalog_sections(staging_dir)
+    assert ">Reference-only</span>" in card(sections["Reference-only"], MIRRORED)
+    assert MIRRORED not in sections["Eligible"]
+    assert not (staging_dir / "books").exists()
+
+
 def test_citation_token_in_a_topic_becomes_a_link_to_the_chapter_page(staged: Path) -> None:
     page = read(staged, "topics/paper-craft.md")
 
