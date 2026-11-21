@@ -36,6 +36,7 @@ from kb.catalog import (
     load_topics,
 )
 from kb.fidelity import check_book
+from kb.frontmatter import split_frontmatter
 from kb.gate import evaluate
 from kb.indexes import STALE_FIX, quote_permitted, stale_files
 from kb.readpath import (
@@ -46,7 +47,7 @@ from kb.readpath import (
     cited_lines,
     load_index,
 )
-from kb.schema import LoadError, SchemaName
+from kb.schema import LoadError, SchemaName, parse_yaml, read_text
 
 __all__ = ["CHECKS", "NO_COVERAGE_SENTENCE", "SCOPE_LABEL", "Check", "Finding", "run_checks"]
 
@@ -71,6 +72,13 @@ _QUOTE_LINE = re.compile(r" {0,3}>")
 # instruction to resolve the id of a book whose text is not in the library.
 _LINK_POINTER = re.compile(r"\[[^\]]*\]\([^)\s]+\)")
 _EXCERPT_LENGTH = 80
+
+# The canonical copy of each skill, which most agents read, and the directory one agent reads
+# instead, which holds a link to each canonical folder.
+_SKILLS_DIR = ".agents/skills"
+_LINKED_SKILLS_DIR = ".claude/skills"
+_SKILL_FILE = "SKILL.md"
+_SKILL_KEYS = frozenset({"name", "description"})
 
 
 @dataclass(frozen=True)
@@ -805,6 +813,91 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
     return findings
 
 
+def _check_skill_exposure(library: Library) -> list[Finding]:
+    """Report where the two skill directories differ, and each skill file with a wrong header.
+
+    A skill is a folder under ``.agents/skills/`` that holds a ``SKILL.md``. Each one needs a
+    link of the same name under ``.claude/skills/`` that resolves to the folder, so that every
+    agent finds the same skills. The frontmatter of a skill file holds ``name``, which equals the
+    folder name, and ``description``, and no other key.
+
+    A library with no ``.agents/skills/`` directory ships no skills, and nothing is checked.
+    """
+    canonical = library.root / _SKILLS_DIR
+    if not canonical.is_dir():
+        return []
+    linked = library.root / _LINKED_SKILLS_DIR
+    names = sorted(path.name for path in canonical.iterdir() if path.is_dir())
+    findings: list[Finding] = []
+    for name in names:
+        problem = _skill_file_problem(canonical / name / _SKILL_FILE, name)
+        if problem is not None:
+            findings.append(
+                Finding(
+                    rule="skill-exposure",
+                    file=f"{_SKILLS_DIR}/{name}/{_SKILL_FILE}",
+                    message=problem,
+                    fix=(
+                        f"Open the file with a frontmatter block that holds name: {name} and a "
+                        "description, and no other key."
+                    ),
+                )
+            )
+        if (linked / name).resolve() != (canonical / name).resolve():
+            findings.append(
+                Finding(
+                    rule="skill-exposure",
+                    file=f"{_LINKED_SKILLS_DIR}/{name}",
+                    message=(
+                        f"The path is not a link that resolves to {_SKILLS_DIR}/{name}, so an "
+                        f"agent that reads only {_LINKED_SKILLS_DIR}/ does not find the skill."
+                    ),
+                    fix=(
+                        "Remove whatever is at the path, then run this from the library root: "
+                        f"ln -s ../../{_SKILLS_DIR}/{name} {_LINKED_SKILLS_DIR}/{name}"
+                    ),
+                )
+            )
+    if linked.is_dir():
+        # A plain file here, such as one the operating system leaves behind, exposes no skill.
+        exposed = sorted(
+            path.name for path in linked.iterdir() if path.is_symlink() or path.is_dir()
+        )
+        findings.extend(
+            Finding(
+                rule="skill-exposure",
+                file=f"{_LINKED_SKILLS_DIR}/{name}",
+                message=f"The entry has no skill folder of the same name under {_SKILLS_DIR}/.",
+                fix=f"Remove the entry, or add the skill as {_SKILLS_DIR}/{name}/{_SKILL_FILE}.",
+            )
+            for name in exposed
+            if name not in names
+        )
+    return findings
+
+
+def _skill_file_problem(path: Path, name: str) -> str | None:
+    """Say what is wrong with the frontmatter of a skill file, or return ``None``."""
+    try:
+        frontmatter, _ = split_frontmatter(read_text(path))
+        header = parse_yaml(frontmatter, path)
+    except LoadError as error:
+        return " ".join(error.message.split())
+    except ValueError as error:
+        return f"The frontmatter could not be found. {error}"
+    if not isinstance(header, dict):
+        return "The frontmatter is not a mapping of keys to values."
+    keys = {str(key) for key in header}
+    if keys != _SKILL_KEYS:
+        return (
+            f"The frontmatter holds the keys {', '.join(sorted(keys)) or 'none'}, and it must "
+            "hold exactly name and description."
+        )
+    if header["name"] != name:
+        return f"The frontmatter names the skill {header['name']}, and its folder is {name}."
+    return None
+
+
 CHECKS: list[Check] = [
     _check_gate_status,
     _check_gate_content,
@@ -820,5 +913,6 @@ CHECKS: list[Check] = [
     _check_topic_references,
     _check_topic_citations,
     _check_topic_bodies,
+    _check_skill_exposure,
 ]
 """Every check, in the order it runs. A new check is one more entry at the end."""
