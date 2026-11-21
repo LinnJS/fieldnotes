@@ -82,4 +82,11 @@ jobs:
             gh label create "${LICENSE_LABEL}" --force \
               --description "An upstream license file or statement changed" --color B60205
             gh pr edit "${SYNC_BRANCH}" --add-label "${LICENSE_LABEL}"
+          else
+            # An earlier report may have earned the label. It is removed only when the
+            # pull request carries it, so a pull request that never had it is left alone.
+            labels="$(gh pr view "${SYNC_BRANCH}" --json labels --jq '.labels[].name')"
+            if grep --quiet --line-regexp --fixed-strings -- "${LICENSE_LABEL}" <<< "${labels}"; then
+              gh pr edit "${SYNC_BRANCH}" --remove-label "${LICENSE_LABEL}"
+            fi
           fi
