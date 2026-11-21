@@ -168,6 +168,45 @@ def test_a_mirrored_book_the_gate_refuses_is_a_finding_that_quotes_the_reason(
     ) in findings[0].message
 
 
+def test_a_link_to_a_directory_under_a_reference_only_book_is_a_finding(
+    library_copy: Path,
+) -> None:
+    elsewhere = library_copy / "books" / MIRRORED / "chapters"
+    (library_copy / "books" / REFERENCE / "chapters").symlink_to(
+        elsewhere, target_is_directory=True
+    )
+
+    findings = [finding for finding in run_checks(library_copy) if finding.rule == "gate-content"]
+
+    assert located(findings) == [("gate-content", "books/fixture-reference-book/chapters", None)]
+
+
+def test_a_file_a_mirrored_book_does_not_account_for_is_a_finding(library_copy: Path) -> None:
+    book = library_copy / "books" / MIRRORED
+    (book / "notes.txt").write_text("Loose text.\n", encoding="utf-8")
+    (book / "source" / "Paper-Boat-Engineering-v0.9.0.pdf").write_bytes(b"%PDF-1.7\n")
+    (book / "chapters" / "draft.txt").write_text("Loose text.\n", encoding="utf-8")
+    (book / "chapters-zh").mkdir()
+    (book / "chapters-zh" / "01-folding-the-hull.md").write_text("Loose text.\n", encoding="utf-8")
+    (book / "LICENSE.md").symlink_to(book / "LICENSE")
+
+    assert located(run_checks(library_copy)) == [
+        ("book-unexpected-file", "books/fixture-mirrored-book/LICENSE.md", None),
+        (
+            "book-unexpected-file",
+            "books/fixture-mirrored-book/chapters-zh/01-folding-the-hull.md",
+            None,
+        ),
+        ("book-unexpected-file", "books/fixture-mirrored-book/chapters/draft.txt", None),
+        ("book-unexpected-file", "books/fixture-mirrored-book/notes.txt", None),
+        (
+            "book-unexpected-file",
+            "books/fixture-mirrored-book/source/Paper-Boat-Engineering-v0.9.0.pdf",
+            None,
+        ),
+    ]
+
+
 def test_a_mirrored_book_without_a_license_file_is_a_finding(library_copy: Path) -> None:
     (library_copy / "books" / MIRRORED / "LICENSE").unlink()
 

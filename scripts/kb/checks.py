@@ -259,6 +259,47 @@ def _check_gate_content(library: Library) -> list[Finding]:
     return findings
 
 
+def _check_mirrored_book_files(library: Library) -> list[Finding]:
+    """Report every file in a mirrored book's directory that its record does not account for.
+
+    A mirrored book holds its metadata, its license file, its pinned source file, and one
+    Markdown file per chapter. The license decision covers the pinned edition alone, so any
+    other file, such as a second edition or a translation, is text nobody decided on. A
+    symlink is reported wherever it sits, because its content is kept somewhere else.
+    """
+    findings: list[Finding] = []
+    for resource in library.resources:
+        if resource.mirror_status is not MirrorStatus.MIRRORED:
+            continue
+        book = library.root / BOOKS_DIR / resource.id
+        expected = {book / METADATA_FILE, book / LICENSE_FILE}
+        pinned = resource.pinned_source
+        if pinned is not None and pinned.local_path is not None:
+            expected.add(book / pinned.local_path)
+        for directory, _, file_names in book.walk():
+            for file_name in sorted(file_names):
+                path = directory / file_name
+                is_chapter = directory == book / CHAPTERS_DIR and path.suffix == ".md"
+                if (path in expected or is_chapter) and not path.is_symlink():
+                    continue
+                findings.append(
+                    Finding(
+                        rule="book-unexpected-file",
+                        file=path.relative_to(library.root).as_posix(),
+                        message=(
+                            f"The file is in the directory of the mirrored book {resource.id} "
+                            f"and is not its {METADATA_FILE}, its {LICENSE_FILE}, its pinned "
+                            f"source file, or a chapter under {CHAPTERS_DIR}/."
+                        ),
+                        fix=(
+                            "Remove the file. A mirrored book holds only the pinned edition "
+                            "that its license record was decided on."
+                        ),
+                    )
+                )
+    return findings
+
+
 def _git_blob_id(data: bytes) -> str:
     """Return the id Git gives a file with these bytes, which is how a license record names it."""
     return hashlib.sha1(b"blob %d\0" % len(data) + data, usedforsecurity=False).hexdigest()
@@ -983,5 +1024,6 @@ CHECKS: list[Check] = [
     _check_topic_citations,
     _check_topic_bodies,
     _check_skill_exposure,
+    _check_mirrored_book_files,
 ]
 """Every check, in the order it runs. A new check is one more entry at the end."""
