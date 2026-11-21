@@ -7,7 +7,9 @@ thing to compare with and the raw text of the pages is not.
 Both texts are reduced to words. Markdown markup is stripped from the chapter. Typographic
 variants of quotes, dashes, spaces, and ligatures are made equal, and punctuation at the edges
 of a word is dropped, so that markup and spacing never count as a difference. Punctuation inside
-a word stays, so ``1,300`` and ``1,800`` are different words.
+a word stays, so ``1,300`` and ``1,800`` are different words. Marks that carry meaning of their
+own stay as well: an operator that stands alone, such as ``>=``, a sign or a currency mark in
+front of a number, and a percent mark behind one.
 
 Two rules then apply:
 
@@ -65,7 +67,20 @@ _VARIANTS = str.maketrans(
         "\u2212": "-",
     }
 )
-_WORD_EDGES = re.compile(r"^[\W_]+|[\W_]+$")
+# The punctuation in front of a word, the word, and the punctuation behind it.
+_WORD_PARTS = re.compile(r"([\W_]*)(.*?)([\W_]*)", re.DOTALL)
+# A token that holds no letter or digit and is still a word of the text. A bullet, an arrow, or
+# a stray bracket is not one, because extraction and Markdown render those differently.
+_OPERATOR = re.compile(r"[-<>=!+/%~^&]+")
+_SIGNS = "+-"
+
+# Marks that Markdown puts in front of a line or on a line of their own. The source has none of
+# them, and several are spelled like an operator, so they go before the words are counted.
+_QUOTE_MARKERS = re.compile(r" {0,3}(?:> ?)+")
+_HEADING_MARKER = re.compile(r" {0,3}#{1,6}(?=\s|$)")
+_LIST_MARKER = re.compile(r"\s*[-*+](?=\s|$)")
+_RULE_LINE = re.compile(r" {0,3}(?:([-*_])(?: *\1){2,}|=+) *")
+_TABLE_RULE_CELL = re.compile(r"\s*:?-+:?\s*")
 
 _UNESCAPED_PIPE = re.compile(r"(?<!\\)\|")
 # In reading order: a backslash escape, an inline code span, or a link. An escape is matched
@@ -128,11 +143,28 @@ def words(text: str) -> list[str]:
     Returns:
         The words in order. Compatibility characters such as ligatures and non-breaking spaces
         are normalized, curly quotes and dashes become their plain forms, and punctuation at
-        the start and end of each word is dropped. Case is kept.
+        the start and end of each word is dropped. A sign or a currency mark in front of a
+        number stays, a percent mark behind a number stays, and an operator that stands alone
+        is a word. Case is kept.
     """
     normalized = unicodedata.normalize("NFKC", text).translate(_VARIANTS)
-    stripped = (_WORD_EDGES.sub("", word) for word in normalized.split())
-    return [word for word in stripped if word]
+    return [word for word in map(_word, normalized.split()) if word]
+
+
+def _word(token: str) -> str:
+    """Reduce one white-space token to the word the comparison counts, or to an empty string."""
+    parts = _WORD_PARTS.fullmatch(token)
+    assert parts is not None
+    before, word, after = parts.groups()
+    if not word:
+        return token if _OPERATOR.fullmatch(token) else ""
+    if word[0].isdigit() and before:
+        mark = before[-1]
+        if mark in _SIGNS or unicodedata.category(mark) == "Sc":
+            word = mark + word
+    if word[-1].isdigit() and after.startswith("%"):
+        word += "%"
+    return word
 
 
 def markdown_text(body: str) -> str:
@@ -140,8 +172,9 @@ def markdown_text(body: str) -> str:
 
     Fence lines of code blocks are dropped and the code is kept. Outside code, a link becomes
     its text, an inline code span becomes its content, a backslash escape becomes the character
-    it escapes, and the cell separators of a table row become spaces. Marks that stand apart
-    from the words, such as heading and quote markers, stay and are dropped by ``words``.
+    it escapes, and the cell separators of a table row become spaces. The marks that Markdown
+    puts in front of a line are dropped, which are quote, heading, and list markers, and so is
+    a line that is only a rule or the rule row of a table.
 
     Args:
         body: The Markdown below a chapter's frontmatter.
@@ -161,12 +194,28 @@ def markdown_text(body: str) -> str:
                 lines.append(line)
         elif (opened := opening_fence(line)) is not None:
             open_fence = opened
-        elif line.lstrip().startswith("|"):
-            cells = _UNESCAPED_PIPE.split(line)
-            lines.append(" ".join(_strip_inline(cell.replace("\\|", "|")) for cell in cells))
         else:
-            lines.append(_strip_inline(line))
+            lines.append(_strip_structure(line))
     return "\n".join(lines)
+
+
+def _strip_structure(line: str) -> str:
+    """Strip the markup from one line of Markdown that is outside a code block."""
+    quoted = _QUOTE_MARKERS.match(line)
+    if quoted:
+        line = line[quoted.end() :]
+    if _RULE_LINE.fullmatch(line):
+        return ""
+    if line.lstrip().startswith("|"):
+        cells = [
+            cell for cell in _UNESCAPED_PIPE.split(line) if not _TABLE_RULE_CELL.fullmatch(cell)
+        ]
+        return " ".join(_strip_inline(cell.replace("\\|", "|")) for cell in cells)
+    for marker in (_HEADING_MARKER, _LIST_MARKER):
+        found = marker.match(line)
+        if found:
+            line = line[found.end() :]
+    return _strip_inline(line)
 
 
 def compare(

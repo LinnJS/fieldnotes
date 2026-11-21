@@ -3,6 +3,7 @@
 import hashlib
 from pathlib import Path
 
+import pytest
 from kb.catalog import AcceptedDifference, load_chapters, load_resource
 from kb.checks import Finding, run_checks
 from kb.fidelity import SIMILARITY_FLOOR, check_book, compare
@@ -125,6 +126,62 @@ def test_a_flipped_number_and_a_dropped_word_each_fail() -> None:
     assert (dropped.words_removed, dropped.words_added) == (("through",), ())
     assert (doubled.words_removed, doubled.words_added) == ((), ("Reef",))
     assert not (flipped.passed or dropped.passed or doubled.passed)
+
+
+@pytest.mark.parametrize(
+    ("source", "chapter", "removed", "added"),
+    [
+        ("Stop when score >= 0.8 holds.", "Stop when score <= 0.8 holds.", (">=",), ("<=",)),
+        ("Retry while count != 3 holds.", "Retry while count == 3 holds.", ("!=",), ("==",)),
+        ("The gain was -5 points.", "The gain was 5 points.", ("-5",), ("5",)),
+        ("It keeps 50% of the runs.", "It keeps 50 of the runs.", ("50%",), ("50",)),
+        ("A run costs $20 a day.", "A run costs 20 a day.", ("$20",), ("20",)),
+    ],
+)
+def test_a_changed_operator_sign_percent_or_currency_mark_fails(
+    source: str, chapter: str, removed: tuple[str, ...], added: tuple[str, ...]
+) -> None:
+    result = compare(CHAPTER_ID, source, chapter)
+
+    assert not result.passed
+    assert (result.words_removed, result.words_added) == (removed, added)
+
+
+def test_markdown_structure_marks_are_not_read_as_operators() -> None:
+    source = (
+        "Knots\nReef knot\nBowline\nA knot is a promise.\nSize Turns\nSmall Twelve\nDone - at last."
+    )
+    chapter = "\n".join(
+        [
+            "## Knots",
+            "",
+            "- Reef knot",
+            "+ Bowline",
+            "",
+            "> A knot is a promise.",
+            "",
+            "| Size | Turns |",
+            "| --- | :-: |",
+            "| Small | Twelve |",
+            "",
+            "---",
+            "",
+            "Done \u2014 at last.",
+        ]
+    )
+
+    result = compare(CHAPTER_ID, source, chapter)
+
+    assert result.passed, result.message
+
+
+def test_a_sign_or_an_operator_inside_a_code_block_is_compared() -> None:
+    source = "Run it.\n# keep going\nwhile score < 0.8: step -= 1"
+    chapter = "Run it.\n\n```python\n# keep going\nwhile score > 0.8: step -= 1\n```\n"
+
+    result = compare(CHAPTER_ID, source, chapter)
+
+    assert (result.words_removed, result.words_added) == (("<",), (">",))
 
 
 def test_the_first_words_that_differ_are_named_in_reading_order() -> None:
