@@ -21,7 +21,10 @@ from pathlib import Path
 from kb.catalog import (
     BOOKS_DIR,
     CATALOG_FILE,
+    CHAPTERS_DIR,
     METADATA_FILE,
+    TOPIC_INDEX_FILE,
+    TOPICS_DIR,
     ChapterFile,
     Library,
     MirrorStatus,
@@ -34,16 +37,36 @@ from kb.catalog import (
 )
 from kb.fidelity import check_book
 from kb.gate import evaluate
-from kb.indexes import STALE_FIX, stale_files
+from kb.indexes import STALE_FIX, quote_permitted, stale_files
+from kb.readpath import CHAPTERS_INDEX, ReadPathError, check_text, cited_lines, load_index
 from kb.schema import LoadError, SchemaName
 
-__all__ = ["CHECKS", "Check", "Finding", "run_checks"]
+__all__ = ["CHECKS", "NO_COVERAGE_SENTENCE", "SCOPE_LABEL", "Check", "Finding", "run_checks"]
 
 LICENSE_FILE = "LICENSE"
+
+SCOPE_LABEL = "**Scope (editorial).**"
+"""What the first paragraph of a topic body starts with. It marks the library's own words."""
+
+NO_COVERAGE_SENTENCE = (
+    "No mirrored chapter covers this topic yet, and the books listed below are read at their "
+    "official sources."
+)
+"""The one paragraph that may stand without a citation in a topic with no mirrored chapter."""
 
 _LINK = re.compile(r"\]\(\s*([^)\s]+)[^)]*\)")
 _CODE_FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
 _NOT_A_FILE_LINK = ("http:", "https:", "mailto:", "#")
+_HEADING = re.compile(r" {0,3}#{1,6}(?:\s|$)")
+_LIST_ITEM = re.compile(r"\s*(?:[-*+]|\d+[.)])\s+(.*)")
+_QUOTE_LINE = re.compile(r" {0,3}>")
+# The two forms of a reading-list item that points somewhere and claims nothing: a link alone,
+# and the instruction to resolve the id of a book whose text is not in the library.
+_LINK_POINTER = re.compile(r"\[[^\]]*\]\([^)\s]+\)")
+_RESOLVE_POINTER = re.compile(
+    r"`([a-z0-9-]+)`\. Run `python3 scripts/resolve\.py \1` for its official URL\."
+)
+_EXCERPT_LENGTH = 80
 
 
 @dataclass(frozen=True)
@@ -392,22 +415,30 @@ def _check_chapter_location(library: Library) -> list[Finding]:
 
 
 def _check_links(library: Library) -> list[Finding]:
-    """Report each relative link in a chapter or topic body whose target does not exist."""
+    """Report each relative link whose target does not exist.
+
+    The links of every chapter body, every topic body, and the topic landing page are checked.
+    """
     findings: list[Finding] = []
     documents: list[ChapterFile | TopicFile] = [*library.chapters, *library.topics]
-    for document in documents:
-        path = library.root / document.path
-        # The body is the tail of the file, so the lines above it are the difference in length.
-        lines_above = path.read_text(encoding="utf-8").count("\n") - document.body.count("\n")
-        for index, target in _link_targets(document.body):
+    pages = [
+        (document.path, document.body, _lines_above(library, document)) for document in documents
+    ]
+    landing_page = Path(TOPICS_DIR) / TOPIC_INDEX_FILE
+    if (library.root / landing_page).is_file():
+        # The landing page has no frontmatter, so the whole file is its body.
+        pages.append((landing_page, (library.root / landing_page).read_text(encoding="utf-8"), 0))
+    for page, body, lines_above in pages:
+        directory = (library.root / page).parent
+        for index, target in _link_targets(body):
             if target.startswith(_NOT_A_FILE_LINK):
                 continue
             target_file = target.partition("#")[0].partition("?")[0]
-            if not (path.parent / target_file).exists():
+            if not (directory / target_file).exists():
                 findings.append(
                     Finding(
                         rule="link-missing-target",
-                        file=document.path.as_posix(),
+                        file=page.as_posix(),
                         line=lines_above + index + 1,
                         message=f"The link target {target} does not exist.",
                         fix=(
@@ -417,6 +448,12 @@ def _check_links(library: Library) -> list[Finding]:
                     )
                 )
     return findings
+
+
+def _lines_above(library: Library, document: ChapterFile | TopicFile) -> int:
+    """Count the lines of a file that come before its body, which is the tail of the file."""
+    text = (library.root / document.path).read_text(encoding="utf-8")
+    return text.count("\n") - document.body.count("\n")
 
 
 def _link_targets(body: str) -> Iterator[tuple[int, str]]:
@@ -497,6 +534,273 @@ def _check_index_freshness(library: Library) -> list[Finding]:
     ]
 
 
+def _check_topic_location(library: Library) -> list[Finding]:
+    """Report each topic document whose file name is not its id."""
+    findings: list[Finding] = []
+    for topic_file in library.topics:
+        expected_name = f"{topic_file.topic.id}.md"
+        if topic_file.path.name != expected_name:
+            findings.append(
+                Finding(
+                    rule="topic-filename",
+                    file=topic_file.path.as_posix(),
+                    message=(
+                        f"The file name must be {expected_name}, from the id "
+                        f"{topic_file.topic.id} in the frontmatter."
+                    ),
+                    fix="Rename the file, or correct the id in the frontmatter.",
+                )
+            )
+    return findings
+
+
+def _check_topic_references(library: Library) -> list[Finding]:
+    """Report each topic reference that names an unknown book or a chapter that is not mirrored.
+
+    A reference may name any cataloged book. It may name a chapter only when the book's text is
+    in the library and the book has a chapter with that id.
+    """
+    allowlist = library.catalog.license_allowlist
+    loaded = {resource.id: resource for resource in library.resources}
+    findings: list[Finding] = []
+    for topic_file in library.topics:
+        topic = topic_file.topic
+        file = topic_file.path.as_posix()
+        for reference in topic.references:
+            if reference.resource not in library.catalog.resources:
+                findings.append(
+                    Finding(
+                        rule="topic-reference-resource",
+                        file=file,
+                        message=(
+                            f"The topic {topic.id} references the resource "
+                            f"{reference.resource}, which {CATALOG_FILE} does not list."
+                        ),
+                        fix=(
+                            "Use the id of a cataloged resource, which is its directory name "
+                            f"under {BOOKS_DIR}/, or remove the reference."
+                        ),
+                    )
+                )
+                continue
+            resource = loaded.get(reference.resource)
+            # A cataloged book whose metadata did not load is a finding of its own, and nothing
+            # is known here about whether it is mirrored.
+            if reference.chapter is None or resource is None:
+                continue
+            if not quote_permitted(resource, allowlist):
+                findings.append(
+                    Finding(
+                        rule="topic-reference-not-mirrored",
+                        file=file,
+                        message=(
+                            f"The topic {topic.id} references the chapter {reference.chapter} "
+                            f"of {resource.id}, whose mirror_status is "
+                            f"{resource.mirror_status.value}. A reference may name a chapter "
+                            "only of a mirrored book that the license gate allows."
+                        ),
+                        fix=(
+                            "Remove the chapter key, so that the reference names the book "
+                            "alone and its text is read at the official source."
+                        ),
+                    )
+                )
+                continue
+            chapter_ids = {
+                chapter_file.chapter.id for chapter_file in library.chapters_of(resource.id)
+            }
+            # One chapter file that does not load keeps every chapter of its book out of the
+            # library. That file is a finding of its own, and the ids of the book are not
+            # known until it is corrected.
+            if reference.chapter not in chapter_ids and _chapters_loaded(library, resource.id):
+                findings.append(
+                    Finding(
+                        rule="topic-reference-chapter",
+                        file=file,
+                        message=(
+                            f"The topic {topic.id} references the chapter {reference.chapter}, "
+                            f"and {resource.id} has no chapter with that id."
+                        ),
+                        fix=(
+                            f"Use a chapter id that {CHAPTERS_INDEX} lists for {resource.id}, "
+                            "or remove the chapter key."
+                        ),
+                    )
+                )
+    return findings
+
+
+def _chapters_loaded(library: Library, resource_id: str) -> bool:
+    """Say whether every chapter file in a book's directory is among the loaded chapters."""
+    loaded = {chapter_file.path for chapter_file in library.chapters}
+    directory = library.root / BOOKS_DIR / resource_id / CHAPTERS_DIR
+    return all(path.relative_to(library.root) in loaded for path in directory.glob("*.md"))
+
+
+def _check_topic_citations(library: Library) -> list[Finding]:
+    """Run the citation checker over the body of each topic document.
+
+    The checker reads the committed indexes, as ``scripts/check_citations.py`` does. Indexes
+    that cannot be read, or that list a chapter file that is gone, are findings of the index
+    freshness check, and the citations are checked once the indexes are rebuilt.
+    """
+    try:
+        index = load_index(library.root)
+    except ReadPathError:
+        return []
+    findings: list[Finding] = []
+    for topic_file in library.topics:
+        try:
+            problems = check_text(index, topic_file.body)
+        except ReadPathError:
+            continue
+        lines_above = _lines_above(library, topic_file)
+        findings.extend(
+            Finding(
+                rule="topic-citation",
+                file=topic_file.path.as_posix(),
+                line=lines_above + problem.line,
+                message=problem.message,
+                fix=(
+                    "Cite a mirrored chapter by an id that scripts/resolve.py prints, and copy "
+                    "each quote from the chapter file word for word."
+                ),
+            )
+            for problem in problems
+        )
+    return findings
+
+
+@dataclass(frozen=True)
+class _Paragraph:
+    """One paragraph or list item of a topic body.
+
+    Attributes:
+        first: Index of its first line in the body, counted from 0.
+        last: Index of its last line.
+        text: Its lines joined by single spaces.
+        quote: Whether every line of it is a line of a Markdown block quote.
+    """
+
+    first: int
+    last: int
+    text: str
+    quote: bool
+
+
+def _paragraphs(body: str) -> Iterator[_Paragraph]:
+    """Split a topic body into paragraphs, where each list item is a paragraph of its own.
+
+    Blank lines, headings, and fenced code blocks separate paragraphs and belong to none.
+    """
+    open_fence: str | None = None
+    first = 0
+    lines: list[str] = []
+    # The empty last line closes a paragraph that runs to the end of the body.
+    for index, line in enumerate([*body.split("\n"), ""]):
+        fence = _CODE_FENCE.match(line)
+        in_code = open_fence is not None or fence is not None
+        if open_fence is None:
+            if fence:
+                open_fence = fence[1]
+        # A block closes on a bare fence of the same character that is at least as long.
+        elif fence and fence[1].startswith(open_fence) and not line[fence.end() :].strip():
+            open_fence = None
+        separator = in_code or not line.strip() or _HEADING.match(line) is not None
+        if lines and (separator or _LIST_ITEM.match(line)):
+            yield _Paragraph(
+                first=first,
+                last=index - 1,
+                text=" ".join(" ".join(lines).split()),
+                quote=all(_QUOTE_LINE.match(quoted) for quoted in lines),
+            )
+            lines = []
+        if not separator:
+            if not lines:
+                first = index
+            lines.append(line)
+
+
+def _is_pointer(paragraph: _Paragraph) -> bool:
+    """Say whether a paragraph is a list item that only points at a chapter file or a book."""
+    item = _LIST_ITEM.fullmatch(paragraph.text)
+    if item is None:
+        return False
+    return bool(_LINK_POINTER.fullmatch(item[1]) or _RESOLVE_POINTER.fullmatch(item[1]))
+
+
+def _check_topic_bodies(library: Library) -> list[Finding]:
+    """Report each topic body that breaks the rule on what a topic may say in its own words.
+
+    The first paragraph is the scope statement and starts with ``SCOPE_LABEL``. Every paragraph
+    and list item after it holds a citation token, with two exceptions. A list item that is only
+    a link, or only the instruction to resolve a book id, points somewhere and claims nothing.
+    ``NO_COVERAGE_SENTENCE`` may stand alone in a topic that references no mirrored chapter.
+
+    The token of a block quote may also sit on the first line of the next paragraph, which is
+    where the citation checker accepts it.
+    """
+    allowlist = library.catalog.license_allowlist
+    quotable = {
+        resource.id for resource in library.resources if quote_permitted(resource, allowlist)
+    }
+    findings: list[Finding] = []
+    for topic_file in library.topics:
+        topic = topic_file.topic
+        file = topic_file.path.as_posix()
+        lines_above = _lines_above(library, topic_file)
+        covered = any(
+            reference.chapter and reference.resource in quotable for reference in topic.references
+        )
+        cited = cited_lines(topic_file.body)
+        paragraphs = list(_paragraphs(topic_file.body))
+        if not paragraphs or not paragraphs[0].text.startswith(SCOPE_LABEL):
+            findings.append(
+                Finding(
+                    rule="topic-scope",
+                    file=file,
+                    line=lines_above + paragraphs[0].first + 1 if paragraphs else None,
+                    message=(
+                        f"The body of the topic {topic.id} does not open with its scope "
+                        f"statement, which is a paragraph that starts with {SCOPE_LABEL}"
+                    ),
+                    fix=(
+                        f"Start the first paragraph below the title with {SCOPE_LABEL} and "
+                        "define the topic there in two or three sentences of the library's own "
+                        "words."
+                    ),
+                )
+            )
+        for number, paragraph in enumerate(paragraphs[1:], start=1):
+            last = paragraph.last
+            if paragraph.quote and number + 1 < len(paragraphs):
+                last = paragraphs[number + 1].first
+            if cited.intersection(range(paragraph.first + 1, last + 2)):
+                continue
+            if _is_pointer(paragraph) or (paragraph.text == NO_COVERAGE_SENTENCE and not covered):
+                continue
+            excerpt = paragraph.text
+            if len(excerpt) > _EXCERPT_LENGTH:
+                excerpt = f"{excerpt[:_EXCERPT_LENGTH]}..."
+            findings.append(
+                Finding(
+                    rule="topic-uncited-paragraph",
+                    file=file,
+                    line=lines_above + paragraph.first + 1,
+                    message=(
+                        f"A paragraph of the topic {topic.id} after its scope statement holds "
+                        f"no citation token: {excerpt}"
+                    ),
+                    fix=(
+                        "End the paragraph with a [cite:<chapter-id>] token for the mirrored "
+                        "chapter it draws on, or remove it. A list item may stand without a "
+                        "token only as a link alone or as the resolve instruction for a book id."
+                    ),
+                )
+            )
+    return findings
+
+
 CHECKS: list[Check] = [
     _check_gate_status,
     _check_gate_content,
@@ -508,5 +812,9 @@ CHECKS: list[Check] = [
     _check_links,
     _check_fidelity,
     _check_index_freshness,
+    _check_topic_location,
+    _check_topic_references,
+    _check_topic_citations,
+    _check_topic_bodies,
 ]
 """Every check, in the order it runs. A new check is one more entry at the end."""

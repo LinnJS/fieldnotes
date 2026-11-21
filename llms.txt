@@ -45,6 +45,20 @@ These books are cataloged with their license evidence. Read them at the author's
 - [Amazon Quick Getting Started Orange Book](https://www.huasheng.ai/orange-books/amazon-quick/): `amazon-quick-orange-book`, reference-only, no license terms found. Original title: Amazon Quick 上手橙皮书. The English title is this library's translation. Its text is not in this library.
 - [From One Sentence to a Phone Skill](https://www.huasheng.ai/orange-books/phone-skill/): `phone-skill-orange-book`, reference-only, no license terms found. Original title: 从一句话到一个手机Skill. The English title is this library's translation. Its text is not in this library.
 
+## Topics
+
+- [Agent Architecture](topics/agent-architecture.md): `agent-architecture`, 6 references.
+- [Agent Orchestration](topics/agent-orchestration.md): `agent-orchestration`, 7 references.
+- [Agent Reliability](topics/agent-reliability.md): `agent-reliability`, 3 references.
+- [Agent Security](topics/agent-security.md): `agent-security`, 4 references.
+- [Coding Agents](topics/coding-agents.md): `coding-agents`, 6 references.
+- [Context Engineering](topics/context-engineering.md): `context-engineering`, 4 references.
+- [Development Workflows](topics/development-workflows.md): `development-workflows`, 8 references.
+- [Evaluation and Testing](topics/evaluation-and-testing.md): `evaluation-and-testing`, 4 references.
+- [Harness Engineering](topics/harness-engineering.md): `harness-engineering`, 5 references.
+- [Memory and State Management](topics/memory-and-state-management.md): `memory-and-state-management`, 8 references.
+- [Tool Use and Integration](topics/tool-use-and-integration.md): `tool-use-and-integration`, 9 references.
+
 ## Indexes
 
 - [index/catalog.json](index/catalog.json): Every book with its license id, mirror status, quote-permitted flag, editions, and official URLs.

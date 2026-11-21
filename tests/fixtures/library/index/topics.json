@@ -2,6 +2,7 @@
   "topics": [
     {
       "id": "paper-craft",
+      "mirrored_chapters": 2,
       "path": "topics/paper-craft.md",
       "references": [
         {
@@ -33,6 +34,7 @@
     },
     {
       "id": "tea-service",
+      "mirrored_chapters": 0,
       "path": "topics/tea-service.md",
       "references": [
         {

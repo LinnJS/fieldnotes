@@ -297,6 +297,13 @@ def _records(
                     }
                     for reference in topic.references
                 ],
+                mirrored_chapters=len(
+                    {
+                        reference.chapter
+                        for reference in topic.references
+                        if reference.chapter and quotable.get(reference.resource, False)
+                    }
+                ),
             )
         )
 

@@ -92,7 +92,18 @@
         "english_official": true,
         "original": "别再问我什么是 Loop Engineering"
       },
-      "topics": [],
+      "topics": [
+        "agent-architecture",
+        "agent-orchestration",
+        "agent-reliability",
+        "coding-agents",
+        "context-engineering",
+        "development-workflows",
+        "evaluation-and-testing",
+        "harness-engineering",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -153,7 +164,13 @@
         "english_official": true,
         "original": "Hermes Agent橙皮书2.0"
       },
-      "topics": [],
+      "topics": [
+        "agent-orchestration",
+        "agent-security",
+        "harness-engineering",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -212,7 +229,11 @@
         "english_official": true,
         "original": "OpenAI Codex 从入门到精通"
       },
-      "topics": [],
+      "topics": [
+        "coding-agents",
+        "development-workflows",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -269,7 +290,13 @@
         "english_official": true,
         "original": "Claude Code 从入门到精通"
       },
-      "topics": [],
+      "topics": [
+        "agent-orchestration",
+        "coding-agents",
+        "context-engineering",
+        "development-workflows",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -325,7 +352,11 @@
         "english_official": true,
         "original": "DeepSeek Harness：从开机到拆开"
       },
-      "topics": [],
+      "topics": [
+        "agent-security",
+        "harness-engineering",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -372,7 +403,9 @@
         "english_official": false,
         "original": "3D Vibe Coding 手册"
       },
-      "topics": [],
+      "topics": [
+        "development-workflows"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -429,7 +462,13 @@
         "english_official": true,
         "original": "Harness Engineering：缰绳工程学完全指南"
       },
-      "topics": [],
+      "topics": [
+        "agent-architecture",
+        "agent-orchestration",
+        "agent-reliability",
+        "harness-engineering",
+        "memory-and-state-management"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -488,7 +527,9 @@
         "english_official": true,
         "original": "Obsidian + Claude Code：用AI重建你的第二大脑"
       },
-      "topics": [],
+      "topics": [
+        "memory-and-state-management"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -593,7 +634,10 @@
         "english_official": true,
         "original": "Agent Skills 橙皮书"
       },
-      "topics": [],
+      "topics": [
+        "development-workflows",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -651,7 +695,12 @@
         "english_official": true,
         "original": "OpenClaw 橙皮书：从入门到精通"
       },
-      "topics": [],
+      "topics": [
+        "agent-architecture",
+        "agent-security",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },
@@ -709,7 +758,16 @@
         "english_official": true,
         "original": "Claude Code 源码解析"
       },
-      "topics": [],
+      "topics": [
+        "agent-architecture",
+        "agent-orchestration",
+        "agent-security",
+        "coding-agents",
+        "context-engineering",
+        "harness-engineering",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
       "translator": null,
       "type": "book"
     },

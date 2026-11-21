@@ -134,6 +134,8 @@ def test_an_eligible_book_may_hold_only_its_metadata(library_copy: Path) -> None
         ("index-stale", "index/chapters.jsonl", None),
         ("index-stale", "index/topics.json", None),
         ("index-stale", "llms.txt", None),
+        ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
+        ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
     ]
 
 
@@ -154,6 +156,8 @@ def test_a_mirrored_book_the_gate_refuses_is_a_finding_that_quotes_the_reason(
         ("index-stale", "index/chapters.jsonl", None),
         ("index-stale", "index/topics.json", None),
         ("index-stale", "llms.txt", None),
+        ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
+        ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
     ]
     assert (
         "The record says redistribution is unclear and adaptation is allowed. Both must be allowed."
@@ -241,10 +245,12 @@ def test_order_values_with_a_gap_are_a_finding(library_copy: Path) -> None:
 
     findings = run_checks(library_copy)
 
+    # The fixture topic links the renamed chapter file under its old name.
     assert located(findings) == [
         ("chapter-order", "books/fixture-mirrored-book/chapters", None),
         ("index-stale", "index/chapters.jsonl", None),
         ("index-stale", "llms.txt", None),
+        ("link-missing-target", "topics/paper-craft.md", 26),
     ]
     assert "1, 2, 4" in findings[0].message
 
@@ -294,9 +300,11 @@ def test_a_link_to_a_missing_file_is_a_finding_with_its_line_number(library_copy
 
     findings = run_checks(library_copy)
 
+    # The topic written here also lacks the labeled scope statement.
     assert located(findings) == [
         ("index-stale", "index/topics.json", None),
         ("link-missing-target", "topics/tea-service.md", 11),
+        ("topic-scope", "topics/tea-service.md", 11),
     ]
     assert "kettle-guide.md" in findings[1].message
 
@@ -334,7 +342,10 @@ def test_links_that_resolve_or_leave_the_library_are_not_findings(library_copy: 
             "Jump to [the top](#tea-service).\n"
         )
 
-    assert run_checks(library_copy) == []
+    # No link is a finding. The added paragraph cites nothing, which is a finding of its own.
+    assert located(run_checks(library_copy)) == [
+        ("topic-uncited-paragraph", "topics/tea-service.md", 19)
+    ]
 
 
 def test_links_inside_a_fenced_code_block_are_ignored(library_copy: Path) -> None:
@@ -440,6 +451,7 @@ def test_one_broken_file_does_not_hide_findings_in_other_files(library_copy: Pat
         ("index-stale", "index/topics.json", None),
         ("index-stale", "llms.txt", None),
         ("link-missing-target", "topics/tea-service.md", 11),
+        ("topic-scope", "topics/tea-service.md", 11),
     ]
 
 
@@ -471,8 +483,11 @@ def test_findings_are_sorted_by_file_then_line_then_rule(library_copy: Path) -> 
         ("index-stale", "index/topics.json", None),
         ("index-stale", "llms.txt", None),
         ("link-missing-target", "topics/paper-craft.md", 11),
+        ("topic-scope", "topics/paper-craft.md", 11),
         ("link-missing-target", "topics/tea-service.md", 11),
+        ("topic-scope", "topics/tea-service.md", 11),
         ("link-missing-target", "topics/tea-service.md", 13),
+        ("topic-uncited-paragraph", "topics/tea-service.md", 13),
     ]
 
 

@@ -1,3 +1,604 @@
 {
-  "topics": []
+  "topics": [
+    {
+      "id": "agent-architecture",
+      "mirrored_chapters": 3,
+      "path": "topics/agent-architecture.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/from-prompt-to-context-to-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Lays out a four-layer stack of prompt, context, harness, and loop, and says what each layer is responsible for.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/five-moves-of-one-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Breaks one turn of a loop into five moves, which are discovery, handoff, verification, persistence, and scheduling.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/six-parts-of-a-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Names the six parts a loop is built from and pairs each part with the move it serves.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a framework part on the five components of a harness.",
+          "quote_permitted": false,
+          "resource": "harness-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a part on the Gateway-Node-Channel architecture of OpenClaw.",
+          "quote_permitted": false,
+          "resource": "openclaw-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists an architecture overview of Claude Code and a chapter on its multi-agent architecture.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Agent Architecture"
+    },
+    {
+      "id": "agent-orchestration",
+      "mirrored_chapters": 3,
+      "path": "topics/agent-orchestration.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/five-moves-of-one-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes handing each finding to a sub-agent in its own worktree, and scheduling as the move that makes a loop repeat.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/six-parts-of-a-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Covers automations, worktrees, and sub-agents as the parts that start a loop, isolate parallel agents, and separate writing from judging.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/loops-that-run-while-you-sleep",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Shows the deterministic orchestrator and gates of Stripe's Minions, and compares local and cloud scheduling.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "MIT",
+          "mirror_status": "eligible",
+          "note": "Its README lists a part on multi-agent work and orchestration in Hermes Agent, from delegated tasks to a Kanban platform.",
+          "quote_permitted": false,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists multi-agent collaboration among its advanced practice chapters.",
+          "quote_permitted": false,
+          "resource": "claude-code-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README names orchestration layers among the things a harness designer builds, and lists a hands-on section on orchestration.",
+          "quote_permitted": false,
+          "resource": "harness-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on the multi-agent architecture of Claude Code.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Agent Orchestration"
+    },
+    {
+      "id": "agent-reliability",
+      "mirrored_chapters": 2,
+      "path": "topics/agent-reliability.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/loops-that-run-while-you-sleep",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Reports how Stripe's Minions rely on deterministic context assembly, hard-coded gates, and disposable sandboxes for reliability.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/costs",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Names four costs of unattended loops and a guard for each, including budget and retry caps.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README presents harness engineering as the design work that makes AI agents reliable.",
+          "quote_permitted": false,
+          "resource": "harness-engineering-orange-book"
+        }
+      ],
+      "title": "Agent Reliability"
+    },
+    {
+      "id": "agent-security",
+      "mirrored_chapters": 0,
+      "path": "topics/agent-security.md",
+      "references": [
+        {
+          "chapter": null,
+          "license_id": "MIT",
+          "mirror_status": "eligible",
+          "note": "Its README lists a part on deployment, security, and boundaries for Hermes Agent, including the operating system boundary and what it calls Promptware defense.",
+          "quote_permitted": false,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists a section on what DeepSeek Harness is allowed to touch, and names permission approval before writes among its first-hand tests. The book is in Chinese.",
+          "quote_permitted": false,
+          "resource": "deepseek-harness-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a part on the security model of OpenClaw and its known incidents.",
+          "quote_permitted": false,
+          "resource": "openclaw-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on the permission system of Claude Code.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Agent Security"
+    },
+    {
+      "id": "coding-agents",
+      "mirrored_chapters": 3,
+      "path": "topics/coding-agents.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/generator-and-evaluator",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Explains Claude Code's /goal command, where a fresh model decides whether the stop condition is met, and notes how Codex reaches the same capability.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/loops-that-run-while-you-sleep",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Compares the scheduling features of Claude Code and Codex, from local /loop to cloud runs.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/build-your-first-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Walks through Claude Code's /loop, /goal, and worktree commands, with a table of the matching Codex features as of June 2026.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README calls it a guide to OpenAI Codex across its CLI, desktop app, cloud, IDE extension, and Chrome extension forms.",
+          "quote_permitted": false,
+          "resource": "codex-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README calls it a guide to Claude Code, Anthropic's terminal AI programming tool, from installation to shipping products.",
+          "quote_permitted": false,
+          "resource": "claude-code-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README says it examines the design decisions behind Claude Code, based on source code exposed in March 2026.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Coding Agents"
+    },
+    {
+      "id": "context-engineering",
+      "mirrored_chapters": 2,
+      "path": "topics/context-engineering.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/from-prompt-to-context-to-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Defines context engineering as deciding what goes into the model's window, and places it between prompt engineering and harness engineering.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/loops-that-run-while-you-sleep",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes how Stripe's Minions assemble context with deterministic code before the model starts.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on prompting and context engineering in Claude Code.",
+          "quote_permitted": false,
+          "resource": "claude-code-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on context management for long conversations in Claude Code.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Context Engineering"
+    },
+    {
+      "id": "development-workflows",
+      "mirrored_chapters": 4,
+      "path": "topics/development-workflows.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/what-loop-engineering-really-is",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes the shift from prompting an agent line by line to designing the loop that prompts it.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/five-moves-of-one-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Follows a morning triage loop from failing tests to a pull request for a reviewed fix, with an inbox for what needs a person.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/stay-the-engineer",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Argues that the person who builds a loop should keep manual checkpoints and keep exercising judgment.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/build-your-first-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Gives five steps for building a first loop and a checklist that ends with a human review point.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists a daily workflow part and a chapter on going from idea to shipped product with Codex.",
+          "quote_permitted": false,
+          "resource": "codex-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on workflows in Claude Code, including its Plan and Auto modes.",
+          "quote_permitted": false,
+          "resource": "claude-code-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README describes a full workflow from a one-sentence prompt to a running 3D scene built with AI-generated assets. The book is in Chinese.",
+          "quote_permitted": false,
+          "resource": "3d-vibe-coding-handbook"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README says a skill file records a person's workflow, preferences, and quality standards for an AI assistant to reuse.",
+          "quote_permitted": false,
+          "resource": "agent-skills-orange-book"
+        }
+      ],
+      "title": "Development Workflows"
+    },
+    {
+      "id": "evaluation-and-testing",
+      "mirrored_chapters": 4,
+      "path": "topics/evaluation-and-testing.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/five-moves-of-one-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Presents verification as one of five moves, done by a second sub-agent that reviews the first one's fix against the project's skills and tests.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/generator-and-evaluator",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Explains why an agent overrates its own work, and why judging should go to a separate evaluator that tests the result by acting on it.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/costs",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes verification debt, the pile of output nobody has verified, and names an independent evaluator as the guard.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/build-your-first-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Shows how to add an evaluator to a first loop with Claude Code's /goal command.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        }
+      ],
+      "title": "Evaluation and Testing"
+    },
+    {
+      "id": "harness-engineering",
+      "mirrored_chapters": 1,
+      "path": "topics/harness-engineering.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/from-prompt-to-context-to-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Defines the harness as the layer that equips a single agent run, and separates it from the loop layer above it.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "MIT",
+          "mirror_status": "eligible",
+          "note": "Its README presents Hermes Agent as a product built from the five harness components of instructions, constraints, feedback, memory, and orchestration.",
+          "quote_permitted": false,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README describes a first-hand run of DeepSeek's open-source agent harness that records its system prompt and default boot manifest. The book is in Chinese.",
+          "quote_permitted": false,
+          "resource": "deepseek-harness-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README calls it a practical guide to harness engineering, which it describes as designing constraints, instructions, feedback loops, memory systems, and orchestration layers for agents.",
+          "quote_permitted": false,
+          "resource": "harness-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on the harness skeleton of Claude Code and a closing chapter titled The Harness Engineering Playbook.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Harness Engineering"
+    },
+    {
+      "id": "memory-and-state-management",
+      "mirrored_chapters": 3,
+      "path": "topics/memory-and-state-management.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/five-moves-of-one-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Presents persistence as one of five moves, where results and a state file are written outside the conversation.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/six-parts-of-a-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes memory as state on disk that outlives the context window, and separates memory from context.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/build-your-first-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Shows how to give a first loop a state file so that unfinished work carries over to the next run.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "MIT",
+          "mirror_status": "eligible",
+          "note": "Its README lists a part on the three-layer memory and session search of Hermes Agent.",
+          "quote_permitted": false,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README names memory systems among the things a harness designer builds, and lists a hands-on section on capability and memory.",
+          "quote_permitted": false,
+          "resource": "harness-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README describes an AI-maintained personal knowledge base of Markdown files, and says several AI tools store their memory as Markdown.",
+          "quote_permitted": false,
+          "resource": "obsidian-ai-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists the memory system, workspace, and sessions of OpenClaw in its architecture part.",
+          "quote_permitted": false,
+          "resource": "openclaw-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on the memory system of Claude Code.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Memory and State Management"
+    },
+    {
+      "id": "tool-use-and-integration",
+      "mirrored_chapters": 2,
+      "path": "topics/tool-use-and-integration.md",
+      "references": [
+        {
+          "chapter": "loop-engineering-orange-book/six-parts-of-a-loop",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes connectors built on MCP as the interface between a loop and outside systems, and skills as reusable project knowledge.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": "loop-engineering-orange-book/generator-and-evaluator",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Gives the example of an evaluator connected to Playwright MCP so that it can use a page and not only read its code.",
+          "quote_permitted": true,
+          "resource": "loop-engineering-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "MIT",
+          "mirror_status": "eligible",
+          "note": "Its README lists a part on the tools, MCP support, and messaging platforms of Hermes Agent.",
+          "quote_permitted": false,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on Skills, MCP, Automations, and /goal as the extension layers of Codex.",
+          "quote_permitted": false,
+          "resource": "codex-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists Skills, Hooks, and MCP among its advanced practice chapters.",
+          "quote_permitted": false,
+          "resource": "claude-code-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": "CC-BY-NC-SA-4.0",
+          "mirror_status": "reference-only",
+          "note": "Its README lists a section on how skills, MCP, and plugins relate in DeepSeek Harness, and a record of the agent building a tool for itself. The book is in Chinese.",
+          "quote_permitted": false,
+          "resource": "deepseek-harness-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README calls it a complete guide to Agent Skills, from installing and using skills to creating them.",
+          "quote_permitted": false,
+          "resource": "agent-skills-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists parts on channel integration with messaging platforms and on the skills system of OpenClaw.",
+          "quote_permitted": false,
+          "resource": "openclaw-orange-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Its README lists a chapter on the tool system of Claude Code.",
+          "quote_permitted": false,
+          "resource": "claude-code-source-analysis-orange-book"
+        }
+      ],
+      "title": "Tool Use and Integration"
+    }
+  ]
 }

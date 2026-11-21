@@ -8,6 +8,10 @@ references:
 
 # Tea Service
 
-*Test fixture. This topic is invented for automated tests.*
+**Scope (editorial).** This topic covers preparing and serving tea. It is a test fixture, and every word of it is invented for automated tests.
 
-*Editorial scope.* This topic covers preparing and serving tea. No mirrored chapter covers it.
+No mirrored chapter covers this topic yet, and the books listed below are read at their official sources.
+
+## Where to read
+
+- `fixture-reference-book`. Run `python3 scripts/resolve.py fixture-reference-book` for its official URL.

@@ -58,6 +58,7 @@ __all__ = [
     "TopicReferenceRecord",
     "check_text",
     "cite_token",
+    "cited_lines",
     "edition_note",
     "format_citation",
     "language_name",
@@ -248,12 +249,18 @@ class TopicReferenceRecord(TypedDict):
 
 
 class TopicRecord(TypedDict):
-    """One entry of ``topics`` in ``index/topics.json``."""
+    """One entry of ``topics`` in ``index/topics.json``.
+
+    ``mirrored_chapters`` counts the distinct chapter ids the topic references under books whose
+    text may be quoted. It is 0 for a topic that only lists books to read at their official
+    sources.
+    """
 
     id: str
     title: str
     path: str
     references: list[TopicReferenceRecord]
+    mirrored_chapters: int
 
 
 class ReadPathError(Exception):
@@ -612,6 +619,22 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
         if message is not None:
             problems.append(CitationProblem(line, message))
     return sorted(problems, key=lambda problem: problem.line)
+
+
+def cited_lines(text: str) -> set[int]:
+    """Find the lines of a Markdown document that hold a citation token.
+
+    A token counts here exactly when ``check_text`` reads it as a citation, so one inside a
+    fenced code block or inline code does not.
+
+    Args:
+        text: The Markdown document.
+
+    Returns:
+        The numbers of the lines that hold a token, counted from 1.
+    """
+    line_starts = _line_starts(text)
+    return {_line_of(line_starts, match.start()) for match in _TOKEN.finditer(_mask_code(text))}
 
 
 @dataclass(frozen=True)
