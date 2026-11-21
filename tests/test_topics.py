@@ -155,7 +155,8 @@ def test_a_quote_that_cites_a_reference_only_book_is_a_finding(library_copy: Pat
 
     findings = topic_findings(library_copy)
 
-    assert located(findings) == [("topic-citation", TEA, 19)]
+    # The paragraph also names no mirrored chapter, which is a finding of its own.
+    assert located(findings) == [("topic-citation", TEA, 19), ("topic-uncited-paragraph", TEA, 19)]
     assert "reference-only" in findings[0].message
     assert "Wind the kettle key nine turns" in findings[0].message
 
@@ -170,6 +171,46 @@ def test_a_paragraph_after_the_scope_statement_with_no_token_is_a_finding(
 
     assert located(findings) == [("topic-uncited-paragraph", PAPER, 29)]
     assert "paper-craft" in findings[0].message
+
+
+def test_a_paragraph_that_cites_only_a_book_that_is_not_mirrored_is_a_finding(
+    library_copy: Path,
+) -> None:
+    # The fixture topic has 27 lines, so the blank line is line 28 and the paragraph is line 29.
+    append_to(
+        library_copy / PAPER,
+        "\nThe kettle manual tells the reader to wind the key before the leaves go in. "
+        "[cite:fixture-reference-book]\n",
+    )
+
+    findings = topic_findings(library_copy)
+
+    assert located(findings) == [("topic-uncited-paragraph", PAPER, 29)]
+    assert "paper-craft" in findings[0].message
+    assert "mirrored chapter" in findings[0].message
+
+
+def test_a_paragraph_that_cites_a_mirrored_book_and_none_of_its_chapters_is_a_finding(
+    library_copy: Path,
+) -> None:
+    append_to(
+        library_copy / PAPER,
+        "\nThe book covers folding, launching, and recovery. [cite:fixture-mirrored-book]\n",
+    )
+
+    assert located(topic_findings(library_copy)) == [("topic-uncited-paragraph", PAPER, 29)]
+
+
+def test_a_paragraph_that_cites_a_mirrored_chapter_and_a_book_that_is_not_mirrored_passes(
+    library_copy: Path,
+) -> None:
+    append_to(
+        library_copy / PAPER,
+        "\nThe hull chapter stops at three folds, and the kettle manual is about another craft. "
+        f"[cite:{HULL}] [cite:fixture-reference-book]\n",
+    )
+
+    assert topic_findings(library_copy) == []
 
 
 def test_a_block_quote_may_carry_its_token_on_the_next_line_with_text(library_copy: Path) -> None:

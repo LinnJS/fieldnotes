@@ -741,13 +741,30 @@ def _is_pointer(paragraph: _Paragraph) -> bool:
     return bool(_LINK_POINTER.fullmatch(item[1]) or RESOLVE_POINTER.fullmatch(item[1]))
 
 
+def _names_mirrored_chapter(cited_id: str, mirrored_chapters: set[str], unknown: set[str]) -> bool:
+    """Say whether a cited id names a chapter of a book whose text may be quoted.
+
+    Args:
+        cited_id: The id a citation token names.
+        mirrored_chapters: The ids of the loaded chapters of every book that may be quoted.
+        unknown: The ids of the books that may be quoted and whose chapters did not all load.
+    """
+    resource_id, slash, _ = cited_id.partition("/")
+    return cited_id in mirrored_chapters or (bool(slash) and resource_id in unknown)
+
+
 def _check_topic_bodies(library: Library) -> list[Finding]:
     """Report each topic body that breaks the rule on what a topic may say in its own words.
 
     The first paragraph is the scope statement and starts with ``SCOPE_LABEL``. Every paragraph
-    and list item after it holds a citation token, with two exceptions. A list item that is only
-    a link, or only the instruction to resolve a book id, points somewhere and claims nothing.
-    ``NO_COVERAGE_SENTENCE`` may stand alone in a topic that references no mirrored chapter.
+    and list item after it holds a citation token that names a chapter of a book whose text may
+    be quoted, with two exceptions. A list item that is only a link, or only the instruction to
+    resolve a book id, points somewhere and claims nothing. ``NO_COVERAGE_SENTENCE`` may stand
+    alone in a topic that references no mirrored chapter.
+
+    A token that names a book alone does not count, and neither does a token for a book that is
+    not mirrored, because a paragraph could then report what a book says with no chapter in the
+    library to hold it to.
 
     The token of a block quote may also sit on the first line of the next paragraph, which is
     where the citation checker accepts it.
@@ -755,6 +772,17 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
     allowlist = library.catalog.license_allowlist
     quotable = {
         resource.id for resource in library.resources if quote_permitted(resource, allowlist)
+    }
+    mirrored_chapters = {
+        chapter_file.chapter.id
+        for resource_id in quotable
+        for chapter_file in library.chapters_of(resource_id)
+    }
+    # One chapter file that does not load keeps every chapter of its book out of the library.
+    # That file is a finding of its own, and until it is corrected any chapter id of the book
+    # is taken as one of its chapters.
+    unknown = {
+        resource_id for resource_id in quotable if not _chapters_loaded(library, resource_id)
     }
     findings: list[Finding] = []
     for topic_file in library.topics:
@@ -764,7 +792,13 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
         covered = any(
             reference.chapter and reference.resource in quotable for reference in topic.references
         )
-        cited = set(cited_ids(topic_file.body))
+        cited = {
+            line
+            for line, ids in cited_ids(topic_file.body).items()
+            if any(
+                _names_mirrored_chapter(cited_id, mirrored_chapters, unknown) for cited_id in ids
+            )
+        }
         paragraphs = list(_paragraphs(topic_file.body))
         if not paragraphs or not paragraphs[0].text.startswith(SCOPE_LABEL):
             findings.append(
@@ -801,12 +835,14 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
                     line=lines_above + paragraph.first + 1,
                     message=(
                         f"A paragraph of the topic {topic.id} after its scope statement holds "
-                        f"no citation token: {excerpt}"
+                        f"no citation token that names a mirrored chapter: {excerpt}"
                     ),
                     fix=(
                         "End the paragraph with a [cite:<chapter-id>] token for the mirrored "
-                        "chapter it draws on, or remove it. A list item may stand without a "
-                        "token only as a link alone or as the resolve instruction for a book id."
+                        "chapter it draws on, or remove it. A token that names a book alone, or "
+                        "a book that is not mirrored, does not count. A list item may stand "
+                        "without a token only as a link alone or as the resolve instruction for "
+                        "a book id."
                     ),
                 )
             )

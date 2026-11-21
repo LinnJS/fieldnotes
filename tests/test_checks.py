@@ -136,6 +136,8 @@ def test_an_eligible_book_may_hold_only_its_metadata(library_copy: Path) -> None
         ("index-stale", "llms.txt", None),
         ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
         ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
+        ("topic-uncited-paragraph", "topics/paper-craft.md", 19),
+        ("topic-uncited-paragraph", "topics/paper-craft.md", 21),
     ]
 
 
@@ -158,6 +160,8 @@ def test_a_mirrored_book_the_gate_refuses_is_a_finding_that_quotes_the_reason(
         ("index-stale", "llms.txt", None),
         ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
         ("topic-reference-not-mirrored", "topics/paper-craft.md", None),
+        ("topic-uncited-paragraph", "topics/paper-craft.md", 19),
+        ("topic-uncited-paragraph", "topics/paper-craft.md", 21),
     ]
     assert (
         "The record says redistribution is unclear and adaptation is allowed. Both must be allowed."

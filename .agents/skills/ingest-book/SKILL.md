@@ -116,7 +116,7 @@ If a chapter cannot pass without rewording the source, stop and report it.
 
 Add a reference only for a chapter you have read in full. In the frontmatter of `topics/<topic-id>.md`, a reference names the `resource`, the `chapter`, and a `note` of one sentence in the library's own words about what the chapter covers.
 
-If you add a paragraph to a topic body, it reports what the chapter says and ends with a citation token. Quote only words copied from the chapter file. `topics/evaluation-and-testing.md` shows the shape. Check the topics with `python3 scripts/check_citations.py topics/*.md`.
+If you add a paragraph to a topic body, it reports what the chapter says and ends with the citation token of that chapter. Validation does not accept a token that names a book alone, or a book that is not mirrored, as the citation of a topic paragraph. Quote only words copied from the chapter file. `topics/evaluation-and-testing.md` shows the shape. Check the topics with `python3 scripts/check_citations.py topics/*.md`.
 
 Do not add a reference for a chapter you only skimmed, and do not guess a topic from a title.
 
