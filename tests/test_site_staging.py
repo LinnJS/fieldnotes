@@ -8,7 +8,7 @@ import pytest
 import yaml
 from kb.catalog import Library, load_library
 from kb.indexes import build_full_text, build_indexes
-from kb.site import Downloads, SiteError, stage, write_config
+from kb.site import Downloads, SiteError, publish_canonical_files, stage, write_config
 
 MIRRORED = "fixture-mirrored-book"
 REFERENCE = "fixture-reference-book"
@@ -57,6 +57,7 @@ A token is written as `[cite:{MIRRORED}]` in a document.
 
 - [Folding the Hull](../books/{MIRRORED}/chapters/01-folding-the-hull.md)
 - [The license of the book](../books/{MIRRORED}/LICENSE)
+- `{REFERENCE}`. Run `python3 scripts/resolve.py {REFERENCE}` for its official URL.
 """
 
 _LINK_TARGET = re.compile(r"\]\(([^)\s]+)")
@@ -225,12 +226,25 @@ def test_citation_token_in_a_topic_becomes_a_link_to_the_chapter_page(staged: Pa
     assert f"`[cite:{MIRRORED}]`" in page
 
 
+def test_reading_list_item_for_a_book_that_is_not_mirrored_links_its_catalog_card(
+    staged: Path,
+) -> None:
+    page = read(staged, "topics/paper-craft.md")
+    items = [line for line in page.splitlines() if line.startswith("- ")]
+
+    assert items[-1].startswith(
+        f"- [Clockwork Tea Manual (Test Fixture)](../catalog.md#{REFERENCE} "
+    )
+    assert items[-1].endswith("is not mirrored. Its catalog card lists the official links.")
+    assert "scripts/resolve.py" not in page
+
+
 def test_links_between_canonical_files_point_at_staged_pages(staged: Path) -> None:
     page = read(staged, "topics/paper-craft.md")
 
     assert f"(../books/{MIRRORED}/license.md)" in page
     targets = [target.partition("#")[0] for target in _LINK_TARGET.findall(page)]
-    assert len(targets) == 4
+    assert len(targets) == 5
     for target in targets:
         assert (staged / "topics" / target).resolve().is_file(), target
     # A chapter's link to a sibling chapter also lands on a staged page.
@@ -371,3 +385,32 @@ def test_generated_config_takes_its_names_from_the_catalog_and_lists_every_page(
     # The chapters of a book are listed in reading order, between its overview and its license.
     book = listed.index(f"books/{MIRRORED}/index.md")
     assert listed[book + 1 : book + 5] == [*CHAPTER_PAGES, f"books/{MIRRORED}/license.md"]
+
+
+def test_canonical_files_are_served_at_their_repository_paths(
+    library_root: Path, tmp_path: Path
+) -> None:
+    (library_root / "AGENTS.md").write_text("Instructions for agents.\n", encoding="utf-8")
+    (library_root / "LICENSES.md").write_text("Licenses.\n", encoding="utf-8")
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    (site_dir / "llms.txt").write_text("as built\n", encoding="utf-8")
+
+    copied = publish_canonical_files(load_library(library_root), site_dir)
+
+    served = set(snapshot(site_dir))
+    assert f"books/{MIRRORED}/chapters/01-folding-the-hull.md" in served
+    assert f"books/{MIRRORED}/LICENSE" in served
+    assert f"books/{REFERENCE}/metadata.yaml" in served
+    assert {"AGENTS.md", "catalog.yaml", "topics/paper-craft.md"} <= served
+    assert (site_dir / CHAPTER_PAGES[0]).read_bytes() == (
+        library_root / CHAPTER_PAGES[0]
+    ).read_bytes()
+    # A file the build already wrote is left as built.
+    assert read(site_dir, "llms.txt") == "as built\n"
+    assert Path("llms.txt") not in copied
+    # The source file of a mirrored book and anything else in a book directory stay out.
+    assert not any("/source/" in name for name in served)
+    assert {name for name in served if name.startswith(f"books/{REFERENCE}/")} == {
+        f"books/{REFERENCE}/metadata.yaml"
+    }

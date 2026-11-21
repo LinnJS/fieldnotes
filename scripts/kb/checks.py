@@ -38,7 +38,14 @@ from kb.catalog import (
 from kb.fidelity import check_book
 from kb.gate import evaluate
 from kb.indexes import STALE_FIX, quote_permitted, stale_files
-from kb.readpath import CHAPTERS_INDEX, ReadPathError, check_text, cited_lines, load_index
+from kb.readpath import (
+    CHAPTERS_INDEX,
+    RESOLVE_POINTER,
+    ReadPathError,
+    check_text,
+    cited_lines,
+    load_index,
+)
 from kb.schema import LoadError, SchemaName
 
 __all__ = ["CHECKS", "NO_COVERAGE_SENTENCE", "SCOPE_LABEL", "Check", "Finding", "run_checks"]
@@ -60,12 +67,9 @@ _NOT_A_FILE_LINK = ("http:", "https:", "mailto:", "#")
 _HEADING = re.compile(r" {0,3}#{1,6}(?:\s|$)")
 _LIST_ITEM = re.compile(r"\s*(?:[-*+]|\d+[.)])\s+(.*)")
 _QUOTE_LINE = re.compile(r" {0,3}>")
-# The two forms of a reading-list item that points somewhere and claims nothing: a link alone,
-# and the instruction to resolve the id of a book whose text is not in the library.
+# A reading-list item that points somewhere and claims nothing is a link alone, or the
+# instruction to resolve the id of a book whose text is not in the library.
 _LINK_POINTER = re.compile(r"\[[^\]]*\]\([^)\s]+\)")
-_RESOLVE_POINTER = re.compile(
-    r"`([a-z0-9-]+)`\. Run `python3 scripts/resolve\.py \1` for its official URL\."
-)
 _EXCERPT_LENGTH = 80
 
 
@@ -726,7 +730,7 @@ def _is_pointer(paragraph: _Paragraph) -> bool:
     item = _LIST_ITEM.fullmatch(paragraph.text)
     if item is None:
         return False
-    return bool(_LINK_POINTER.fullmatch(item[1]) or _RESOLVE_POINTER.fullmatch(item[1]))
+    return bool(_LINK_POINTER.fullmatch(item[1]) or RESOLVE_POINTER.fullmatch(item[1]))
 
 
 def _check_topic_bodies(library: Library) -> list[Finding]:

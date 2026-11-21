@@ -36,6 +36,7 @@ __all__ = [
     "CATALOG_INDEX",
     "CHAPTERS_INDEX",
     "LLMS_FILE",
+    "RESOLVE_POINTER",
     "TOKEN_PATTERN",
     "TOPICS_INDEX",
     "ChapterRecord",
@@ -88,6 +89,12 @@ _MINIMUM_QUOTE_WORDS = 4
 
 # The one definition of a citation token. Group 1 is the reference between the brackets.
 TOKEN_PATTERN = re.compile(r"\[cite:([^\]\n]*)\]")
+# The text of a reading-list item that points at a book whose text is not in the library.
+# Group 1 is the resource id. Validation accepts the item without a citation, and the site
+# turns it into a link to the book's catalog card.
+RESOLVE_POINTER = re.compile(
+    r"`([a-z0-9-]+)`\. Run `python3 scripts/resolve\.py \1` for its official URL\."
+)
 _QUOTED_SPAN = re.compile(r'"([^"]+)"|“([^”]+)”')
 _QUOTE_LINE = re.compile(r" {0,3}>")
 _QUOTE_MARKERS = re.compile(r"(?m)^(?: {0,3}> ?)+")

@@ -52,6 +52,7 @@ from kb.export import (
     EXPORTS_DIR,
     TEMPLATES_DIR,
     ExportError,
+    bundle_files,
     find_pandoc,
     select_books,
     write_bundle,
@@ -73,20 +74,21 @@ from kb.indexes import (
 # The three private names are the citation checker's own token parsing. The site reads tokens
 # with them so that both agree on what a token is, and on a token in code not being one.
 from kb.readpath import (
-    TOKEN_PATTERN,
     CATALOG_INDEX,
     CHAPTERS_INDEX,
     LLMS_FILE,
+    RESOLVE_POINTER,
+    TOKEN_PATTERN,
     TOPICS_INDEX,
+    CitationToken,
     Index,
     PageRangeRecord,
     ResolveError,
-    mask_code,
-    CitationToken,
     cite_token,
     edition_note,
     language_name,
     load_index,
+    mask_code,
     page_label,
     resolve,
     source_label,
@@ -271,7 +273,7 @@ def stage(
     }
     for topic in library.topics:
         pages[topic.path.as_posix()] = _linked(
-            topic.path.as_posix(), topic.body, index, staged_paths
+            topic.path.as_posix(), _with_card_links(topic.body), index, staged_paths
         )
     for book in books:
         pages[book.overview] = _overview_page(library, book)
@@ -405,7 +407,41 @@ def build_site(library: Library) -> Path:
         raise SiteError("staging", str(error)) from error
     write_config(library, navigation, config_file, docs_dir=staging_dir, site_dir=site_dir)
     run_mkdocs(config_file)
+    try:
+        publish_canonical_files(library, site_dir)
+    except ExportError as error:
+        raise SiteError("canonical files", f"{error.message} {error.fix}") from error
     return site_dir
+
+
+def publish_canonical_files(library: Library, site_dir: Path) -> list[Path]:
+    """Serve the library's own files at their repository paths beside the built pages.
+
+    ``llms.txt`` and the indexes name files by their path from the library root. Copying
+    those files into the built site makes every such path resolve on the site as it does in
+    a clone, so an agent can fetch a chapter over HTTP. The files are exactly the ones the
+    bundle holds, so nothing from a book that is not mirrored is served beyond its record.
+
+    Args:
+        library: The loaded library.
+        site_dir: The directory MkDocs built the site into.
+
+    Returns:
+        The files that were copied, relative to the library root. A path the build already
+        wrote, such as ``llms.txt``, is left as built.
+
+    Raises:
+        ExportError: The library's file list cannot be made, for the reasons
+            ``kb.export.bundle_files`` gives.
+    """
+    copied: list[Path] = []
+    for path in bundle_files(library):
+        target = site_dir / path
+        if target.exists():
+            continue
+        _copy(library.root / path, target)
+        copied.append(path)
+    return copied
 
 
 def _book(library: Library, index: Index, resource: Resource, downloads: Downloads) -> _Book:
@@ -608,6 +644,29 @@ def _linked(canonical: str, text: str, index: Index, staged_paths: Mapping[str, 
     )
 
 
+def _with_card_links(body: str) -> str:
+    """Point each reading-list item for a book that is not mirrored at its catalog card.
+
+    The canonical item tells an agent in a clone to run the resolve command. A reader of the
+    site cannot run it, so the item becomes a resource citation, which staging then links.
+    """
+
+    def card(pointer: re.Match[str]) -> str:
+        return (
+            f"{cite_token(pointer[1])} is not mirrored. Its catalog card lists the official links."
+        )
+
+    # The pointer is written with inline code, so it is matched in the text as written and
+    # only fenced blocks are left alone.
+    lines: list[str] = []
+    fenced = False
+    for line in body.split("\n"):
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+        lines.append(line if fenced else RESOLVE_POINTER.sub(card, line))
+    return "\n".join(lines)
+
+
 def _home_page(library: Library, books: Sequence[_Book], bundle: str | None) -> str:
     info = library.catalog.library
     carried = len(books)
@@ -766,8 +825,10 @@ def _agents_page(library: Library, books: Sequence[_Book], bundle: str | None) -
         "the agent instructions in `AGENTS.md`, and the two commands.",
         "## Machine-readable files",
         "\n".join(files),
-        "The paths inside these files are relative to the repository root, so they lead to "
-        "files in a clone and not to pages of this site.",
+        "The paths inside these files are relative to the repository root. This site serves "
+        "the same files at the same paths, so a path such as "
+        "`books/<resource-id>/chapters/NN-<slug>.md` leads to the Markdown file here as it "
+        "does in a clone.",
         "## Resolve an id",
         "Every book has a resource id, and every mirrored chapter has a chapter id of the form "
         "`<resource-id>/<slug>`. In a clone of the repository, one command turns an id into "
