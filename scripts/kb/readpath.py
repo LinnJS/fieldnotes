@@ -36,10 +36,12 @@ __all__ = [
     "CATALOG_INDEX",
     "CHAPTERS_INDEX",
     "LLMS_FILE",
+    "TOKEN_PATTERN",
     "TOPICS_INDEX",
     "ChapterRecord",
     "ChapterSourceRecord",
     "CitationProblem",
+    "CitationToken",
     "EditionRef",
     "ErratumRecord",
     "HostedEditionRecord",
@@ -63,6 +65,7 @@ __all__ = [
     "format_citation",
     "language_name",
     "load_index",
+    "mask_code",
     "official_url",
     "page_label",
     "record_json",
@@ -83,7 +86,8 @@ _LANGUAGE_NAMES = {"en": "English", "zh": "Chinese"}
 
 _MINIMUM_QUOTE_WORDS = 4
 
-_TOKEN = re.compile(r"\[cite:([^\]\n]*)\]")
+# The one definition of a citation token. Group 1 is the reference between the brackets.
+TOKEN_PATTERN = re.compile(r"\[cite:([^\]\n]*)\]")
 _QUOTED_SPAN = re.compile(r'"([^"]+)"|“([^”]+)”')
 _QUOTE_LINE = re.compile(r" {0,3}>")
 _QUOTE_MARKERS = re.compile(r"(?m)^(?: {0,3}> ?)+")
@@ -565,10 +569,11 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     Raises:
         ReadPathError: A chapter file the index points at cannot be read.
     """
-    masked = _mask_code(text)
+    masked = mask_code(text)
     line_starts = _line_starts(text)
     tokens = [
-        _Token(match.start(), match.group(0), match.group(1)) for match in _TOKEN.finditer(masked)
+        CitationToken(match.start(), match.group(0), match.group(1))
+        for match in TOKEN_PATTERN.finditer(masked)
     ]
 
     problems: list[CitationProblem] = []
@@ -634,12 +639,21 @@ def cited_lines(text: str) -> set[int]:
         The numbers of the lines that hold a token, counted from 1.
     """
     line_starts = _line_starts(text)
-    return {_line_of(line_starts, match.start()) for match in _TOKEN.finditer(_mask_code(text))}
+    return {
+        _line_of(line_starts, match.start()) for match in TOKEN_PATTERN.finditer(mask_code(text))
+    }
 
 
 @dataclass(frozen=True)
-class _Token:
-    """One citation token: where it starts, its text, and what is between the brackets."""
+class CitationToken:
+    """One citation token found in a text.
+
+    Attributes:
+        offset: Where the token starts in the text.
+        text: The whole token, brackets included.
+        reference: What is between the brackets after ``cite:``, an id with an optional
+            ``@<edition>``.
+    """
 
     offset: int
     text: str
@@ -647,10 +661,12 @@ class _Token:
 
     @property
     def identifier(self) -> str:
+        """The chapter id or resource id the token names."""
         return self.reference.partition("@")[0]
 
     @property
     def edition(self) -> str | None:
+        """The edition after the ``@``, or ``None`` when the token names none."""
         _, at, edition = self.reference.partition("@")
         return edition if at else None
 
@@ -661,7 +677,7 @@ class _Quote:
 
     offset: int
     text: str
-    token: _Token | None
+    token: CitationToken | None
     block: bool
 
 
@@ -829,8 +845,18 @@ def _line_of(line_starts: list[int], offset: int) -> int:
     return bisect.bisect_right(line_starts, offset)
 
 
-def _mask_code(text: str) -> str:
-    """Blank out fenced code blocks and inline code, keeping every offset and line break."""
+def mask_code(text: str) -> str:
+    """Blank out fenced code blocks and inline code, keeping every offset and line break.
+
+    A citation token or a link inside code is an example and not a reference, so callers
+    search the masked text and read matches from the original at the same offsets.
+
+    Args:
+        text: The Markdown.
+
+    Returns:
+        The text with every character of code replaced by a space.
+    """
     masked: list[str] = []
     open_fence: str | None = None
     for line in text.split("\n"):
@@ -898,11 +924,11 @@ def _paragraphs(masked: str) -> Iterator[list[tuple[int, int]]]:
         yield paragraph
 
 
-def _first_token(tokens: list[_Token], start: int, end: int) -> _Token | None:
+def _first_token(tokens: list[CitationToken], start: int, end: int) -> CitationToken | None:
     return next((token for token in tokens if start <= token.offset < end), None)
 
 
-def _quotes(text: str, masked: str, tokens: list[_Token]) -> Iterator[_Quote]:
+def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Quote]:
     """Yield every block quote, and every quoted span that a token in its paragraph follows."""
     paragraphs = list(_paragraphs(masked))
     for number, paragraph in enumerate(paragraphs):
@@ -921,7 +947,7 @@ def _quotes(text: str, masked: str, tokens: list[_Token]) -> Iterator[_Quote]:
                 token = _first_token(tokens, start, paragraph_end)
                 if token is None and following is not None:
                     token = _first_token(tokens, following[0], following[1])
-                quote = _TOKEN.sub("", text[start:end])
+                quote = TOKEN_PATTERN.sub("", text[start:end])
                 if _comparable(quote):
                     yield _Quote(offset=start, text=quote, token=token, block=True)
                 base = paragraph[0][0]

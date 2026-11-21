@@ -73,7 +73,7 @@ from kb.indexes import (
 # The three private names are the citation checker's own token parsing. The site reads tokens
 # with them so that both agree on what a token is, and on a token in code not being one.
 from kb.readpath import (
-    _TOKEN,
+    TOKEN_PATTERN,
     CATALOG_INDEX,
     CHAPTERS_INDEX,
     LLMS_FILE,
@@ -81,8 +81,8 @@ from kb.readpath import (
     Index,
     PageRangeRecord,
     ResolveError,
-    _mask_code,
-    _Token,
+    mask_code,
+    CitationToken,
     cite_token,
     edition_note,
     language_name,
@@ -546,7 +546,7 @@ def _replace_outside_code(
     parts: list[str] = []
     end = 0
     # The mask keeps every offset, so a match in it sits at the same place in the text.
-    for match in pattern.finditer(_mask_code(text)):
+    for match in pattern.finditer(mask_code(text)):
         parts += [text[end : match.start()], replace(match)]
         end = match.end()
     return "".join([*parts, text[end:]])
@@ -586,7 +586,7 @@ def _linked(canonical: str, text: str, index: Index, staged_paths: Mapping[str, 
     page = staged_paths[canonical]
 
     def link(match: re.Match[str]) -> str:
-        token = _Token(match.start(), match[0], match[1])
+        token = CitationToken(match.start(), match[0], match[1])
         try:
             target = resolve(index, token.identifier)
         except ResolveError as error:
@@ -603,7 +603,9 @@ def _linked(canonical: str, text: str, index: Index, staged_paths: Mapping[str, 
             path = staged_paths[target.chapter["path"]]
         return f'[{_plain(label)}]({_relative(page, path)} "cite:{token.reference}")'
 
-    return _replace_outside_code(_retargeted(canonical, page, text, staged_paths), _TOKEN, link)
+    return _replace_outside_code(
+        _retargeted(canonical, page, text, staged_paths), TOKEN_PATTERN, link
+    )
 
 
 def _home_page(library: Library, books: Sequence[_Book], bundle: str | None) -> str:
