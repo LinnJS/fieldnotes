@@ -1,9 +1,15 @@
 """The GitHub client and the evidence capture, driven by recorded responses."""
 
+import http.client
+import io
 import json
+import urllib.error
+import urllib.request
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from email.message import Message
 from pathlib import Path
+from typing import Any
 
 import evidence as evidence_command
 import pytest
@@ -15,6 +21,7 @@ from kb.upstream import (
     Response,
     TreeEntry,
     UpstreamError,
+    fetch_with_urllib,
     token_from_environment,
 )
 
@@ -172,6 +179,103 @@ def test_token_comes_from_the_environment_when_one_is_set() -> None:
     assert token_from_environment({"GH_TOKEN": "second"}) == "second"
     assert token_from_environment({"GITHUB_TOKEN": ""}) is None
     assert token_from_environment({}) is None
+
+
+REQUEST_URL = f"https://api.github.com/repos/{REPOSITORY}"
+
+
+class CutShortBody:
+    """A response body whose connection ends before the announced length has arrived."""
+
+    def read(self) -> bytes:
+        raise http.client.IncompleteRead(b'{"full_name"', 4096)
+
+    def close(self) -> None:
+        return None
+
+
+def _answer_with(monkeypatch: pytest.MonkeyPatch, outcome: BaseException) -> None:
+    """Make every request end in ``outcome`` without opening a connection."""
+
+    def urlopen(request: urllib.request.Request, timeout: float) -> Any:
+        raise outcome
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        ConnectionResetError(54, "Connection reset by peer"),
+        http.client.RemoteDisconnected("Remote end closed connection without response"),
+        http.client.IncompleteRead(b"", 4096),
+        http.client.BadStatusLine("garbage"),
+        urllib.error.URLError("no route to host"),
+        TimeoutError("timed out"),
+    ],
+    ids=lambda failure: type(failure).__name__,
+)
+def test_connection_that_fails_before_an_answer_arrives_raises_an_upstream_error(
+    monkeypatch: pytest.MonkeyPatch, failure: Exception
+) -> None:
+    _answer_with(monkeypatch, failure)
+
+    with pytest.raises(UpstreamError, match="try again") as raised:
+        fetch_with_urllib(REQUEST_URL, {})
+
+    assert raised.value.__cause__ is failure
+
+
+def test_body_that_is_cut_short_raises_an_upstream_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Reply:
+        status = 200
+        headers = Message()
+
+        def __enter__(self) -> "Reply":
+            return self
+
+        def __exit__(self, *exception: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return CutShortBody().read()
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda request, timeout: Reply())
+
+    with pytest.raises(UpstreamError, match="try again"):
+        fetch_with_urllib(REQUEST_URL, {})
+
+
+def test_error_answer_whose_body_is_cut_short_raises_an_upstream_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    refused = urllib.error.HTTPError(
+        REQUEST_URL,
+        502,
+        "Bad Gateway",
+        Message(),
+        CutShortBody(),  # type: ignore[arg-type]  # Only read and close are called on the body.
+    )
+    _answer_with(monkeypatch, refused)
+
+    with pytest.raises(UpstreamError, match="try again"):
+        fetch_with_urllib(REQUEST_URL, {})
+
+
+def test_error_answer_is_returned_with_its_status_headers_and_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    headers = Message()
+    headers["X-RateLimit-Remaining"] = "59"
+    body = b'{"message": "Not Found"}'
+    _answer_with(
+        monkeypatch,
+        urllib.error.HTTPError(REQUEST_URL, 404, "Not Found", headers, io.BytesIO(body)),
+    )
+
+    assert fetch_with_urllib(REQUEST_URL, {}) == Response(
+        status=404, headers={"x-ratelimit-remaining": "59"}, body=body
+    )
 
 
 def test_capture_finds_the_lines_under_english_and_chinese_license_headings(

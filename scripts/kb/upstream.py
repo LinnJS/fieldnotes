@@ -11,6 +11,7 @@ A token is optional. When one is given it is sent as a bearer credential and app
 message and no representation of the client.
 """
 
+import http.client
 import json
 import os
 import urllib.error
@@ -153,17 +154,24 @@ def fetch_with_urllib(url: str, headers: Mapping[str, str]) -> Response:
         The response, whatever its HTTP status.
 
     Raises:
-        UpstreamError: No response arrived, for example because the network is down.
+        UpstreamError: No complete response arrived, for example because the network is down,
+            the connection was reset, or the body was cut short.
     """
     request = urllib.request.Request(url, headers=dict(headers), method="GET")
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as reply:
-            return Response(reply.status, _lowercase(reply.headers.items()), reply.read())
-    except urllib.error.HTTPError as error:
-        return Response(error.code, _lowercase(error.headers.items()), error.read())
-    except (urllib.error.URLError, TimeoutError) as error:
+        try:
+            with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as reply:
+                return Response(reply.status, _lowercase(reply.headers.items()), reply.read())
+        except urllib.error.HTTPError as error:
+            return Response(error.code, _lowercase(error.headers.items()), error.read())
+    # urllib wraps only a failure to send the request in URLError, which is an OSError, as a
+    # timeout is. A reset connection or a body cut short while the answer is read arrives as a
+    # plain OSError or an HTTPException, and reading the body of an error answer can fail the
+    # same way, so that read sits inside this handler too.
+    except (OSError, http.client.HTTPException) as error:
         raise UpstreamError(
-            f"GitHub could not be reached: {error}. Check the network connection and try again."
+            f"GitHub could not be reached, or its answer did not arrive whole: {error}. "
+            "Check the network connection and try again."
         ) from error
 
 
