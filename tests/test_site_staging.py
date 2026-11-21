@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 from kb.catalog import Library, load_library
+from kb.export import bundle_files
 from kb.indexes import build_full_text, build_indexes
 from kb.site import Downloads, SiteError, publish_canonical_files, stage, write_config
 
@@ -125,7 +126,7 @@ def test_chapter_page_shows_author_edition_license_and_official_link(
 
     assert "Fixture Author (夹具作者)" in page
     assert f"{EDITION}, English" in page
-    assert "[MIT](../license.md)" in page
+    assert "[MIT](../license-text.md)" in page
     assert SOURCE_URL in page
     assert PINNED_COMMIT in page
     assert "pp. 3-4" in page
@@ -167,7 +168,7 @@ def test_chapter_page_shows_its_erratum(staged: Path) -> None:
 def test_license_page_prints_the_license_file_verbatim(staged: Path, library_root: Path) -> None:
     license_text = (library_root / f"books/{MIRRORED}/LICENSE").read_text(encoding="utf-8")
 
-    assert license_text.strip("\n") in read(staged, f"books/{MIRRORED}/license.md")
+    assert license_text.strip("\n") in read(staged, f"books/{MIRRORED}/license-text.md")
 
 
 def test_catalog_page_shows_the_reference_book_with_its_link_and_label(staged: Path) -> None:
@@ -242,7 +243,7 @@ def test_reading_list_item_for_a_book_that_is_not_mirrored_links_its_catalog_car
 def test_links_between_canonical_files_point_at_staged_pages(staged: Path) -> None:
     page = read(staged, "topics/paper-craft.md")
 
-    assert f"(../books/{MIRRORED}/license.md)" in page
+    assert f"(../books/{MIRRORED}/license-text.md)" in page
     targets = [target.partition("#")[0] for target in _LINK_TARGET.findall(page)]
     assert len(targets) == 5
     for target in targets:
@@ -384,7 +385,7 @@ def test_generated_config_takes_its_names_from_the_catalog_and_lists_every_page(
     assert sorted(listed) == sorted(pages)
     # The chapters of a book are listed in reading order, between its overview and its license.
     book = listed.index(f"books/{MIRRORED}/index.md")
-    assert listed[book + 1 : book + 5] == [*CHAPTER_PAGES, f"books/{MIRRORED}/license.md"]
+    assert listed[book + 1 : book + 5] == [*CHAPTER_PAGES, f"books/{MIRRORED}/license-text.md"]
 
 
 def test_canonical_files_are_served_at_their_repository_paths(
@@ -414,3 +415,17 @@ def test_canonical_files_are_served_at_their_repository_paths(
     assert {name for name in served if name.startswith(f"books/{REFERENCE}/")} == {
         f"books/{REFERENCE}/metadata.yaml"
     }
+
+
+def test_no_built_page_takes_the_place_of_a_served_file_when_case_is_ignored(
+    library_root: Path, staged: Path
+) -> None:
+    (library_root / "AGENTS.md").write_text("Instructions for agents.\n", encoding="utf-8")
+    (library_root / "LICENSES.md").write_text("Licenses.\n", encoding="utf-8")
+    # MkDocs builds the page ``a/b.md`` into the directory ``a/b``.
+    page_directories = {
+        name.removesuffix(".md").lower() for name in snapshot(staged) if name.endswith(".md")
+    }
+    served = {path.as_posix().lower() for path in bundle_files(load_library(library_root))}
+
+    assert page_directories & served == set()

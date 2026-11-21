@@ -4,7 +4,7 @@ The site has no source tree of its own. ``stage`` writes the whole MkDocs ``docs
 canonical files of a library, and nothing it writes is committed. The staged tree holds:
 
 - ``index.md``, ``catalog.md``, and ``agents.md``, which are generated.
-- ``books/<id>/index.md``, ``books/<id>/license.md``, and one ``books/<id>/chapters/<file>.md``
+- ``books/<id>/index.md``, ``books/<id>/license-text.md``, and one ``books/<id>/chapters/<file>.md``
   per chapter, for each book whose text may be carried.
 - ``topics/index.md`` and one ``topics/<file>.md`` per topic document.
 - ``llms.txt``, ``llms-full.txt``, ``llms-full/<id>.txt``, and the three files under ``index/``.
@@ -208,7 +208,9 @@ class _Book:
 
     @property
     def license_page(self) -> str:
-        return f"{BOOKS_DIR}/{self.resource.id}/license.md"
+        # MkDocs builds a page into a directory named after it. A page named ``license`` would
+        # take the place of the book's LICENSE file on a filesystem that ignores case.
+        return f"{BOOKS_DIR}/{self.resource.id}/license-text.md"
 
 
 def stage(
@@ -892,7 +894,7 @@ def _overview_page(library: Library, book: _Book) -> str:
         *_title_lines(resource),
         *_credit_lines(resource),
         f"- **Edition:** {_plain(book.pinned.edition)}, {language_name(book.pinned.language)}",
-        f"- **License:** [{_license_id(resource)}](license.md), the author's license",
+        f"- **License:** [{_license_id(resource)}](license-text.md), the author's license",
         _source_line(book),
         f"- **Resource id:** `{resource.id}`",
         f"- **Cite as:** `{cite_token(resource.id, book.pinned.edition)}`",
