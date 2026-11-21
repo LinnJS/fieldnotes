@@ -1,0 +1,67 @@
+# Base configuration of the documentation site.
+#
+# The site has no hand-written source tree. `uv run python scripts/build.py --site` stages every
+# page from the canonical files into build/site-src/, writes build/mkdocs.yml, and builds from
+# that file. The generated file inherits this one and adds what catalog.yaml decides: the site
+# name, description, and URL, the repository link, and the navigation. This file therefore sets
+# no site name, and `mkdocs build` run on it directly stops for that reason.
+
+docs_dir: build/site-src
+site_dir: dist/site
+
+# Every page is generated, so a link to edit a page on the repository host would lead nowhere.
+edit_uri: ""
+
+theme:
+  name: material
+  # Each entry carries a media query, so the palette follows the system preference until the
+  # reader uses the toggle.
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.indexes
+    - navigation.footer
+    - content.code.copy
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/library.css
+
+markdown_extensions:
+  - tables
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+# The strict build treats each of these as an error, so a page that is missing from the
+# navigation, or a link or anchor that leads nowhere, stops the build.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn

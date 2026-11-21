@@ -1,7 +1,7 @@
 """Write the generated files of a library, or check that the committed ones are fresh.
 
 Usage:
-    uv run python scripts/build.py [--root DIRECTORY] [--check | --full]
+    uv run python scripts/build.py [--root DIRECTORY] [--check | --full | --site]
 
 With no flag the command writes the four committed files: ``index/catalog.json``,
 ``index/topics.json``, ``index/chapters.jsonl``, and ``llms.txt``.
@@ -12,8 +12,18 @@ committed file that is missing or whose bytes differ.
 ``--full`` writes the full text of the mirrored books to ``dist/llms-full.txt`` and to one
 ``dist/llms-full/<resource-id>.txt`` per book. Those files are published and not committed.
 
-The exit code is 0 on success and 1 when the library cannot be loaded, a file cannot be built, or
-``--check`` finds a file that is not fresh.
+``--site`` builds the documentation site into ``dist/site/`` and makes everything the site needs
+first. It writes the full-text files, exports the bundle and the PDF and EPUB of every mirrored
+book to ``dist/exports/``, stages the pages into ``build/site-src/``, writes
+``build/mkdocs.yml``, and runs ``mkdocs build --strict``. The first step that fails stops the run,
+and the message names the step. The exports need Pandoc on the PATH, and the bundle needs
+``AGENTS.md`` and ``LICENSES.md`` at the library root. Material for MkDocs prints a notice about
+its end of life on standard error at each build. The notice is not a warning, so it does not fail
+the strict build, and Material leaves it out when ``NO_MKDOCS_2_WARNING=1`` is set in the
+environment.
+
+The exit code is 0 on success and 1 when the library cannot be loaded, a file cannot be built,
+``--check`` finds a file that is not fresh, or a step of ``--site`` fails.
 """
 
 import argparse
@@ -30,6 +40,7 @@ from kb.indexes import (
     stale_files,
     write_files,
 )
+from kb.site import SiteError, build_site
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -64,12 +75,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="write the full text of the mirrored books to dist/",
     )
+    mode.add_argument(
+        "--site",
+        action="store_true",
+        help="build the documentation site into dist/site/, with the exports it links",
+    )
     arguments = parser.parse_args(argv)
 
     try:
         library = load_library(arguments.root)
         if arguments.check:
             return _check(library)
+        if arguments.site:
+            print(f"built: {build_site(library).relative_to(library.root).as_posix()}")
+            return 0
         files = build_full_text(library) if arguments.full else build_indexes(library)
     except LoadError as error:
         print(
@@ -80,6 +99,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     except BuildError as error:
         print(f"build: {error}", file=sys.stderr)
+        return 1
+    except SiteError as error:
+        print(
+            f"build: the site build stopped at the {error.step} step. {error.message}",
+            file=sys.stderr,
+        )
         return 1
 
     write_files(library.root, files)
