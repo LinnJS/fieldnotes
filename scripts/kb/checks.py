@@ -46,8 +46,9 @@ from kb.readpath import (
     RESOLVE_POINTER,
     ReadPathError,
     check_text,
-    cited_lines,
+    cited_ids,
     load_index,
+    opening_fence,
 )
 from kb.schema import LoadError, SchemaName, parse_yaml, read_text
 
@@ -473,8 +474,8 @@ def _link_targets(body: str) -> Iterator[tuple[int, str]]:
     for index, line in enumerate(body.split("\n")):
         fence = CODE_FENCE.match(line)
         if open_fence is None:
-            if fence:
-                open_fence = fence[1]
+            open_fence = opening_fence(line)
+            if open_fence is not None:
                 continue
             for link in _LINK.finditer(line):
                 yield index, link[1]
@@ -710,10 +711,10 @@ def _paragraphs(body: str) -> Iterator[_Paragraph]:
     # The empty last line closes a paragraph that runs to the end of the body.
     for index, line in enumerate([*body.split("\n"), ""]):
         fence = CODE_FENCE.match(line)
-        in_code = open_fence is not None or fence is not None
+        in_code = open_fence is not None
         if open_fence is None:
-            if fence:
-                open_fence = fence[1]
+            open_fence = opening_fence(line)
+            in_code = open_fence is not None
         # A block closes on a bare fence of the same character that is at least as long.
         elif fence and fence[1].startswith(open_fence) and not line[fence.end() :].strip():
             open_fence = None
@@ -763,7 +764,7 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
         covered = any(
             reference.chapter and reference.resource in quotable for reference in topic.references
         )
-        cited = cited_lines(topic_file.body)
+        cited = set(cited_ids(topic_file.body))
         paragraphs = list(_paragraphs(topic_file.body))
         if not paragraphs or not paragraphs[0].text.startswith(SCOPE_LABEL):
             findings.append(

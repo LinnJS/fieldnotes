@@ -8,10 +8,16 @@ chapter files of the library this script is in, or of the library named by ``--r
 
 Three things are checked. Every ``[cite:<id>]`` token must resolve, and an ``@<edition>`` in it
 must be the indexed edition. Every quote must appear word for word in the chapter it cites,
-where white space, emphasis markers, inline code markers, and backslash escapes are ignored.
-Nothing may be quoted from a book that is not mirrored. A quote is a Markdown block quote, or a
-span of four words or more in double quotes that a token in the same paragraph follows. A block
-quote needs a token in its paragraph or on the next line.
+where white space, emphasis markers, inline code markers, and backslash escapes are ignored. A
+quote that starts or ends inside a word of the chapter does not match. Nothing may be quoted
+from a book that is not mirrored.
+
+A quote is a Markdown block quote, or a span in quotation marks in a paragraph that holds a
+token. The marks are straight double quotes, curly double quotes, and the corner brackets 「」
+and 『』. A span counts when it holds four words or more, or six characters or more of a script
+written without spaces, which are Han, Hiragana, Katakana, and Hangul. A span is checked against
+the first token after it in its paragraph, and against the nearest token before it when none
+follows. A block quote needs a token in its paragraph or on the next line.
 
 Each problem is printed to standard output as ``FILE:LINE: message``. A one-line summary goes to
 standard error. The exit code is 1 when there is any problem and 0 when there is none.

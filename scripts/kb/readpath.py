@@ -62,13 +62,14 @@ __all__ = [
     "TopicReferenceRecord",
     "check_text",
     "cite_token",
-    "cited_lines",
+    "cited_ids",
     "edition_note",
     "format_citation",
     "language_name",
     "load_index",
     "mask_code",
     "official_url",
+    "opening_fence",
     "page_label",
     "record_json",
     "record_lines",
@@ -87,6 +88,23 @@ BUILD_COMMAND = "uv run python scripts/build.py"
 _LANGUAGE_NAMES = {"en": "English", "zh": "Chinese"}
 
 _MINIMUM_QUOTE_WORDS = 4
+_MINIMUM_UNSPACED_CHARACTERS = 6
+# One character of a script that white space does not divide into words, so a count of
+# white-space words cannot tell how long a quote in it is. The ranges, in order, are Hiragana
+# and Katakana, the Katakana phonetic extensions, Han extension A, the main Han block, the Han
+# compatibility ideographs, the Hangul syllables, and the Han supplementary planes. Korean puts
+# spaces between phrases and not between words, so Hangul is measured the same way.
+_UNSPACED_CHARACTER = re.compile(
+    "["
+    "\u3040-\u30ff"
+    "\u31f0-\u31ff"
+    "\u3400-\u4dbf"
+    "\u4e00-\u9fff"
+    "\uf900-\ufaff"
+    "\uac00-\ud7af"
+    "\U00020000-\U000323af"
+    "]"
+)
 
 # The line that opens or closes a fenced code block. Group 1 is the fence.
 CODE_FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
@@ -97,7 +115,9 @@ TOKEN_PATTERN = re.compile(r"\[cite:([^\]\n]*)\]")
 RESOLVE_POINTER = re.compile(
     r"`([a-z0-9-]+)`\. Run `python3 scripts/resolve\.py \1` for its official URL\."
 )
-_QUOTED_SPAN = re.compile(r'"([^"]+)"|“([^”]+)”')
+# A span between straight or curly double quotation marks, or between the corner brackets that
+# Chinese and Japanese prose quotes with. Every mark is one character long.
+_QUOTED_SPAN = re.compile(r'"[^"]+"|“[^”]+”|「[^」]+」|『[^』]+』')
 _QUOTE_LINE = re.compile(r" {0,3}>")
 _QUOTE_MARKERS = re.compile(r"(?m)^(?: {0,3}> ?)+")
 # A backslash is how Markdown escapes one of the markers, so it is dropped with them.
@@ -556,12 +576,19 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     """Check every citation token and every quote in a Markdown document.
 
     A token must resolve, and an edition after ``@`` must be the indexed edition. A quote is a
-    Markdown block quote, or a span in straight or curly double quotes that holds four words or
-    more and is followed by a token in the same paragraph. A quote must appear word for word in
-    the chapter it cites, or in any chapter of the book when it cites a book. White space,
-    emphasis markers, inline code markers, and backslash escapes are ignored on both sides. A
-    quote that cites a book whose text may not be quoted is a problem, and so is a block quote
-    with no token in its paragraph or on the next line that has text.
+    Markdown block quote, or a long enough span in quotation marks in a paragraph that holds a
+    token. The marks are straight double quotes, curly double quotes, and the corner brackets
+    「」 and 『』. A span is long enough when it holds four words or more, or six characters or
+    more of a script written without spaces, which are Han, Hiragana, Katakana, and Hangul. A
+    span is checked against the first token after it in its paragraph, and against the nearest
+    token in front of it when none follows.
+
+    A quote must appear word for word in the chapter it cites, or in any chapter of the book
+    when it cites a book. White space, emphasis markers, inline code markers, and backslash
+    escapes are ignored on both sides. A quote that starts or ends inside a word of the chapter
+    does not match, where a word is a run of ASCII letters and digits. A quote that cites a
+    book whose text may not be quoted is a problem, and so is a block quote with no token in
+    its paragraph or on the next line that has text.
 
     Tokens inside fenced code blocks and inline code are not citations. A quoted span that is
     exactly the title of the cited book or chapter is a title and not a quote, so the citation
@@ -579,10 +606,7 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     """
     masked = mask_code(text)
     line_starts = _line_starts(text)
-    tokens = [
-        CitationToken(match.start(), match.group(0), match.group(1))
-        for match in TOKEN_PATTERN.finditer(masked)
-    ]
+    tokens = _tokens(masked)
 
     problems: list[CitationProblem] = []
     targets: dict[int, Resolved] = {}
@@ -634,8 +658,8 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     return sorted(problems, key=lambda problem: problem.line)
 
 
-def cited_lines(text: str) -> set[int]:
-    """Find the lines of a Markdown document that hold a citation token.
+def cited_ids(text: str) -> dict[int, list[str]]:
+    """Find the ids that the citation tokens of a Markdown document name, line by line.
 
     A token counts here exactly when ``check_text`` reads it as a citation, so one inside a
     fenced code block or inline code does not.
@@ -644,12 +668,14 @@ def cited_lines(text: str) -> set[int]:
         text: The Markdown document.
 
     Returns:
-        The numbers of the lines that hold a token, counted from 1.
+        The lines that hold a token, counted from 1. Each one maps to the chapter ids and
+        resource ids its tokens name, in the order of the tokens and without any edition.
     """
     line_starts = _line_starts(text)
-    return {
-        _line_of(line_starts, match.start()) for match in TOKEN_PATTERN.finditer(mask_code(text))
-    }
+    ids: dict[int, list[str]] = {}
+    for token in _tokens(mask_code(text)):
+        ids.setdefault(_line_of(line_starts, token.offset), []).append(token.identifier)
+    return ids
 
 
 @dataclass(frozen=True)
@@ -853,6 +879,27 @@ def _line_of(line_starts: list[int], offset: int) -> int:
     return bisect.bisect_right(line_starts, offset)
 
 
+def opening_fence(line: str) -> str | None:
+    """Return the fence of a line that opens a fenced code block.
+
+    A run of backticks opens a block only when no backtick follows it on the line, which is the
+    CommonMark rule for the info string. A line such as three backticks, a word, three
+    backticks, and then text is inline code followed by text, and it opens nothing.
+
+    Args:
+        line: One line of Markdown that is outside a fenced code block.
+
+    Returns:
+        The run of backticks or tildes, or ``None`` when the line opens no block.
+    """
+    fence = CODE_FENCE.match(line)
+    if fence is None:
+        return None
+    if fence.group(1).startswith("`") and "`" in line[fence.end() :]:
+        return None
+    return fence.group(1)
+
+
 def mask_code(text: str) -> str:
     """Blank out fenced code blocks and inline code, keeping every offset and line break.
 
@@ -870,8 +917,8 @@ def mask_code(text: str) -> str:
     for line in text.split("\n"):
         fence = CODE_FENCE.match(line)
         if open_fence is None:
-            if fence:
-                open_fence = fence.group(1)
+            open_fence = opening_fence(line)
+            if open_fence is not None:
                 masked.append(" " * len(line))
             else:
                 masked.append(_INLINE_CODE.sub(lambda match: " " * len(match.group(0)), line))
@@ -897,6 +944,31 @@ def _titles(cited: Resolved) -> set[str]:
     return titles
 
 
+def _inside_word(left: str, right: str) -> bool:
+    """Say whether two neighboring characters are both ASCII letters or digits."""
+    pair = left + right
+    return pair.isascii() and pair.isalnum()
+
+
+def _holds_whole(body: str, wanted: str) -> bool:
+    """Say whether a body holds a text at a place where neither end of it cuts a word.
+
+    An end cuts a word when the characters on both sides of it are ASCII letters or digits.
+    Text in a script written without spaces has no such end, so it may start or stop anywhere.
+    """
+    if not wanted:
+        return True
+    start = body.find(wanted)
+    while start != -1:
+        end = start + len(wanted)
+        cut_before = start > 0 and _inside_word(body[start - 1], wanted[0])
+        cut_after = end < len(body) and _inside_word(wanted[-1], body[end])
+        if not cut_before and not cut_after:
+            return True
+        start = body.find(wanted, start + 1)
+    return False
+
+
 def _quote_problem(
     index: Index, cited: Resolved, identifier: str, quote: str, shown: str, bodies: dict[str, str]
 ) -> str | None:
@@ -911,7 +983,7 @@ def _quote_problem(
     for chapter_id in chapter_ids:
         if chapter_id not in bodies:
             bodies[chapter_id] = _comparable(index.chapter_body(chapter_id))
-        if wanted in bodies[chapter_id]:
+        if _holds_whole(bodies[chapter_id], wanted):
             return None
     return f'The quote is not in {identifier} word for word: "{shown}"'
 
@@ -932,12 +1004,35 @@ def _paragraphs(masked: str) -> Iterator[list[tuple[int, int]]]:
         yield paragraph
 
 
+def _tokens(masked: str) -> list[CitationToken]:
+    return [
+        CitationToken(match.start(), match.group(0), match.group(1))
+        for match in TOKEN_PATTERN.finditer(masked)
+    ]
+
+
 def _first_token(tokens: list[CitationToken], start: int, end: int) -> CitationToken | None:
     return next((token for token in tokens if start <= token.offset < end), None)
 
 
+def _last_token(tokens: list[CitationToken], start: int, end: int) -> CitationToken | None:
+    return next((token for token in reversed(tokens) if start <= token.offset < end), None)
+
+
+def _long_enough(span: str) -> bool:
+    """Say whether a quoted span is long enough to be a quote and not a term or a title."""
+    if len(span.split()) >= _MINIMUM_QUOTE_WORDS:
+        return True
+    return len(_UNSPACED_CHARACTER.findall(span)) >= _MINIMUM_UNSPACED_CHARACTERS
+
+
 def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Quote]:
-    """Yield every block quote, and every quoted span that a token in its paragraph follows."""
+    """Yield every block quote, and every quoted span in a paragraph that holds a token.
+
+    The token of a quoted span is the first one after it in its paragraph. A span that no token
+    follows takes the nearest token in front of it, so a token put on the wrong side of a quote
+    does not keep the quote from being checked.
+    """
     paragraphs = list(_paragraphs(masked))
     for number, paragraph in enumerate(paragraphs):
         paragraph_end = paragraph[-1][1]
@@ -965,8 +1060,8 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
         for span in _QUOTED_SPAN.finditer("".join(prose)):
             start, end = base + span.start(), base + span.end()
             quote = text[start + 1 : end - 1]
-            if len(quote.split()) < _MINIMUM_QUOTE_WORDS:
+            if not _long_enough(quote):
                 continue
-            token = _first_token(tokens, end, paragraph_end)
+            token = _first_token(tokens, end, paragraph_end) or _last_token(tokens, base, start)
             if token is not None:
                 yield _Quote(offset=start, text=quote, token=token, block=False)

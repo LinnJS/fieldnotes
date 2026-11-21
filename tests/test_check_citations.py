@@ -4,7 +4,7 @@ from pathlib import Path
 
 import check_citations
 import pytest
-from kb.readpath import CitationProblem, check_text, load_index
+from kb.readpath import CitationProblem, check_text, load_index, opening_fence
 
 HULL = "fixture-mirrored-book/folding-the-hull"
 SUNK = "fixture-mirrored-book/recovering-a-sunk-boat"
@@ -293,3 +293,265 @@ def test_the_checking_function_takes_text_and_returns_problems_with_line_numbers
             ),
         )
     ]
+
+
+QUOTATION_MARKS = [
+    pytest.param('"', '"', id="straight"),
+    pytest.param("“", "”", id="curly"),
+    pytest.param("「", "」", id="corner"),
+    pytest.param("『", "』", id="white-corner"),
+]
+# Eleven characters with no space between them, which no fixture chapter holds.
+INVENTED_CHINESE = "折纸船之前要先把纸浸湿"
+
+
+@pytest.mark.parametrize(("opening", "closing"), QUOTATION_MARKS)
+def test_a_fabricated_chinese_quote_of_a_mirrored_chapter_fails(
+    fixture_library_root: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    opening: str,
+    closing: str,
+) -> None:
+    text = f"作者写道{opening}{INVENTED_CHINESE}{closing} [cite:{HULL}]\n"
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    assert lines == [f'1: The quote is not in {HULL} word for word: "{INVENTED_CHINESE}"']
+
+
+@pytest.mark.parametrize(("opening", "closing"), QUOTATION_MARKS)
+def test_a_chinese_quote_that_cites_a_book_that_is_not_mirrored_fails(
+    fixture_library_root: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    opening: str,
+    closing: str,
+) -> None:
+    text = f"手册写道{opening}{INVENTED_CHINESE}{closing} [cite:fixture-reference-book]\n"
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    assert lines == [
+        "1: The quote cites fixture-reference-book, whose mirror status is reference-only. "
+        f'Its text is not in this library, so nothing may be quoted from it: "{INVENTED_CHINESE}"'
+    ]
+
+
+@pytest.mark.parametrize(("opening", "closing"), QUOTATION_MARKS)
+def test_a_chinese_span_of_five_characters_is_not_read_as_a_quote(
+    fixture_library_root: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    opening: str,
+    closing: str,
+) -> None:
+    text = f"这一章讲的是{opening}纸船会沉没{closing}这件事。 [cite:{HULL}]\n"
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_a_chinese_span_of_six_characters_is_read_as_a_quote(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = f"这一章讲的是“纸船都会沉没”这件事。 [cite:{HULL}]\n"
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    assert lines == [f'1: The quote is not in {HULL} word for word: "纸船都会沉没"']
+
+
+def test_a_span_of_three_words_is_not_read_as_a_quote(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = f'The chapter never calls a hull "strong and heavy" in any section. [cite:{HULL}]\n'
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_a_span_of_four_words_is_read_as_a_quote(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = f'The chapter never calls a hull "strong and very heavy" in any section. [cite:{HULL}]\n'
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    assert lines == [f'1: The quote is not in {HULL} word for word: "strong and very heavy"']
+
+
+def test_a_quote_that_starts_inside_a_word_of_the_chapter_fails(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The chapter says "never by the brim", so the cut span says the opposite.
+    text = f'The chapter says to lift it "ever by the brim. Let it drain bow down" [cite:{SUNK}]\n'
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    assert lines == [
+        f'1: The quote is not in {SUNK} word for word: "ever by the brim. Let it drain bow down"'
+    ]
+
+
+def test_a_quote_that_ends_inside_a_word_of_the_chapter_fails(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = f"> A fourth fold adds weight and no stren\n\n[cite:{HULL}]\n"
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    assert lines == [
+        f'1: The quote is not in {HULL} word for word: "A fourth fold adds weight and no stren"'
+    ]
+
+
+def test_a_quote_of_whole_words_from_the_middle_of_a_sentence_passes(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = (
+        f'The chapter says "never by the brim. Let it drain bow down" [cite:{SUNK}]\n'
+        "\n"
+        f'It also says "and a soft hull takes on water before it leaves the bank" [cite:{HULL}]\n'
+    )
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_a_quote_passes_when_a_later_place_in_the_chapter_holds_it_as_whole_words(
+    library_copy: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    chapter = (
+        library_copy / "books" / "fixture-mirrored-book" / "chapters" / "01-folding-the-hull.md"
+    )
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(
+            "\nA boat left unattended for many launches will sink. "
+            "A boat attended for many launches will not.\n"
+        )
+    text = f'The chapter says a boat "attended for many launches" stays afloat. [cite:{HULL}]\n'
+
+    code, lines, _ = check(library_copy, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_a_chinese_quote_from_the_middle_of_a_sentence_passes(
+    library_copy: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    chapter = (
+        library_copy / "books" / "fixture-mirrored-book" / "chapters" / "01-folding-the-hull.md"
+    )
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write("\n纸船下水之前要先检查船底有没有裂缝。船身要用A4纸折出三道折痕。\n")
+    # The first quote sits between two Chinese characters, and the second follows a digit.
+    text = f"这一章说“要先检查船底有没有裂缝”还说「纸折出三道折痕」。 [cite:{HULL}]\n"
+
+    code, lines, _ = check(library_copy, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_a_fabricated_quote_whose_only_token_stands_in_front_of_it_fails(
+    fixture_library_root: Path,
+) -> None:
+    index = load_index(fixture_library_root)
+    text = f'[cite:{HULL}] says "A wet sheet folds into a hard hull every time."\n'
+
+    assert check_text(index, text) == [
+        CitationProblem(
+            line=1,
+            message=(
+                f"The quote is not in {HULL} word for word: "
+                '"A wet sheet folds into a hard hull every time."'
+            ),
+        )
+    ]
+
+
+def test_a_quote_of_a_book_that_is_not_mirrored_fails_with_its_token_in_front(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = (
+        "The manual [cite:fixture-reference-book] says "
+        '"Wind the kettle key nine turns before the leaves go in."\n'
+    )
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    assert lines == [
+        "1: The quote cites fixture-reference-book, whose mirror status is reference-only. "
+        "Its text is not in this library, so nothing may be quoted from it: "
+        '"Wind the kettle key nine turns before the leaves go in."'
+    ]
+
+
+def test_a_quote_is_checked_against_the_token_after_it_before_any_token_in_front(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The first quote is in the chapter the token after it names. The second has no token after
+    # it, so the nearest one in front, which names the same chapter, is the one it is held to.
+    text = (
+        f'After folding [cite:{HULL}], the book says "Lift the boat by its keel fold and never '
+        f'by the brim." [cite:{SUNK}] and then "Let it drain bow down, then dry it flat under a '
+        'book."\n'
+    )
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_a_line_that_opens_with_inline_code_in_three_backticks_hides_nothing_below_it(
+    fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = (
+        "```--root``` is the option that names the library.\n"
+        "\n"
+        "See [cite:fixture-mirrored-book/sewing-a-sail] for sails.\n"
+    )
+
+    code, lines, _ = check(fixture_library_root, tmp_path, text, capsys)
+
+    assert code == 1
+    [line] = lines
+    assert line.startswith(
+        "3: The citation [cite:fixture-mirrored-book/sewing-a-sail] does not resolve."
+    )
+
+
+@pytest.mark.parametrize(
+    ("line", "fence"),
+    [
+        ("```", "```"),
+        ("```text", "```"),
+        ("   ````markdown", "````"),
+        ("~~~", "~~~"),
+        ("~~~ a `quoted` word", "~~~"),
+        ("```--root``` is the option.", None),
+        ("```js `x`", None),
+        ("    ```", None),
+        ("Plain text with ``` inside.", None),
+    ],
+)
+def test_a_backtick_fence_opens_a_block_only_when_no_backtick_follows_it(
+    line: str, fence: str | None
+) -> None:
+    assert opening_fence(line) == fence

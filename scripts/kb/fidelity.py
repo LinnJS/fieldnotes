@@ -31,7 +31,7 @@ from pathlib import Path
 from kb.blocks import section_text
 from kb.catalog import AcceptedDifference, ChapterFile, Resource
 from kb.ingest import IngestError, extract_book
-from kb.readpath import CODE_FENCE
+from kb.readpath import CODE_FENCE, opening_fence
 
 __all__ = [
     "SIMILARITY_FLOOR",
@@ -159,8 +159,8 @@ def markdown_text(body: str) -> str:
                 open_fence = None
             else:
                 lines.append(line)
-        elif fence:
-            open_fence = fence[1]
+        elif (opened := opening_fence(line)) is not None:
+            open_fence = opened
         elif line.lstrip().startswith("|"):
             cells = _UNESCAPED_PIPE.split(line)
             lines.append(" ".join(_strip_inline(cell.replace("\\|", "|")) for cell in cells))

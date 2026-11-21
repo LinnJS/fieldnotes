@@ -500,3 +500,23 @@ def test_a_check_appended_to_the_registry_runs_with_the_built_in_checks(
     monkeypatch.setattr("kb.checks.CHECKS", [*CHECKS, always_reports])
 
     assert located(run_checks(library_copy)) == [("added-rule", "catalog.yaml", None)]
+
+
+def test_a_line_that_opens_with_inline_code_in_three_backticks_hides_no_topic_text(
+    library_copy: Path,
+) -> None:
+    # The fixture topic has 17 lines. The added lines are 19 and 21, and line 19 is inline
+    # code followed by text, which is a paragraph and opens no fenced block.
+    with (library_copy / "topics" / "tea-service.md").open("a", encoding="utf-8") as topic:
+        topic.write(
+            "\n"
+            "```steep``` is the word the kettle guide uses.\n"
+            "\n"
+            "See [the kettle guide](kettle-guide.md) for more.\n"
+        )
+
+    assert located(run_checks(library_copy)) == [
+        ("topic-uncited-paragraph", "topics/tea-service.md", 19),
+        ("link-missing-target", "topics/tea-service.md", 21),
+        ("topic-uncited-paragraph", "topics/tea-service.md", 21),
+    ]
