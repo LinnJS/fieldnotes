@@ -1,0 +1,34 @@
+# Fixture Library
+
+> A synthetic library used only by automated tests. It holds one mirrored book and one reference-only book, and all of their text is invented.
+
+The text of a book is in this library only when the book has a "Mirrored book" section below, and each of those books carries its author's own license. Every other book is cataloged with a link to the author's official source. Resolve an id to its record and citation with `python3 scripts/resolve.py <id>`, and check the citations of a document with `python3 scripts/check_citations.py <file>`.
+
+## Agent instructions
+
+- [AGENTS.md](AGENTS.md): How to search this library, read a chapter, quote it, and cite it.
+
+## Mirrored book: Paper Boat Engineering (Test Fixture)
+
+- [Book record](books/fixture-mirrored-book/metadata.yaml): `fixture-mirrored-book`, by Fixture Author. English edition v1.0.0, which is behind the newest Chinese edition v1.1.0. License MIT.
+- [License](books/fixture-mirrored-book/LICENSE): The author's license text and copyright notice, which cover this book.
+- [§01 Folding the Hull](books/fixture-mirrored-book/chapters/01-folding-the-hull.md): `fixture-mirrored-book/folding-the-hull`, source PDF pp. 3-4.
+- [§02 Choosing a Pond](books/fixture-mirrored-book/chapters/02-choosing-a-pond.md): `fixture-mirrored-book/choosing-a-pond`, source PDF pp. 4-5.
+- [§03 Recovering a Sunk Boat](books/fixture-mirrored-book/chapters/03-recovering-a-sunk-boat.md): `fixture-mirrored-book/recovering-a-sunk-boat`, source PDF p. 6.
+
+## Books that are not mirrored
+
+These books are cataloged with their license evidence. Read them at the author's official source, and do not quote them from this library.
+
+- [Clockwork Tea Manual (Test Fixture)](https://example.invalid/books/clockwork-tea): `fixture-reference-book`, reference-only, no license terms found. Original title: 发条茶事手册测试夹具. The English title is this library's translation. Its text is not in this library.
+
+## Topics
+
+- [Paper Craft](topics/paper-craft.md): `paper-craft`, 3 references.
+- [Tea Service](topics/tea-service.md): `tea-service`, 1 reference.
+
+## Indexes
+
+- [index/catalog.json](index/catalog.json): Every book with its license id, mirror status, quote-permitted flag, editions, and official URLs.
+- [index/chapters.jsonl](index/chapters.jsonl): One JSON object per line for each mirrored chapter, with its id, path, source pages, and errata.
+- [index/topics.json](index/topics.json): Every topic with the books and chapters it references.

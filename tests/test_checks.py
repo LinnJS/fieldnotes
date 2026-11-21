@@ -130,6 +130,10 @@ def test_an_eligible_book_may_hold_only_its_metadata(library_copy: Path) -> None
             "books/fixture-mirrored-book/source/Paper-Boat-Engineering-v1.0.0.pdf",
             None,
         ),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "index/topics.json", None),
+        ("index-stale", "llms.txt", None),
     ]
 
 
@@ -144,7 +148,13 @@ def test_a_mirrored_book_the_gate_refuses_is_a_finding_that_quotes_the_reason(
 
     findings = run_checks(library_copy)
 
-    assert located(findings) == [("gate-status", "books/fixture-mirrored-book/metadata.yaml", None)]
+    assert located(findings) == [
+        ("gate-status", "books/fixture-mirrored-book/metadata.yaml", None),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "index/topics.json", None),
+        ("index-stale", "llms.txt", None),
+    ]
     assert (
         "The record says redistribution is unclear and adaptation is allowed. Both must be allowed."
     ) in findings[0].message
@@ -189,7 +199,8 @@ def test_a_collection_the_catalog_does_not_declare_is_a_finding(library_copy: Pa
     findings = run_checks(library_copy)
 
     assert located(findings) == [
-        ("catalog-unknown-collection", "books/fixture-reference-book/metadata.yaml", None)
+        ("catalog-unknown-collection", "books/fixture-reference-book/metadata.yaml", None),
+        ("index-stale", "index/catalog.json", None),
     ]
     assert "other-books" in findings[0].message
 
@@ -215,6 +226,9 @@ def test_two_chapters_with_one_id_are_a_finding_that_names_both_files(library_co
             None,
         ),
         ("fidelity-chapter", "books/fixture-mirrored-book/chapters/04-folding-the-hull.md", None),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "llms.txt", None),
     ]
     assert "fixture-mirrored-book/folding-the-hull" in findings[0].message
     assert "books/fixture-mirrored-book/chapters/04-folding-the-hull.md" in findings[0].message
@@ -227,7 +241,11 @@ def test_order_values_with_a_gap_are_a_finding(library_copy: Path) -> None:
 
     findings = run_checks(library_copy)
 
-    assert located(findings) == [("chapter-order", "books/fixture-mirrored-book/chapters", None)]
+    assert located(findings) == [
+        ("chapter-order", "books/fixture-mirrored-book/chapters", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "llms.txt", None),
+    ]
     assert "1, 2, 4" in findings[0].message
 
 
@@ -238,7 +256,9 @@ def test_a_file_name_number_that_disagrees_with_the_order_is_a_finding(library_c
     findings = run_checks(library_copy)
 
     assert located(findings) == [
-        ("chapter-filename", "books/fixture-mirrored-book/chapters/05-choosing-a-pond.md", None)
+        ("chapter-filename", "books/fixture-mirrored-book/chapters/05-choosing-a-pond.md", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "llms.txt", None),
     ]
     assert "02-choosing-a-pond.md" in findings[0].message
 
@@ -248,7 +268,9 @@ def test_a_file_name_slug_that_disagrees_with_the_id_is_a_finding(library_copy: 
     (chapters / "02-choosing-a-pond.md").rename(chapters / "02-choosing-a-lake.md")
 
     assert located(run_checks(library_copy)) == [
-        ("chapter-filename", "books/fixture-mirrored-book/chapters/02-choosing-a-lake.md", None)
+        ("chapter-filename", "books/fixture-mirrored-book/chapters/02-choosing-a-lake.md", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "llms.txt", None),
     ]
 
 
@@ -272,8 +294,11 @@ def test_a_link_to_a_missing_file_is_a_finding_with_its_line_number(library_copy
 
     findings = run_checks(library_copy)
 
-    assert located(findings) == [("link-missing-target", "topics/tea-service.md", 11)]
-    assert "kettle-guide.md" in findings[0].message
+    assert located(findings) == [
+        ("index-stale", "index/topics.json", None),
+        ("link-missing-target", "topics/tea-service.md", 11),
+    ]
+    assert "kettle-guide.md" in findings[1].message
 
 
 def test_a_broken_link_in_a_chapter_is_a_finding(library_copy: Path) -> None:
@@ -336,7 +361,10 @@ def test_malformed_yaml_is_a_finding(library_copy: Path) -> None:
     findings = run_checks(library_copy)
 
     assert located(findings) == [
-        ("invalid-file", "books/fixture-reference-book/metadata.yaml", None)
+        ("invalid-file", "books/fixture-reference-book/metadata.yaml", None),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/topics.json", None),
+        ("index-stale", "llms.txt", None),
     ]
     assert "malformed" in findings[0].message
 
@@ -351,7 +379,10 @@ def test_a_schema_violation_is_a_finding_that_gives_the_json_path(library_copy: 
     findings = run_checks(library_copy)
 
     assert located(findings) == [
-        ("invalid-file", "books/fixture-reference-book/metadata.yaml", None)
+        ("invalid-file", "books/fixture-reference-book/metadata.yaml", None),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/topics.json", None),
+        ("index-stale", "llms.txt", None),
     ]
     assert "$.mirror_status" in findings[0].message
 
@@ -366,7 +397,10 @@ def test_a_chapter_with_broken_frontmatter_is_a_finding(library_copy: Path) -> N
     findings = run_checks(library_copy)
 
     assert located(findings) == [
-        ("invalid-file", "books/fixture-mirrored-book/chapters/02-choosing-a-pond.md", None)
+        ("invalid-file", "books/fixture-mirrored-book/chapters/02-choosing-a-pond.md", None),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "llms.txt", None),
     ]
     assert "$.order" in findings[0].message
 
@@ -374,7 +408,13 @@ def test_a_chapter_with_broken_frontmatter_is_a_finding(library_copy: Path) -> N
 def test_a_topic_with_broken_frontmatter_is_a_finding(library_copy: Path) -> None:
     replace_in(library_copy / "topics" / "paper-craft.md", "title: Paper Craft\n", "")
 
-    assert located(run_checks(library_copy)) == [("invalid-file", "topics/paper-craft.md", None)]
+    assert located(run_checks(library_copy)) == [
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "index/topics.json", None),
+        ("index-stale", "llms.txt", None),
+        ("invalid-file", "topics/paper-craft.md", None),
+    ]
 
 
 def test_a_catalog_that_cannot_load_is_the_only_finding(library_copy: Path) -> None:
@@ -396,6 +436,9 @@ def test_one_broken_file_does_not_hide_findings_in_other_files(library_copy: Pat
     assert located(run_checks(library_copy)) == [
         ("gate-license-file", "books/fixture-mirrored-book/LICENSE", None),
         ("invalid-file", "books/fixture-reference-book/metadata.yaml", None),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/topics.json", None),
+        ("index-stale", "llms.txt", None),
         ("link-missing-target", "topics/tea-service.md", 11),
     ]
 
@@ -423,6 +466,10 @@ def test_findings_are_sorted_by_file_then_line_then_rule(library_copy: Path) -> 
         ("catalog-unknown-collection", "books/fixture-reference-book/metadata.yaml", None),
         ("fidelity-source", "books/fixture-reference-book/metadata.yaml", None),
         ("gate-status", "books/fixture-reference-book/metadata.yaml", None),
+        ("index-stale", "index/catalog.json", None),
+        ("index-stale", "index/chapters.jsonl", None),
+        ("index-stale", "index/topics.json", None),
+        ("index-stale", "llms.txt", None),
         ("link-missing-target", "topics/paper-craft.md", 11),
         ("link-missing-target", "topics/tea-service.md", 11),
         ("link-missing-target", "topics/tea-service.md", 13),

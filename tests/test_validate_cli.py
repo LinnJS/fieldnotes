@@ -62,13 +62,15 @@ def test_a_broken_library_prints_each_finding_and_exits_one(
 
     assert result.returncode == 1
     lines = result.stdout.splitlines()
-    assert len(lines) == 4
+    assert len(lines) == 6
     assert lines[0].startswith("[gate-content] books/fixture-reference-book/source/book.pdf: ")
     assert lines[1].startswith("  fix: ")
-    assert lines[2].startswith("[link-missing-target] topics/tea-service.md:11: ")
+    assert lines[2].startswith("[index-stale] index/topics.json: ")
     assert lines[3].startswith("  fix: ")
+    assert lines[4].startswith("[link-missing-target] topics/tea-service.md:11: ")
+    assert lines[5].startswith("  fix: ")
     assert result.stderr.splitlines() == [
-        "validate: 2 findings. Apply each fix and run the command again."
+        "validate: 3 findings. Apply each fix and run the command again."
     ]
 
 
@@ -83,6 +85,7 @@ def test_json_prints_one_object_per_finding_with_every_field(
     records = [json.loads(line) for line in result.stdout.splitlines()]
     assert [(record["rule"], record["file"], record["line"]) for record in records] == [
         ("gate-content", "books/fixture-reference-book/source/book.pdf", None),
+        ("index-stale", "index/topics.json", None),
         ("link-missing-target", "topics/tea-service.md", 11),
     ]
     for record in records:

@@ -34,6 +34,7 @@ from kb.catalog import (
 )
 from kb.fidelity import check_book
 from kb.gate import evaluate
+from kb.indexes import STALE_FIX, stale_files
 from kb.schema import LoadError, SchemaName
 
 __all__ = ["CHECKS", "Check", "Finding", "run_checks"]
@@ -475,6 +476,27 @@ def _check_fidelity(library: Library) -> list[Finding]:
     return findings
 
 
+def _check_index_freshness(library: Library) -> list[Finding]:
+    """Report each committed generated file that is missing or is not what the build writes.
+
+    The read commands trust the indexes, so an index that lags the library files would give an
+    agent a wrong path, license, or edition.
+    """
+    return [
+        Finding(
+            rule="index-stale",
+            file=stale.path,
+            message=(
+                "The generated file does not exist."
+                if stale.missing
+                else "The generated file differs from what the build writes for this library."
+            ),
+            fix=STALE_FIX,
+        )
+        for stale in stale_files(library)
+    ]
+
+
 CHECKS: list[Check] = [
     _check_gate_status,
     _check_gate_content,
@@ -485,5 +507,6 @@ CHECKS: list[Check] = [
     _check_chapter_location,
     _check_links,
     _check_fidelity,
+    _check_index_freshness,
 ]
 """Every check, in the order it runs. A new check is one more entry at the end."""

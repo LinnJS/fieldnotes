@@ -1,0 +1,50 @@
+{
+  "topics": [
+    {
+      "id": "paper-craft",
+      "path": "topics/paper-craft.md",
+      "references": [
+        {
+          "chapter": "fixture-mirrored-book/folding-the-hull",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Covers how a hull is folded from a single sheet.",
+          "quote_permitted": true,
+          "resource": "fixture-mirrored-book"
+        },
+        {
+          "chapter": "fixture-mirrored-book/recovering-a-sunk-boat",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Covers drying and refolding a boat after it sinks.",
+          "quote_permitted": true,
+          "resource": "fixture-mirrored-book"
+        },
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Listed for its subject only. The library holds none of its text.",
+          "quote_permitted": false,
+          "resource": "fixture-reference-book"
+        }
+      ],
+      "title": "Paper Craft"
+    },
+    {
+      "id": "tea-service",
+      "path": "topics/tea-service.md",
+      "references": [
+        {
+          "chapter": null,
+          "license_id": null,
+          "mirror_status": "reference-only",
+          "note": "Listed for its subject only. The library holds none of its text.",
+          "quote_permitted": false,
+          "resource": "fixture-reference-book"
+        }
+      ],
+      "title": "Tea Service"
+    }
+  ]
+}

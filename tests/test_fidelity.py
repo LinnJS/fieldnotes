@@ -275,7 +275,7 @@ def test_errata_in_the_frontmatter_take_no_part_in_the_comparison(library_copy: 
         "    source_url: https://example.invalid/fixture-author/fixture-mirrored-book/errata\n",
     )
 
-    assert run_checks(library_copy) == []
+    assert fidelity_findings(library_copy) == []
 
 
 def test_a_chapter_with_no_section_in_the_source_is_a_finding(library_copy: Path) -> None:

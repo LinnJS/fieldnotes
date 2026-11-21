@@ -45,6 +45,12 @@ line-length = 100
 target-version = "py312"
 extend-exclude = ["build", "dist"]
 
+# The two read commands and their shared module run on the Python that macOS ships.
+[tool.ruff.per-file-target-version]
+"scripts/kb/readpath.py" = "py39"
+"scripts/resolve.py" = "py39"
+"scripts/check_citations.py" = "py39"
+
 [tool.ruff.lint]
 select = ["B", "D", "E", "F", "I", "N", "PTH", "RUF", "SIM", "UP"]
 

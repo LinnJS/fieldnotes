@@ -1,0 +1,52 @@
+# Orange Books Knowledge Base
+
+> An independent community library of AI engineering resources whose first collection is HuaShu's AI Orange Books.
+
+The text of a book is in this library only when the book has a "Mirrored book" section below, and each of those books carries its author's own license. Every other book is cataloged with a link to the author's official source. Resolve an id to its record and citation with `python3 scripts/resolve.py <id>`, and check the citations of a document with `python3 scripts/check_citations.py <file>`.
+
+## Agent instructions
+
+- [AGENTS.md](AGENTS.md): How to search this library, read a chapter, quote it, and cite it.
+
+## Mirrored book: Loop Engineering: Stop Asking Me What It Is
+
+- [Book record](books/loop-engineering-orange-book/metadata.yaml): `loop-engineering-orange-book`, by HuaShu. English edition v260615, which is behind the newest Chinese edition v261020. License MIT.
+- [License](books/loop-engineering-orange-book/LICENSE): The author's license text and copyright notice, which cover this book.
+- [§01 Stop Asking: What Loop Engineering Really Is](books/loop-engineering-orange-book/chapters/01-what-loop-engineering-really-is.md): `loop-engineering-orange-book/what-loop-engineering-really-is`, source PDF pp. 3-5.
+- [§02 From Prompt to Context to Loop](books/loop-engineering-orange-book/chapters/02-from-prompt-to-context-to-loop.md): `loop-engineering-orange-book/from-prompt-to-context-to-loop`, source PDF pp. 6-8.
+- [§03 The Five Moves of One Loop](books/loop-engineering-orange-book/chapters/03-five-moves-of-one-loop.md): `loop-engineering-orange-book/five-moves-of-one-loop`, source PDF pp. 9-12.
+- [§04 Six Parts: What a Loop Is Built From](books/loop-engineering-orange-book/chapters/04-six-parts-of-a-loop.md): `loop-engineering-orange-book/six-parts-of-a-loop`, source PDF pp. 13-16.
+- [§05 Generator and Evaluator: Why an AI Can't Grade Its Own Code](books/loop-engineering-orange-book/chapters/05-generator-and-evaluator.md): `loop-engineering-orange-book/generator-and-evaluator`, source PDF pp. 17-20.
+- [§06 Loops That Run While You Sleep: Three Real Ones](books/loop-engineering-orange-book/chapters/06-loops-that-run-while-you-sleep.md): `loop-engineering-orange-book/loops-that-run-while-you-sleep`, source PDF pp. 21-24.
+- [§07 The Costs: Verification Debt, Comprehension Rot, Token Blowout](books/loop-engineering-orange-book/chapters/07-costs.md): `loop-engineering-orange-book/costs`, source PDF pp. 25-28.
+- [§08 Stay the Engineer, Not Just the One Who Presses Go](books/loop-engineering-orange-book/chapters/08-stay-the-engineer.md): `loop-engineering-orange-book/stay-the-engineer`, source PDF pp. 29-31.
+- [§09 Build Your First Loop Today](books/loop-engineering-orange-book/chapters/09-build-your-first-loop.md): `loop-engineering-orange-book/build-your-first-loop`, source PDF pp. 32-35.
+
+## Books that are not mirrored
+
+These books are cataloged with their license evidence. Read them at the author's official source, and do not quote them from this library.
+
+- [Hermes Agent 2.0: The Complete Guide](https://www.huasheng.ai/orange-books/hermes-agent/): `hermes-agent-orange-book`, eligible, license MIT. Original title: Hermes Agent橙皮书2.0. Its text is not in this library.
+- [OpenAI Codex: The Complete Guide](https://www.huasheng.ai/orange-books/codex/): `codex-orange-book`, reference-only, license CC-BY-NC-SA-4.0. Original title: OpenAI Codex 从入门到精通. Its text is not in this library.
+- [Claude Code: The Complete Guide](https://www.huasheng.ai/orange-books/claude-code/): `claude-code-orange-book`, reference-only, license CC-BY-NC-SA-4.0. Original title: Claude Code 从入门到精通. Its text is not in this library.
+- [DeepSeek Harness: From First Boot to Teardown](https://www.huasheng.ai/orange-books/deepseek-harness/): `deepseek-harness-orange-book`, reference-only, license CC-BY-NC-SA-4.0. Original title: DeepSeek Harness：从开机到拆开. Its text is not in this library.
+- [3D Vibe Coding Handbook](https://www.huasheng.ai/orange-books/3d-vibe-coding/): `3d-vibe-coding-handbook`, reference-only, license CC-BY-NC-SA-4.0. Original title: 3D Vibe Coding 手册. The English title is this library's translation. Its text is not in this library.
+- [Harness Engineering: The Complete Guide](https://www.huasheng.ai/orange-books/harness/): `harness-engineering-orange-book`, reference-only, informal terms that name no SPDX license. Original title: Harness Engineering：缰绳工程学完全指南. Its text is not in this library.
+- [Obsidian + Claude Code: Rebuild Your Second Brain with AI](https://www.huasheng.ai/orange-books/obsidian-ai/): `obsidian-ai-orange-book`, reference-only, informal terms that name no SPDX license. Original title: Obsidian + Claude Code：用AI重建你的第二大脑. Its text is not in this library.
+- [Polymarket: The Complete Guide](https://www.huasheng.ai/orange-books/polymarket/): `polymarket-orange-book`, reference-only, informal terms that name no SPDX license. Original title: Polymarket 完全指南. Its text is not in this library.
+- [Agent Skills: The Complete Guide](https://www.huasheng.ai/orange-books/agent-skills/): `agent-skills-orange-book`, reference-only, informal terms that name no SPDX license. Original title: Agent Skills 橙皮书. Its text is not in this library.
+- [OpenClaw: The Complete Guide](https://www.huasheng.ai/orange-books/openclaw/): `openclaw-orange-book`, reference-only, informal terms that name no SPDX license. Original title: OpenClaw 橙皮书：从入门到精通. Its text is not in this library.
+- [Claude Code: Source Code Analysis](https://www.huasheng.ai/orange-books/source-code/): `claude-code-source-analysis-orange-book`, reference-only, informal terms that name no SPDX license. Original title: Claude Code 源码解析. Its text is not in this library.
+- [Cursor: From Beginner to Mastery](https://www.huasheng.ai/orange-books/cursor/): `cursor-orange-book`, reference-only, no license terms found. Original title: Cursor 从入门到精通. The English title is this library's translation. Its text is not in this library.
+- [Gemma 4: The Complete Guide](https://www.huasheng.ai/orange-books/gemma4/): `gemma4-orange-book`, reference-only, no license terms found. Original title: Gemma 4 完全指南. The English title is this library's translation. Its text is not in this library.
+- [Claude Opus 4.7 System Card, Chinese Edition](https://www.huasheng.ai/orange-books/opus-4.7/): `opus-4-7-system-card-orange-book`, reference-only, no license terms found. Original title: Claude Opus 4.7 System Card 中文版. The English title is this library's translation. Its text is not in this library.
+- [The Founder’s Playbook: Building an AI-Native Startup](https://www.huasheng.ai/orange-books/founders-playbook/): `founders-playbook-orange-book`, reference-only, no license terms found. Original title: 创始人行动手册. Its text is not in this library.
+- [Doubao Work: From Beginner to Mastery](https://www.huasheng.ai/orange-books/doubao-work/): `doubao-work-orange-book`, reference-only, no license terms found. Original title: 豆包工作从入门到精通. The English title is this library's translation. Its text is not in this library.
+- [Amazon Quick Getting Started Orange Book](https://www.huasheng.ai/orange-books/amazon-quick/): `amazon-quick-orange-book`, reference-only, no license terms found. Original title: Amazon Quick 上手橙皮书. The English title is this library's translation. Its text is not in this library.
+- [From One Sentence to a Phone Skill](https://www.huasheng.ai/orange-books/phone-skill/): `phone-skill-orange-book`, reference-only, no license terms found. Original title: 从一句话到一个手机Skill. The English title is this library's translation. Its text is not in this library.
+
+## Indexes
+
+- [index/catalog.json](index/catalog.json): Every book with its license id, mirror status, quote-permitted flag, editions, and official URLs.
+- [index/chapters.jsonl](index/chapters.jsonl): One JSON object per line for each mirrored chapter, with its id, path, source pages, and errata.
+- [index/topics.json](index/topics.json): Every topic with the books and chapters it references.
