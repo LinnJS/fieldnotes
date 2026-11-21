@@ -76,7 +76,9 @@ jobs:
             gh pr create --head "${SYNC_BRANCH}" --base "${GITHUB_REF_NAME}" \
               --title "${title}" --body-file upstream/report.md
           fi
-          if grep --quiet "LICENSE-FINDING" upstream/report.md; then
+          # A license finding is a nested list item that starts with the marker. A file
+          # name upstream can hold the marker too, and that must not earn the label.
+          if grep --quiet '^  - LICENSE-FINDING ' upstream/report.md; then
             gh label create "${LICENSE_LABEL}" --force \
               --description "An upstream license file or statement changed" --color B60205
             gh pr edit "${SYNC_BRANCH}" --add-label "${LICENSE_LABEL}"

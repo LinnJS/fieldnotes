@@ -2,7 +2,10 @@
 
 import dataclasses
 import hashlib
+import http.client
 import json
+import re
+import urllib.request
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -22,9 +25,10 @@ from kb.sync import (
     compare,
     render_report,
 )
-from kb.upstream import Response, TreeEntry
+from kb.upstream import Response, TreeEntry, fetch_with_urllib
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "github"
+SYNC_WORKFLOW = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "sync.yml"
 API = "https://api.github.com/repos"
 
 LOOP = "loop-engineering-orange-book"
@@ -528,6 +532,57 @@ def test_license_file_with_a_different_blob_is_reported_and_nothing_else_is_writ
     ]
 
 
+def test_second_license_file_beside_the_unchanged_recorded_one_is_reported(
+    library: Path,
+) -> None:
+    status, _ = _run(library, *LOOP_MOVED, "sync/loop-tree-license-additional")
+
+    assert status == 0
+    assert _books(library)[LOOP] == {
+        "classification": "changed",
+        "findings": [
+            {"blob_sha": "1a" * 20, "kind": "license-file-additional", "path": "LICENSE.md"}
+        ],
+        "head_commit": LOOP_NEXT,
+    }
+    assert _section(_report(library), "Changed") == (
+        f"- `{LOOP}` ({LOOP_REPOSITORY}) at `{LOOP_NEXT}`\n"
+        f"  - {LICENSE_FINDING_MARKER} Another license file is present beside the recorded one: "
+        f"`LICENSE.md` (blob `{'1a' * 20}`)."
+    )
+
+
+def test_copy_of_the_recorded_license_file_under_another_name_is_not_a_finding(
+    library: Path,
+) -> None:
+    loop = load_resource(library, LOOP)
+    tree = _tree(
+        ("LICENSE", LICENSE_BLOB),
+        ("LICENSE.txt", LICENSE_BLOB),
+        (ENGLISH_PDF, ENGLISH_PDF_BLOB),
+        (CHINESE_PDF, CHINESE_PDF_BLOB),
+    )
+
+    assert compare(loop, LOOP_REPOSITORY, tree, readme=None) == ()
+
+
+def test_every_license_file_is_reported_as_changed_when_none_has_the_recorded_blob(
+    library: Path,
+) -> None:
+    loop = load_resource(library, LOOP)
+    tree = _tree(
+        ("COPYING", "1b" * 20),
+        ("LICENSE", "0e" * 20),
+        (ENGLISH_PDF, ENGLISH_PDF_BLOB),
+        (CHINESE_PDF, CHINESE_PDF_BLOB),
+    )
+
+    assert compare(loop, LOOP_REPOSITORY, tree, readme=None) == (
+        Finding(kind=FindingKind.LICENSE_FILE_CHANGED, path="COPYING", blob_sha="1b" * 20),
+        Finding(kind=FindingKind.LICENSE_FILE_CHANGED, path="LICENSE", blob_sha="0e" * 20),
+    )
+
+
 def test_readme_without_the_recorded_statement_is_reported(library: Path) -> None:
     _, fetch = _run(library, *HARNESS_MOVED, "sync/harness-readme-without-statement")
 
@@ -606,6 +661,46 @@ def test_server_error_keeps_the_previous_entry_and_the_other_books_are_still_che
         f"- `{HARNESS}` ({HARNESS_REPOSITORY}): GitHub answered HTTP 500 for the branch main of "
         f"{HARNESS_REPOSITORY}: Server Error. Check the arguments, or try again later if GitHub "
         "is having trouble. The entry from the last successful check is kept.\n"
+        f"  - {LICENSE_FINDING_MARKER} The recorded license statement no longer appears in "
+        "`README.md`."
+    )
+
+
+def test_answer_cut_short_for_one_book_keeps_its_entry_and_the_other_books_are_still_checked(
+    library: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _run(library, *HARNESS_MOVED, "sync/harness-readme-without-statement")
+    harness_before = _books(library)[HARNESS]
+    assert harness_before["classification"] == "changed"
+    recorded = RecordedFetch(*BASELINE)
+
+    def cut_short(request: urllib.request.Request, timeout: float) -> Any:
+        raise http.client.IncompleteRead(b'{"ref"', 4096)
+
+    # The real fetch function runs for one book, on a connection that is replaced here, so no
+    # request leaves the machine.
+    monkeypatch.setattr(urllib.request, "urlopen", cut_short)
+
+    def fetch(url: str, headers: Mapping[str, str]) -> Response:
+        if url == HARNESS_HEAD_URL:
+            return fetch_with_urllib(url, headers)
+        return recorded(url, headers)
+
+    status = sync_command.main(["--root", str(library)], fetch=fetch)
+
+    assert status == 0
+    assert recorded.requests == [LOOP_HEAD_URL, HERMES_HEAD_URL]
+    assert _books(library) == {
+        LOOP: UNCHANGED_LOOP,
+        HARNESS: harness_before,
+        HERMES: UNCHANGED_HERMES,
+    }
+    report = _report(library)
+    assert "Summary: 0 changed, 0 moved, 0 gone, 1 error, 2 unchanged, 1 not checked." in report
+    error = _section(report, "Error")
+    assert error.startswith(f"- `{HARNESS}` ({HARNESS_REPOSITORY}): GitHub could not be reached")
+    assert error.endswith(
+        "The entry from the last successful check is kept.\n"
         f"  - {LICENSE_FINDING_MARKER} The recorded license statement no longer appears in "
         "`README.md`."
     )
@@ -812,26 +907,30 @@ def test_new_edition_says_how_its_version_compares_with_the_recorded_one(
     assert comparison("Guide-v2.10.0.pdf") is VersionComparison.SAME
 
 
-def test_report_marks_every_license_finding_and_no_other(library: Path) -> None:
-    def changed(resource_id: str, *findings: Finding) -> BookResult:
-        return BookResult(
-            resource_id=resource_id,
-            source=f"alchaincyf/{resource_id}",
-            classification=Classification.CHANGED,
-            state=BookState(Classification.CHANGED, LOOP_NEXT, findings),
-            message=None,
-        )
+def _changed(resource_id: str, *findings: Finding) -> BookResult:
+    return BookResult(
+        resource_id=resource_id,
+        source=f"alchaincyf/{resource_id}",
+        classification=Classification.CHANGED,
+        state=BookState(Classification.CHANGED, LOOP_NEXT, findings),
+        message=None,
+    )
 
+
+def test_report_marks_every_license_finding_and_no_other(library: Path) -> None:
     report = render_report(
         (
-            changed(
+            _changed(
                 "licensed",
                 Finding(kind=FindingKind.LICENSE_FILE_CHANGED, path="LICENSE", blob_sha="0e" * 20),
                 Finding(kind=FindingKind.LICENSE_FILE_MISSING),
+                Finding(
+                    kind=FindingKind.LICENSE_FILE_ADDITIONAL, path="COPYING", blob_sha="1a" * 20
+                ),
                 Finding(kind=FindingKind.LICENSE_FILE_ADDED, path="LICENSE", blob_sha="0e" * 20),
                 Finding(kind=FindingKind.STATEMENT_NOT_FOUND, path="README.md"),
             ),
-            changed(
+            _changed(
                 "edited",
                 Finding(kind=FindingKind.CHANGED_BYTES, path="a.pdf", blob_sha="0b" * 20),
                 Finding(kind=FindingKind.UNCLASSIFIED_FILE, path="b.pdf", blob_sha="0d" * 20),
@@ -845,8 +944,136 @@ def test_report_marks_every_license_finding_and_no_other(library: Path) -> None:
         f"  - {LICENSE_FINDING_MARKER} The license file `LICENSE` changed. "
         f"Its blob is now `{'0e' * 20}`.",
         f"  - {LICENSE_FINDING_MARKER} The recorded license file is no longer in the repository.",
+        f"  - {LICENSE_FINDING_MARKER} Another license file is present beside the recorded one: "
+        f"`COPYING` (blob `{'1a' * 20}`).",
         f"  - {LICENSE_FINDING_MARKER} A license file was added at `LICENSE` "
         f"(blob `{'0e' * 20}`). The record has none.",
         f"  - {LICENSE_FINDING_MARKER} The recorded license statement no longer appears in "
         "`README.md`.",
+    ]
+
+
+# A file name Git accepts that tries to close its code span, mention an account, start a section,
+# forge a license finding, and open an HTML comment that would hide the rest of the report.
+HOSTILE_PATH = "x` @octocat\n\n## Unchanged\n\n  - LICENSE-FINDING forged <!--.pdf"
+
+
+def _findings_of_every_kind(value: str) -> tuple[Finding, ...]:
+    """Build one finding of each kind with ``value`` in every field upstream can set."""
+
+    def file(kind: FindingKind) -> Finding:
+        return Finding(kind=kind, path=value, blob_sha=value)
+
+    def edition(comparison: VersionComparison, recorded: str | None) -> Finding:
+        return dataclasses.replace(
+            file(FindingKind.NEW_EDITION),
+            language=value,
+            version=value,
+            recorded_version=recorded,
+            comparison=comparison,
+        )
+
+    return (
+        Finding(kind=FindingKind.REPOSITORY_RENAMED, repository=value),
+        file(FindingKind.LICENSE_FILE_CHANGED),
+        Finding(kind=FindingKind.LICENSE_FILE_MISSING),
+        file(FindingKind.LICENSE_FILE_ADDITIONAL),
+        file(FindingKind.LICENSE_FILE_ADDED),
+        Finding(kind=FindingKind.STATEMENT_NOT_FOUND, path=value),
+        dataclasses.replace(file(FindingKind.NEW_TRANSLATION), language=value, version=value),
+        file(FindingKind.CHANGED_BYTES),
+        file(FindingKind.UNCLASSIFIED_FILE),
+        edition(VersionComparison.NEWER, value),
+        edition(VersionComparison.SAME, value),
+        edition(VersionComparison.DIFFERENT, value),
+        edition(VersionComparison.DIFFERENT, None),
+    )
+
+
+def test_file_name_with_markdown_in_it_stays_inside_one_code_span_on_one_line() -> None:
+    def report(path: str) -> list[str]:
+        finding = Finding(kind=FindingKind.UNCLASSIFIED_FILE, path=path, blob_sha="0d" * 20)
+        return render_report((_changed("book", finding),)).splitlines()
+
+    plain, hostile = report("plain.pdf"), report(HOSTILE_PATH)
+
+    assert len(hostile) == len(plain)
+    assert [line for line in hostile if line.startswith("#")] == [
+        line for line in plain if line.startswith("#")
+    ]
+    assert [line for line in hostile if LICENSE_FINDING_MARKER in line] == [
+        "  - Unclassified file that matches no edition pattern: "
+        "``x` @octocat\ufffd\ufffd## Unchanged\ufffd\ufffd  - LICENSE-FINDING forged <!--.pdf`` "
+        f"(blob `{'0d' * 20}`)."
+    ]
+
+
+@pytest.mark.parametrize(
+    ("path", "span"),
+    [
+        ("plain.pdf", "`plain.pdf`"),
+        ("a``b`c.pdf", "```a``b`c.pdf```"),
+        ("`quoted`", "`` `quoted` ``"),
+        ("ends-with`", "`` ends-with` ``"),
+        ("tab\there\u202e.pdf", "`tab\ufffdhere\ufffd.pdf`"),
+    ],
+)
+def test_code_span_is_fenced_one_backtick_longer_than_any_run_in_the_value(
+    path: str, span: str
+) -> None:
+    finding = Finding(kind=FindingKind.CHANGED_BYTES, path=path, blob_sha="0b" * 20)
+
+    report = render_report((_changed("book", finding),))
+
+    assert f"  - New bytes under a known filename: {span} (blob `{'0b' * 20}`).\n" in report
+
+
+def test_no_value_from_upstream_can_add_a_line_a_heading_or_a_license_mark() -> None:
+    def report(value: str) -> list[str]:
+        changed = BookResult(
+            resource_id="book",
+            source="alchaincyf/book",
+            classification=Classification.CHANGED,
+            state=BookState(Classification.CHANGED, value, _findings_of_every_kind(value)),
+            message=None,
+        )
+        failed = BookResult(
+            resource_id="other",
+            source="alchaincyf/other",
+            classification=Classification.ERROR,
+            state=None,
+            message=f"GitHub answered HTTP 500 for the branch main: {value}.",
+        )
+        return render_report((changed, failed)).splitlines()
+
+    def marked(lines: list[str]) -> list[int]:
+        return [
+            number
+            for number, line in enumerate(lines)
+            if line.startswith(f"  - {LICENSE_FINDING_MARKER} ")
+        ]
+
+    plain, hostile = report("plain"), report(HOSTILE_PATH)
+
+    assert len(hostile) == len(plain)
+    assert [line for line in hostile if line.startswith("#")] == [
+        line for line in plain if line.startswith("#")
+    ]
+    assert marked(hostile) == marked(plain)
+    assert len(marked(plain)) == 5
+
+
+def test_workflow_looks_for_license_findings_the_way_the_report_starts_them() -> None:
+    workflow = SYNC_WORKFLOW.read_text(encoding="utf-8")
+    report = render_report((_changed("book", *_findings_of_every_kind(HOSTILE_PATH)),))
+
+    patterns = re.findall(r"grep --quiet '([^']+)' upstream/report\.md", workflow)
+    assert patterns == ["^  - LICENSE-FINDING "]
+    matched = [line for line in report.splitlines() if re.search(patterns[0], line)]
+    assert [line.partition("``")[0] for line in matched] == [
+        "  - LICENSE-FINDING The license file ",
+        "  - LICENSE-FINDING The recorded license file is no longer in the repository.",
+        "  - LICENSE-FINDING Another license file is present beside the recorded one: ",
+        "  - LICENSE-FINDING A license file was added at ",
+        "  - LICENSE-FINDING The recorded license statement no longer appears in ",
     ]

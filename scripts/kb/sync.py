@@ -73,8 +73,10 @@ REPORT_FILE = "report.md"
 LICENSE_FINDING_MARKER = "LICENSE-FINDING"
 """Starts every report line that says a book's license terms look different upstream.
 
-A workflow finds license findings by searching the report for this exact string. The report uses
-it nowhere else.
+Such a line is a nested list item, so it begins with two spaces, a hyphen, a space, this string,
+and a space. The sync workflow finds license findings by matching that start of a line. A file
+name upstream can hold this string, and then it appears inside a code span later in a line, which
+the workflow does not count.
 """
 
 README_PATH = "README.md"
@@ -87,6 +89,9 @@ _RATE_LIMITED = (
 _NOT_ATTEMPTED = "Not attempted, because the GitHub rate limit was used up earlier in this run."
 _NO_REPOSITORY = "The book has no repository to check."
 _ENTRY_KEPT = "The entry from the last successful check is kept."
+
+_REPLACEMENT_CHARACTER = "\ufffd"
+_BACKTICK_RUN = re.compile("`+")
 
 
 class Classification(StrEnum):
@@ -106,6 +111,7 @@ class FindingKind(StrEnum):
     REPOSITORY_RENAMED = "repository-renamed"
     LICENSE_FILE_CHANGED = "license-file-changed"
     LICENSE_FILE_MISSING = "license-file-missing"
+    LICENSE_FILE_ADDITIONAL = "license-file-additional"
     LICENSE_FILE_ADDED = "license-file-added"
     STATEMENT_NOT_FOUND = "statement-not-found"
     NEW_EDITION = "new-edition"
@@ -126,6 +132,7 @@ _LICENSE_KINDS = frozenset(
     {
         FindingKind.LICENSE_FILE_CHANGED,
         FindingKind.LICENSE_FILE_MISSING,
+        FindingKind.LICENSE_FILE_ADDITIONAL,
         FindingKind.LICENSE_FILE_ADDED,
         FindingKind.STATEMENT_NOT_FOUND,
     }
@@ -259,10 +266,11 @@ def compare(
 ) -> tuple[Finding, ...]:
     """Compare what a repository shows at one commit with what a book's metadata records.
 
-    A license file is a top-level file with a conventional license name. Only a file with an
-    edition format that sits at the top level, or in a directory that already holds a recorded
-    edition, takes part in the edition comparison. A recorded edition that upstream no longer
-    carries is not a finding.
+    A license file is a top-level file with a conventional license name. For a book whose
+    evidence is a license file, a license file with other content is a finding whether it
+    replaced the recorded one or sits beside it. Only a file with an edition format that sits at
+    the top level, or in a directory that already holds a recorded edition, takes part in the
+    edition comparison. A recorded edition that upstream no longer carries is not a finding.
 
     Args:
         resource: The book, which must have a Git upstream.
@@ -400,6 +408,11 @@ def render_report(results: Iterable[BookResult]) -> str:
     The report has one section per classification, always in the same order, and lists the books
     of a section in the order given. A license finding starts with ``LICENSE_FINDING_MARKER``.
 
+    The report becomes the body of a pull request, and upstream chooses its file names. Every
+    value that comes from a GitHub answer is therefore written as a code span it cannot close,
+    with each character that is not printable replaced by U+FFFD, so no such value can start a
+    line, a heading, a mention, or a comment.
+
     Args:
         results: One result per book, in catalog order.
 
@@ -501,12 +514,19 @@ def _license_findings(
     license_files = [entry for entry in tree if entry.path.lower() in LICENSE_FILE_NAMES]
     findings: list[Finding] = []
     if recorded.evidence is EvidenceKind.LICENSE_FILE:
+        different = [entry for entry in license_files if entry.blob_sha != recorded.blob_sha]
         if not license_files:
             findings.append(Finding(kind=FindingKind.LICENSE_FILE_MISSING))
-        elif all(entry.blob_sha != recorded.blob_sha for entry in license_files):
+        else:
+            # While one file still holds the recorded text, any other license file is a second
+            # set of terms beside it, which could cover the book's text differently.
+            kind = (
+                FindingKind.LICENSE_FILE_CHANGED
+                if len(different) == len(license_files)
+                else FindingKind.LICENSE_FILE_ADDITIONAL
+            )
             findings += [
-                Finding(FindingKind.LICENSE_FILE_CHANGED, path=entry.path, blob_sha=entry.blob_sha)
-                for entry in license_files
+                Finding(kind, path=entry.path, blob_sha=entry.blob_sha) for entry in different
             ]
     else:
         findings += [
@@ -640,11 +660,11 @@ def _result_lines(result: BookResult) -> list[str]:
     state = result.state
     if result.message is None:
         head = None if state is None else state.head_commit
-        lines = [line if head is None else f"{line} at `{head}`"]
+        lines = [line if head is None else f"{line} at {_code(head)}"]
     elif result.classification is Classification.ERROR and state is not None:
-        lines = [f"{line}: {result.message} {_ENTRY_KEPT}"]
+        lines = [f"{line}: {_one_line(result.message)} {_ENTRY_KEPT}"]
     else:
-        lines = [f"{line}: {result.message}"]
+        lines = [f"{line}: {_one_line(result.message)}"]
     if state is not None:
         lines += [f"  - {_describe(finding)}" for finding in state.findings]
     return lines
@@ -652,25 +672,29 @@ def _result_lines(result: BookResult) -> list[str]:
 
 def _describe(finding: Finding) -> str:
     """Write one finding as a sentence for the report."""
-    file = f"`{finding.path}` (blob `{finding.blob_sha}`)"
+    file = f"{_code(finding.path)} (blob {_code(finding.blob_sha)})"
     match finding.kind:
         case FindingKind.REPOSITORY_RENAMED:
-            text = f"The repository now answers as `{finding.repository}`."
+            text = f"The repository now answers as {_code(finding.repository)}."
         case FindingKind.LICENSE_FILE_CHANGED:
             text = (
-                f"The license file `{finding.path}` changed. Its blob is now `{finding.blob_sha}`."
+                f"The license file {_code(finding.path)} changed. "
+                f"Its blob is now {_code(finding.blob_sha)}."
             )
         case FindingKind.LICENSE_FILE_MISSING:
             text = "The recorded license file is no longer in the repository."
+        case FindingKind.LICENSE_FILE_ADDITIONAL:
+            text = f"Another license file is present beside the recorded one: {file}."
         case FindingKind.LICENSE_FILE_ADDED:
             text = f"A license file was added at {file}. The record has none."
         case FindingKind.STATEMENT_NOT_FOUND:
-            text = f"The recorded license statement no longer appears in `{finding.path}`."
+            text = f"The recorded license statement no longer appears in {_code(finding.path)}."
         case FindingKind.NEW_EDITION:
             text = f"{_describe_new_edition(finding)}: {file}."
         case FindingKind.NEW_TRANSLATION:
             text = (
-                f"New translation in `{finding.language}` at version `{finding.version}`: {file}."
+                f"New translation in {_code(finding.language)} at version "
+                f"{_code(finding.version)}: {file}."
             )
         case FindingKind.CHANGED_BYTES:
             text = f"New bytes under a known filename: {file}."
@@ -680,11 +704,37 @@ def _describe(finding: Finding) -> str:
 
 
 def _describe_new_edition(finding: Finding) -> str:
-    edition = f"New `{finding.language}` edition `{finding.version}`"
+    edition = f"New {_code(finding.language)} edition {_code(finding.version)}"
     if finding.comparison is VersionComparison.NEWER:
-        return f"{edition}, newer than the recorded `{finding.recorded_version}`"
+        return f"{edition}, newer than the recorded {_code(finding.recorded_version)}"
     if finding.comparison is VersionComparison.SAME:
         return f"{edition}, the recorded version in a new file"
     if finding.recorded_version is None:
         return f"{edition}, with no recorded version to compare with"
-    return f"{edition}, a different version from the recorded `{finding.recorded_version}`"
+    return f"{edition}, a different version from the recorded {_code(finding.recorded_version)}"
+
+
+def _code(value: str | None) -> str:
+    """Write a value that came from a GitHub answer as a Markdown code span it cannot close.
+
+    The fence is one backtick longer than the longest run of backticks in the value, so no run in
+    the value ends the span. A value that starts or ends with a backtick is padded with a space
+    on each side, which Markdown removes again, so the value's backticks do not join the fence.
+    A field that the finding's kind does not use is ``None`` and is written as an empty value.
+    """
+    text = _one_line(value or "")
+    longest = max((len(run) for run in _BACKTICK_RUN.findall(text)), default=0)
+    fence = "`" * (longest + 1)
+    padding = " " if text.startswith("`") or text.endswith("`") else ""
+    return f"{fence}{padding}{text}{padding}{fence}"
+
+
+def _one_line(text: str) -> str:
+    """Replace each character that is not printable, which covers every kind of line break.
+
+    Markdown treats a line break inside a code span as a space only while the paragraph goes on,
+    so a value with a line break could otherwise end its list item and start a block of its own.
+    """
+    return "".join(
+        character if character.isprintable() else _REPLACEMENT_CHARACTER for character in text
+    )
