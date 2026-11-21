@@ -596,6 +596,25 @@ def _check_fidelity(library: Library) -> list[Finding]:
             for chapter_file, result in zip(chapters, report.results, strict=True)
             if not result.passed
         )
+        findings.extend(
+            Finding(
+                rule="fidelity-missing-chapter",
+                file=_metadata_path(resource.id),
+                message=(
+                    f'The source file of {resource.id} has the section "{title}", and no '
+                    "chapter of the book holds it."
+                ),
+                fix=(
+                    f"Run `uv run python scripts/ingest.py --book {resource.id} --write` to add "
+                    "the chapter. A book is mirrored in full or not at all."
+                ),
+            )
+            for title in report.missing
+            # One chapter file that does not load keeps every chapter of its book out of the
+            # library. That file is a finding of its own, and it would make every section
+            # look as if it had no chapter.
+            if _chapters_loaded(library, resource.id)
+        )
     return findings
 
 

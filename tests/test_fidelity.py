@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from kb.catalog import AcceptedDifference, load_chapters, load_resource
 from kb.checks import Finding, run_checks
-from kb.fidelity import SIMILARITY_FLOOR, check_book, compare
+from kb.fidelity import SIMILARITY_FLOOR, check_book, compare, report_lines
 
 MIRRORED = "fixture-mirrored-book"
 REFERENCE = "fixture-reference-book"
@@ -333,6 +333,27 @@ def test_errata_in_the_frontmatter_take_no_part_in_the_comparison(library_copy: 
     )
 
     assert fidelity_findings(library_copy) == []
+
+
+def test_a_section_of_the_source_that_no_chapter_holds_is_a_finding(library_copy: Path) -> None:
+    (library_copy / SUNK).unlink()
+
+    findings = fidelity_findings(library_copy)
+
+    assert located(findings) == [("fidelity-missing-chapter", f"{BOOK.as_posix()}/metadata.yaml")]
+    assert 'section "Recovering a Sunk Boat"' in findings[0].message
+
+
+def test_the_report_for_a_person_names_a_section_that_no_chapter_holds(library_copy: Path) -> None:
+    (library_copy / SUNK).unlink()
+    resource = load_resource(library_copy, MIRRORED)
+
+    report = check_book(library_copy, resource, load_chapters(library_copy, MIRRORED))
+
+    assert report.missing == ("Recovering a Sunk Boat",)
+    lines = report_lines(resource, report)
+    assert '  MISSING  no chapter holds the section "Recovering a Sunk Boat"' in lines
+    assert lines[-1] == "Chapters checked: 2. Failed: 0. Sections with no chapter: 1."
 
 
 def test_a_chapter_with_no_section_in_the_source_is_a_finding(library_copy: Path) -> None:

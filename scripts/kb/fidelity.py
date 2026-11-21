@@ -127,11 +127,14 @@ class BookFidelity:
         source: The source file the chapters were compared with, relative to the library root,
             or ``None`` when it could not be extracted.
         results: One result per chapter, in the order the chapters were given.
+        missing: Titles of the sections of the source that none of the chapters holds, in
+            the order of the source. A book with one is not mirrored in full.
     """
 
     error: IngestError | None
     source: Path | None
     results: tuple[FidelityResult, ...]
+    missing: tuple[str, ...] = ()
 
 
 def words(text: str) -> list[str]:
@@ -302,8 +305,8 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
         chapters: The chapter files to compare.
 
     Returns:
-        One result per chapter. When the source file cannot be extracted, the report holds the
-        error and no results.
+        One result per chapter, and the sections of the source that no chapter holds. When
+        the source file cannot be extracted, the report holds the error and no results.
     """
     profile = resource.extraction_profile
     try:
@@ -339,7 +342,9 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
                 message=f"The chapter {chapter.id} has no section in the source. {reason}",
             )
         )
-    return BookFidelity(error=None, source=book.source, results=tuple(results))
+    held = {titles.get(chapter_file.chapter.slug) for chapter_file in chapters}
+    missing = tuple(section.title for section in book.sections if section.title not in held)
+    return BookFidelity(error=None, source=book.source, results=tuple(results), missing=missing)
 
 
 def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
@@ -351,7 +356,8 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
 
     Returns:
         The lines to print: the source file, one line per chapter with the message of each
-        failure below it, every accepted difference of the book with its reason, and a count.
+        failure below it, one line per section that no chapter holds, every accepted difference
+        of the book with its reason, and a count.
     """
     lines = [] if report.source is None else [f"Source: {report.source.as_posix()}"]
     for result in report.results:
@@ -359,6 +365,7 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
         lines.append(f"  {verdict}  {result.chapter}  similarity {result.similarity:.3f}")
         if not result.passed:
             lines.append(f"        {result.message}")
+    lines.extend(f'  MISSING  no chapter holds the section "{title}"' for title in report.missing)
     profile = resource.extraction_profile
     accepted = () if profile is None else profile.accepted_differences
     lines.append(f"Accepted differences: {len(accepted)}")
@@ -368,7 +375,10 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
         for difference in accepted
     )
     failed = sum(not result.passed for result in report.results)
-    lines.append(f"Chapters checked: {len(report.results)}. Failed: {failed}.")
+    count = f"Chapters checked: {len(report.results)}. Failed: {failed}."
+    if report.missing:
+        count += f" Sections with no chapter: {len(report.missing)}."
+    lines.append(count)
     return lines
 
 

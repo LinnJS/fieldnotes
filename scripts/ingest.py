@@ -151,6 +151,12 @@ def _check(root: Path, resource: Resource) -> int:
             "right and the extraction is wrong, list the words under accepted_differences in "
             f"{BOOKS_DIR}/{resource.id}/{METADATA_FILE} with the chapter id and a reason.",
         )
+    if report.missing:
+        return _fail(
+            f"{len(report.missing)} of the source file's sections have no chapter.",
+            f"Run `uv run python scripts/ingest.py --book {resource.id} --write` to add the "
+            "missing chapters.",
+        )
     return 0
 
 
