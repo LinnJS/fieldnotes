@@ -1,0 +1,83 @@
+name: Upstream sync
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+env:
+  SYNC_BRANCH: sync/upstream
+  LICENSE_LABEL: license-change
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ./.github/actions/setup-toolchain
+
+      - name: Check every upstream repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run python scripts/sync.py
+
+      - name: See whether the upstream record changed
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain -- upstream)" ]; then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      # A pull request opened with the workflow token starts no workflow, so the
+      # validate workflow never runs on it. The checks run here on the same tree.
+      - name: Validate and test the result
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          uv run python scripts/validate.py
+          uv run pytest
+
+      - name: Push the sync branch
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --force-create "${SYNC_BRANCH}"
+          git add -- upstream
+          git commit --message "chore(upstream): record upstream check" -- upstream
+          # The branch belongs to this workflow and holds one commit on top of the
+          # default branch, so each run replaces it.
+          git push --force origin "${SYNC_BRANCH}"
+
+      - name: Open or update the pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          title="chore(upstream): review upstream changes"
+          if [ -n "$(gh pr list --head "${SYNC_BRANCH}" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "${SYNC_BRANCH}" --title "${title}" --body-file upstream/report.md
+          else
+            gh pr create --head "${SYNC_BRANCH}" --base "${GITHUB_REF_NAME}" \
+              --title "${title}" --body-file upstream/report.md
+          fi
+          if grep --quiet "LICENSE-FINDING" upstream/report.md; then
+            gh label create "${LICENSE_LABEL}" --force \
+              --description "An upstream license file or statement changed" --color B60205
+            gh pr edit "${SYNC_BRANCH}" --add-label "${LICENSE_LABEL}"
+          fi

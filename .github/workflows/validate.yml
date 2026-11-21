@@ -1,0 +1,51 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-toolchain
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Type check
+        run: uv run mypy scripts
+
+      - name: Test
+        run: uv run pytest
+
+      - name: Validate the library
+        run: uv run python scripts/validate.py
+
+      - name: Check that the committed indexes are fresh
+        run: uv run python scripts/build.py --check
+
+      # These two commands must work with nothing installed, so they run on the
+      # runner's own interpreter and not inside the uv environment.
+      - name: Run the read commands without the environment
+        run: |
+          python3 scripts/resolve.py loop-engineering-orange-book
+          python3 scripts/check_citations.py topics/*.md
+
+      - name: Export every mirrored book and build the site in strict mode
+        run: uv run python scripts/build.py --site
