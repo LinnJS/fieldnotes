@@ -11,6 +11,7 @@ must expect a library that lacks some records. ``Library.resources`` holds only 
 whose metadata loaded, while ``Catalog.resources`` still lists every cataloged id.
 """
 
+import hashlib
 import json
 import re
 from collections import defaultdict
@@ -258,20 +259,52 @@ def _check_gate_content(library: Library) -> list[Finding]:
     return findings
 
 
+def _git_blob_id(data: bytes) -> str:
+    """Return the id Git gives a file with these bytes, which is how a license record names it."""
+    return hashlib.sha1(b"blob %d\0" % len(data) + data, usedforsecurity=False).hexdigest()
+
+
 def _check_license_file(library: Library) -> list[Finding]:
+    """Report each mirrored book whose license file is missing or is not the recorded one.
+
+    Every export prints this file as the terms the book is offered under. The record names the
+    upstream file by its Git blob id, so a file with other bytes is not the text that the
+    license decision was made on.
+    """
     findings: list[Finding] = []
     for resource in library.resources:
         if resource.mirror_status is not MirrorStatus.MIRRORED:
             continue
-        if not (library.root / BOOKS_DIR / resource.id / LICENSE_FILE).is_file():
+        file = f"{BOOKS_DIR}/{resource.id}/{LICENSE_FILE}"
+        path = library.root / file
+        if not path.is_file():
             findings.append(
                 Finding(
                     rule="gate-license-file",
-                    file=f"{BOOKS_DIR}/{resource.id}/{LICENSE_FILE}",
+                    file=file,
                     message=f"The mirrored book {resource.id} has no {LICENSE_FILE} file.",
                     fix=(
                         "Add the upstream license text under this name, copied from the "
                         "permalink in the book's license record."
+                    ),
+                )
+            )
+            continue
+        recorded = resource.license.blob_sha
+        found = _git_blob_id(path.read_bytes())
+        if found != recorded:
+            findings.append(
+                Finding(
+                    rule="gate-license-file",
+                    file=file,
+                    message=(
+                        f"The file has the Git blob id {found}, and license.blob_sha in "
+                        f"{_metadata_path(resource.id)} records {recorded}."
+                    ),
+                    fix=(
+                        "Restore the file byte for byte from the permalink in the book's "
+                        "license record. If upstream changed its license, capture the evidence "
+                        "again and have the owner review the record."
                     ),
                 )
             )

@@ -176,6 +176,18 @@ def test_a_mirrored_book_without_a_license_file_is_a_finding(library_copy: Path)
     ]
 
 
+@pytest.mark.parametrize("content", ["", "Permission is hereby granted to no one.\n"])
+def test_a_license_file_that_is_not_the_recorded_one_is_a_finding(
+    library_copy: Path, content: str
+) -> None:
+    (library_copy / "books" / MIRRORED / "LICENSE").write_text(content, encoding="utf-8")
+
+    findings = run_checks(library_copy)
+
+    assert located(findings) == [("gate-license-file", "books/fixture-mirrored-book/LICENSE", None)]
+    assert "2b83b85f5d96ee4d65a4a46d8f8614161569df54" in findings[0].message
+
+
 def test_a_cataloged_id_without_metadata_is_a_finding(library_copy: Path) -> None:
     replace_in(
         library_copy / "catalog.yaml",
