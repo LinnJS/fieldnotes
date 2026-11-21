@@ -62,7 +62,6 @@ needs its paragraphs and rows repaired by hand.
 _BASELINE_TOLERANCE = 2.0
 _COLUMN_TOLERANCE = 1.0
 
-_TEXT_ROLES = frozenset({Role.LEDE, Role.HEADING, Role.BODY, Role.KICKER, Role.QUOTE})
 _TABLE_ROLES = frozenset({Role.TABLE_HEADER, Role.TABLE_CELL})
 # A heading or a kicker is never cut by a page break, so only these are joined across one.
 _ROLES_JOINED_ACROSS_PAGES = frozenset({Role.LEDE, Role.BODY, Role.QUOTE})

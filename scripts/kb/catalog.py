@@ -9,6 +9,7 @@ Every file is validated against its JSON Schema before a record is built from it
 below therefore index into the validated mappings without checking shapes again.
 """
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -52,13 +53,18 @@ __all__ = [
     "load_library",
     "load_resource",
     "load_topics",
+    "version_key",
 ]
 
 CATALOG_FILE = "catalog.yaml"
 BOOKS_DIR = "books"
 METADATA_FILE = "metadata.yaml"
+LICENSE_FILE = "LICENSE"
+"""Name of the upstream license text inside a mirrored book's directory."""
 CHAPTERS_DIR = "chapters"
 TOPICS_DIR = "topics"
+
+_NOT_DIGITS = re.compile(r"\D+")
 
 # The topics directory also holds a hand-written landing page, which is not a topic document.
 TOPIC_INDEX_FILE = "index.md"
@@ -671,6 +677,18 @@ def load_library(root: Path) -> Library:
         ),
         topics=load_topics(root),
     )
+
+
+def version_key(version: str) -> tuple[int, ...]:
+    """Split a dotted or date-style version into numbers that order the way upstream means.
+
+    Args:
+        version: A version as an edition records it, such as ``v260615`` or ``2.0.1``.
+
+    Returns:
+        Each run of digits as a number, so ``2.10`` sorts after ``2.9``.
+    """
+    return tuple(int(part) for part in _NOT_DIGITS.split(version) if part)
 
 
 def _person(data: dict[str, Any]) -> Person:

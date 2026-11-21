@@ -35,6 +35,7 @@ __all__ = [
     "BUILD_COMMAND",
     "CATALOG_INDEX",
     "CHAPTERS_INDEX",
+    "CODE_FENCE",
     "LLMS_FILE",
     "RESOLVE_POINTER",
     "TOKEN_PATTERN",
@@ -87,11 +88,12 @@ _LANGUAGE_NAMES = {"en": "English", "zh": "Chinese"}
 
 _MINIMUM_QUOTE_WORDS = 4
 
+# The line that opens or closes a fenced code block. Group 1 is the fence.
+CODE_FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
 # The one definition of a citation token. Group 1 is the reference between the brackets.
 TOKEN_PATTERN = re.compile(r"\[cite:([^\]\n]*)\]")
 # The text of a reading-list item that points at a book whose text is not in the library.
-# Group 1 is the resource id. Validation accepts the item without a citation, and the site
-# turns it into a link to the book's catalog card.
+# Group 1 is the resource id.
 RESOLVE_POINTER = re.compile(
     r"`([a-z0-9-]+)`\. Run `python3 scripts/resolve\.py \1` for its official URL\."
 )
@@ -100,7 +102,6 @@ _QUOTE_LINE = re.compile(r" {0,3}>")
 _QUOTE_MARKERS = re.compile(r"(?m)^(?: {0,3}> ?)+")
 # A backslash is how Markdown escapes one of the markers, so it is dropped with them.
 _INLINE_MARKERS = re.compile(r"[*_`\\]")
-_CODE_FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
 _INLINE_CODE = re.compile(r"(`+).+?\1")
 _FRONTMATTER_FENCE = "---"
 
@@ -867,7 +868,7 @@ def mask_code(text: str) -> str:
     masked: list[str] = []
     open_fence: str | None = None
     for line in text.split("\n"):
-        fence = _CODE_FENCE.match(line)
+        fence = CODE_FENCE.match(line)
         if open_fence is None:
             if fence:
                 open_fence = fence.group(1)

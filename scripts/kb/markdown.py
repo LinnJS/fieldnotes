@@ -19,7 +19,14 @@ from kb.blocks import Block, Cell, CodeBlock, Run, Section, Table
 from kb.catalog import Resource, Role
 from kb.frontmatter import ExtractionStatus
 
-__all__ = ["UNASSIGNED_PART", "ChapterDraft", "draft_chapters", "propose_slug", "render_body"]
+__all__ = [
+    "UNASSIGNED_PART",
+    "ChapterDraft",
+    "backtick_fence",
+    "draft_chapters",
+    "propose_slug",
+    "render_body",
+]
 
 UNASSIGNED_PART = "Unassigned"
 """Part written for a section that the book's extraction profile does not list yet."""
@@ -124,6 +131,19 @@ def draft_chapters(resource: Resource, sections: Sequence[Section]) -> tuple[Cha
     return tuple(drafts)
 
 
+def backtick_fence(text: str) -> str:
+    """Return a code fence that no run of backticks in the text can close.
+
+    Args:
+        text: The text the fence will enclose.
+
+    Returns:
+        A run of backticks one longer than the longest run in the text, and at least three.
+    """
+    longest = max((len(ticks) for ticks in _BACKTICKS.findall(text)), default=0)
+    return "`" * max(3, longest + 1)
+
+
 def render_body(section: Section) -> str:
     """Render a section as the Markdown body of a chapter file.
 
@@ -212,8 +232,5 @@ def _row(cells: Sequence[Cell]) -> str:
 
 
 def _code(block: CodeBlock) -> str:
-    longest = max(
-        (len(ticks) for line in block.lines for ticks in _BACKTICKS.findall(line)), default=0
-    )
-    fence = "`" * max(3, longest + 1)
+    fence = backtick_fence("\n".join(block.lines))
     return "\n".join([f"{fence}{_CODE_LANGUAGE}", *block.lines, fence])

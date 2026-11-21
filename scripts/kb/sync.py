@@ -24,7 +24,14 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from kb.catalog import EvidenceKind, GitSource, Resource, load_catalog, load_resource
+from kb.catalog import (
+    EvidenceKind,
+    GitSource,
+    Resource,
+    load_catalog,
+    load_resource,
+    version_key,
+)
 from kb.evidence import EDITION_SUFFIXES, LICENSE_FILE_NAMES
 from kb.upstream import (
     TOKEN_VARIABLES,
@@ -587,16 +594,12 @@ def _new_file_finding(
 def _compare_versions(version: str, recorded: str | None) -> VersionComparison:
     if version == recorded:
         return VersionComparison.SAME
-    new, old = _version_numbers(version), _version_numbers(recorded or "")
+    new, old = version_key(version), version_key(recorded or "")
     # A version with no digits cannot be ordered, and neither can one that is not above the
     # recorded one, since upstream uses both dotted and date-style versions.
     if new and old and new > old:
         return VersionComparison.NEWER
     return VersionComparison.DIFFERENT
-
-
-def _version_numbers(version: str) -> tuple[int, ...]:
-    return tuple(int(part) for part in re.split(r"\D+", version) if part)
 
 
 def _finding_record(finding: Finding) -> dict[str, str]:

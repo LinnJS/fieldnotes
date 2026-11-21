@@ -31,6 +31,7 @@ from pathlib import Path
 from kb.blocks import section_text
 from kb.catalog import AcceptedDifference, ChapterFile, Resource
 from kb.ingest import IngestError, extract_book
+from kb.readpath import CODE_FENCE
 
 __all__ = [
     "SIMILARITY_FLOOR",
@@ -66,7 +67,6 @@ _VARIANTS = str.maketrans(
 )
 _WORD_EDGES = re.compile(r"^[\W_]+|[\W_]+$")
 
-_FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
 _UNESCAPED_PIPE = re.compile(r"(?<!\\)\|")
 # In reading order: a backslash escape, an inline code span, or a link. An escape is matched
 # first so that an escaped backtick or bracket opens nothing.
@@ -152,7 +152,7 @@ def markdown_text(body: str) -> str:
     lines: list[str] = []
     open_fence: str | None = None
     for line in body.split("\n"):
-        fence = _FENCE.match(line)
+        fence = CODE_FENCE.match(line)
         if open_fence is not None:
             # A block closes on a bare fence of the same character that is at least as long.
             if fence and fence[1].startswith(open_fence) and not line[fence.end() :].strip():

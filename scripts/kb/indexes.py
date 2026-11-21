@@ -13,7 +13,6 @@ license gate allows, and ``quote_permitted`` is the one place that decides it.
 """
 
 import json
-import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -21,12 +20,14 @@ from pathlib import Path
 
 from kb.catalog import (
     BOOKS_DIR,
+    LICENSE_FILE,
     ChapterFile,
     EvidenceKind,
     Library,
     MirrorStatus,
     Person,
     Resource,
+    version_key,
 )
 from kb.gate import evaluate
 from kb.readpath import (
@@ -52,19 +53,18 @@ __all__ = [
     "AGENT_INSTRUCTIONS_FILE",
     "FULL_TEXT_DIR",
     "FULL_TEXT_FILE",
-    "LICENSE_FILE",
     "STALE_FIX",
     "BuildError",
     "StaleFile",
     "build_full_text",
     "build_indexes",
+    "counted",
     "newer_editions",
     "quote_permitted",
     "stale_files",
     "write_files",
 ]
 
-LICENSE_FILE = "LICENSE"
 AGENT_INSTRUCTIONS_FILE = "AGENTS.md"
 FULL_TEXT_FILE = "dist/llms-full.txt"
 FULL_TEXT_DIR = "dist/llms-full"
@@ -74,8 +74,6 @@ STALE_FIX = (
     "not the repository root."
 )
 """What to do about a committed generated file that is missing or stale."""
-
-_NOT_DIGITS = re.compile(r"\D+")
 
 
 class BuildError(Exception):
@@ -124,11 +122,11 @@ def newer_editions(resource: Resource, version: str) -> list[EditionRef]:
     Returns:
         One entry per language whose newest version is higher, sorted by language code.
     """
-    mirrored = _version_key(version)
+    mirrored = version_key(version)
     return [
         EditionRef(language=newest.language, version=newest.version)
         for newest in sorted(resource.newest_editions, key=lambda newest: newest.language)
-        if _version_key(newest.version) > mirrored
+        if version_key(newest.version) > mirrored
     ]
 
 
@@ -239,10 +237,6 @@ def write_files(root: Path, files: Mapping[str, str]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         # Bytes are written so that no platform translates the line endings.
         path.write_bytes(text.encode("utf-8"))
-
-
-def _version_key(version: str) -> tuple[int, ...]:
-    return tuple(int(part) for part in _NOT_DIGITS.split(version) if part)
 
 
 def _json_document(value: object) -> str:
@@ -500,7 +494,7 @@ def _llms_text(
         lines += ["", "## Topics", ""]
         lines += [
             f"- [{topic['title']}]({topic['path']}): `{topic['id']}`, "
-            f"{_counted(len(topic['references']), 'reference')}."
+            f"{counted(len(topic['references']), 'reference')}."
             for topic in topics
         ]
 
@@ -518,7 +512,8 @@ def _llms_text(
     return "\n".join(lines) + "\n"
 
 
-def _counted(count: int, noun: str) -> str:
+def counted(count: int, noun: str) -> str:
+    """Write a count with its noun, in the plural unless the count is one."""
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
 
 

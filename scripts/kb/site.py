@@ -37,6 +37,7 @@ import yaml
 
 from kb.catalog import (
     BOOKS_DIR,
+    LICENSE_FILE,
     TOPIC_INDEX_FILE,
     TOPICS_DIR,
     ChapterFile,
@@ -62,17 +63,15 @@ from kb.export import (
 from kb.frontmatter import ExtractionStatus
 from kb.gate import evaluate
 from kb.indexes import (
-    LICENSE_FILE,
     BuildError,
     build_full_text,
     build_indexes,
+    counted,
     newer_editions,
     quote_permitted,
     write_files,
 )
-
-# The three private names are the citation checker's own token parsing. The site reads tokens
-# with them so that both agree on what a token is, and on a token in code not being one.
+from kb.markdown import backtick_fence
 from kb.readpath import (
     CATALOG_INDEX,
     CHAPTERS_INDEX,
@@ -152,7 +151,6 @@ _STATUS_INTRODUCTIONS = {
 # Python-Markdown honors a backslash only before these characters. The angle bracket and the
 # ampersand are written as HTML entities instead.
 _MARKDOWN_SPECIAL = re.compile(r"[\\`*_{}\[\]#]")
-_BACKTICKS = re.compile(r"`+")
 _LINK = re.compile(r"\]\((?P<target>[^)\s#]+)(?P<rest>[^)]*)\)")
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 _HEADING = "# "
@@ -673,13 +671,13 @@ def _home_page(library: Library, books: Sequence[_Book], bundle: str | None) -> 
     info = library.catalog.library
     carried = len(books)
     counts = (
-        f"The catalog lists {_counted(len(library.resources), 'book')}. The library carries the "
+        f"The catalog lists {counted(len(library.resources), 'book')}. The library carries the "
         f"text of {carried} of them, and links to the author's official source for the rest."
     )
     browse = [
         *(
             f"- [{_plain(book.resource.title.english)}]({book.overview}): read the mirrored "
-            f"book chapter by chapter, {_counted(len(book.chapters), 'chapter')}."
+            f"book chapter by chapter, {counted(len(book.chapters), 'chapter')}."
             for book in books
         ),
         f"- [Topics]({TOPICS_DIR}/{TOPIC_INDEX_FILE}): reading paths that connect a subject to "
@@ -706,10 +704,6 @@ def _home_page(library: Library, books: Sequence[_Book], bundle: str | None) -> 
         "reads the Markdown file, and cites it with a token that anyone can resolve. The "
         f"[Agents]({_AGENTS_PAGE}) page lists the machine-readable files and the two commands.",
     )
-
-
-def _counted(count: int, noun: str) -> str:
-    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
 
 
 def _license_summary(resource: Resource) -> str:
@@ -762,8 +756,6 @@ def _catalog_page(library: Library, books: Sequence[_Book]) -> str:
     allowlist = library.catalog.license_allowlist
     cards: dict[MirrorStatus, list[str]] = {status: [] for status in _STATUS_LABELS}
     for resource in library.resources:
-        # A status is shown only when the license gate allows it, so a card never claims more
-        # than the site carries or the gate permits.
         if resource.id in carried:
             status = MirrorStatus.MIRRORED
         elif resource.mirror_status is MirrorStatus.ELIGIBLE and evaluate(
@@ -776,7 +768,7 @@ def _catalog_page(library: Library, books: Sequence[_Book]) -> str:
 
     blocks = [
         "# Catalog",
-        f"The catalog lists {_counted(len(library.resources), 'book')} in three groups. Every "
+        f"The catalog lists {counted(len(library.resources), 'book')} in three groups. Every "
         "card carries a status label. Only a mirrored book has its text in the library.",
     ]
     for status, label in _STATUS_LABELS.items():
@@ -942,8 +934,7 @@ def _license_id(resource: Resource) -> str:
 
 def _license_page(library: Library, book: _Book) -> str:
     resource = book.resource
-    longest = max((len(run) for run in _BACKTICKS.findall(book.license_text)), default=0)
-    fence = "`" * max(3, longest + 1)
+    fence = backtick_fence(book.license_text)
     permalink = resource.license.permalink
     evidence = (
         ""

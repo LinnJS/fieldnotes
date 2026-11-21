@@ -22,6 +22,7 @@ from kb.catalog import (
     BOOKS_DIR,
     CATALOG_FILE,
     CHAPTERS_DIR,
+    LICENSE_FILE,
     METADATA_FILE,
     TOPIC_INDEX_FILE,
     TOPICS_DIR,
@@ -41,6 +42,7 @@ from kb.gate import evaluate
 from kb.indexes import STALE_FIX, quote_permitted, stale_files
 from kb.readpath import (
     CHAPTERS_INDEX,
+    CODE_FENCE,
     RESOLVE_POINTER,
     ReadPathError,
     check_text,
@@ -50,8 +52,6 @@ from kb.readpath import (
 from kb.schema import LoadError, SchemaName, parse_yaml, read_text
 
 __all__ = ["CHECKS", "NO_COVERAGE_SENTENCE", "SCOPE_LABEL", "Check", "Finding", "run_checks"]
-
-LICENSE_FILE = "LICENSE"
 
 SCOPE_LABEL = "**Scope (editorial).**"
 """What the first paragraph of a topic body starts with. It marks the library's own words."""
@@ -63,7 +63,6 @@ NO_COVERAGE_SENTENCE = (
 """The one paragraph that may stand without a citation in a topic with no mirrored chapter."""
 
 _LINK = re.compile(r"\]\(\s*([^)\s]+)[^)]*\)")
-_CODE_FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
 _NOT_A_FILE_LINK = ("http:", "https:", "mailto:", "#")
 _HEADING = re.compile(r" {0,3}#{1,6}(?:\s|$)")
 _LIST_ITEM = re.compile(r"\s*(?:[-*+]|\d+[.)])\s+(.*)")
@@ -472,7 +471,7 @@ def _link_targets(body: str) -> Iterator[tuple[int, str]]:
     """Yield the line index and target of each inline link outside fenced code blocks."""
     open_fence: str | None = None
     for index, line in enumerate(body.split("\n")):
-        fence = _CODE_FENCE.match(line)
+        fence = CODE_FENCE.match(line)
         if open_fence is None:
             if fence:
                 open_fence = fence[1]
@@ -710,7 +709,7 @@ def _paragraphs(body: str) -> Iterator[_Paragraph]:
     lines: list[str] = []
     # The empty last line closes a paragraph that runs to the end of the body.
     for index, line in enumerate([*body.split("\n"), ""]):
-        fence = _CODE_FENCE.match(line)
+        fence = CODE_FENCE.match(line)
         in_code = open_fence is not None or fence is not None
         if open_fence is None:
             if fence:

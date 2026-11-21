@@ -38,6 +38,7 @@ from kb.catalog import (
     BOOKS_DIR,
     CATALOG_FILE,
     CHAPTERS_DIR,
+    LICENSE_FILE,
     METADATA_FILE,
     TOPICS_DIR,
     ChapterFile,
@@ -46,17 +47,19 @@ from kb.catalog import (
     Person,
     PinnedSource,
     Resource,
+    version_key,
 )
 from kb.evidence import blob_permalink
 from kb.frontmatter import ExtractionStatus
 from kb.gate import evaluate
+from kb.markdown import backtick_fence
+from kb.readpath import BUILD_COMMAND, CATALOG_INDEX, CHAPTERS_INDEX, LLMS_FILE, TOPICS_INDEX
 
 __all__ = [
     "CJK_FONT_FAMILIES",
     "EXPORTS_DIR",
     "GENERATED_FILES",
     "HAND_WRITTEN_FILES",
-    "LICENSE_FILE",
     "MANIFEST_FILE",
     "MINIMUM_PANDOC_VERSION",
     "TEMPLATES_DIR",
@@ -92,22 +95,18 @@ CJK_FONT_FAMILIES = (
 The first three ship with macOS. The Noto families are the ones a Linux machine installs.
 """
 
-LICENSE_FILE = "LICENSE"
-"""Name of the upstream license text inside a mirrored book's directory."""
-
 MANIFEST_FILE = "MANIFEST.json"
 """Name of the bundle entry that lists every other entry."""
 
 HAND_WRITTEN_FILES = ("AGENTS.md", "LICENSES.md")
 """Files at the library root that a person writes and the bundle must carry."""
 
-GENERATED_FILES = ("index/catalog.json", "index/topics.json", "index/chapters.jsonl", "llms.txt")
+GENERATED_FILES = (CATALOG_INDEX, TOPICS_INDEX, CHAPTERS_INDEX, LLMS_FILE)
 """Files at the library root that the build command writes and the bundle must carry."""
 
 _PANDOC = "pandoc"
 _PANDOC_RELEASES = "https://github.com/jgm/pandoc/releases"
 _PANDOC_VERSION = re.compile(r"pandoc(?:\.exe)? (\d+(?:\.\d+)*)")
-_BUILD_COMMAND = "uv run python scripts/build.py"
 
 # GitHub-flavored Markdown is the dialect of the chapter files. Attributes let this module give
 # a heading an anchor and leave it unnumbered, and the metadata block carries the title data.
@@ -117,7 +116,6 @@ _NOTICE_ANCHOR = "copy-notice"
 _MARKDOWN_SPECIAL = re.compile(r"[\\`*_\[\]<>&#|~{}]")
 _COPYRIGHT_LINE = re.compile(r"^[ \t]*(Copyright\b.*\d{4}.*?)[ \t]*$", re.MULTILINE)
 _CHAPTER_LINK = re.compile(r"\]\((?P<file>[^)\s#]+\.md)(?:#[^)\s]*)?\)")
-_BACKTICKS = re.compile(r"`+")
 
 # The zip format cannot hold a date before 1980. A fixed date keeps the bundle reproducible.
 _ZIP_DATE = (1980, 1, 1, 0, 0, 0)
@@ -365,7 +363,7 @@ def bundle_files(library: Library) -> tuple[Path, ...]:
     if hand_written or generated:
         fixes = []
         if generated:
-            fixes.append(f"Run `{_BUILD_COMMAND}` to write the index files and llms.txt.")
+            fixes.append(f"Run `{BUILD_COMMAND}` to write the index files and llms.txt.")
         if hand_written:
             fixes.append(
                 f"Add {', '.join(hand_written)} at the library root. A person writes these "
@@ -584,7 +582,7 @@ def _notice_section(
         "is newer than this copy. This copy does not hold its changes."
         for newest in resource.newest_editions
         if newest.language != pinned.language
-        and _version_numbers(newest.version) > _version_numbers(pinned.edition)
+        and version_key(newest.version) > version_key(pinned.edition)
     )
     facts.append(
         f"- **Source:** the file [{_plain(pinned.path)}]({permalink}) in the repository "
@@ -660,8 +658,7 @@ def _plain(text: str) -> str:
 
 def _code_block(text: str) -> str:
     """Fence text verbatim, with a fence longer than any run of backticks inside it."""
-    longest = max((len(run) for run in _BACKTICKS.findall(text)), default=0)
-    fence = "`" * max(3, longest + 1)
+    fence = backtick_fence(text)
     lines = text.strip("\n")
     return f"{fence}\n{lines}\n{fence}"
 
@@ -670,8 +667,3 @@ def _typst_string(text: str) -> str:
     """Write text as a Typst string literal."""
     escaped = text.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
-
-
-def _version_numbers(version: str) -> tuple[int, ...]:
-    """Split a dotted or date-style version into numbers that order the way upstream means."""
-    return tuple(int(part) for part in re.split(r"\D+", version) if part)
