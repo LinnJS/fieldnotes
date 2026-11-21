@@ -37,7 +37,6 @@ import yaml
 from kb.catalog import (
     BOOKS_DIR,
     CATALOG_FILE,
-    CHAPTERS_DIR,
     LICENSE_FILE,
     METADATA_FILE,
     TOPICS_DIR,
@@ -450,16 +449,8 @@ def _require_mirrored(library: Library, resource: Resource) -> PinnedSource:
 
 
 def _chapter_files(library: Library, resource: Resource) -> list[ChapterFile]:
-    """Return the chapter files in a book's own directory, in reading order.
-
-    A chapter is chosen by where it is and not by the resource its frontmatter names. A file
-    under another book's directory therefore never reaches an export of this book.
-    """
-    directory = Path(BOOKS_DIR) / resource.id / CHAPTERS_DIR
-    return sorted(
-        (file for file in library.chapters if file.path.parent == directory),
-        key=lambda file: file.chapter.order,
-    )
+    """Return the chapter files in a book's own directory, in reading order."""
+    return sorted(library.chapters_of(resource.id), key=lambda file: file.chapter.order)
 
 
 def _license_path(resource: Resource) -> Path:

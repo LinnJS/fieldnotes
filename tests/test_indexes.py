@@ -441,6 +441,29 @@ def test_a_chapter_planted_under_a_reference_only_book_reaches_no_index(
     assert "steeping" not in (library_copy / "llms.txt").read_text(encoding="utf-8").lower()
 
 
+def test_a_chapter_under_another_books_directory_reaches_no_output_by_naming_a_mirrored_book(
+    library_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    planted = library_copy / "books" / REFERENCE / "chapters" / "04-steeping.md"
+    planted.parent.mkdir()
+    planted.write_text(
+        PLANTED_CHAPTER.replace(f"id: {REFERENCE}/", f"id: {MIRRORED}/").replace(
+            f"resource: {REFERENCE}", f"resource: {MIRRORED}"
+        ),
+        encoding="utf-8",
+    )
+
+    assert run(library_copy) == 0
+    assert run(library_copy, "--full") == 0
+    capsys.readouterr()
+
+    assert f"{MIRRORED}/steeping" not in catalog_resources(library_copy)[MIRRORED]["chapters"]
+    assert all("steeping" not in line["id"] for line in chapter_lines(library_copy))
+    assert "steeping" not in (library_copy / "llms.txt").read_text(encoding="utf-8").lower()
+    for full_text in sorted((library_copy / "dist").glob("llms-full*.txt")):
+        assert "kettle key" not in full_text.read_text(encoding="utf-8"), full_text.name
+
+
 def test_a_stale_generated_file_is_a_finding_with_the_build_command_as_its_fix(
     library_copy: Path,
 ) -> None:

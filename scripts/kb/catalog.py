@@ -539,18 +539,26 @@ class Library:
         raise KeyError(resource_id)
 
     def chapters_of(self, resource_id: str) -> tuple[ChapterFile, ...]:
-        """Return the chapter files whose frontmatter names the given resource, in file order.
+        """Return the chapter files of the given resource, in file order.
+
+        A chapter belongs to a book only when it sits in that book's directory and its
+        frontmatter names that book. The license gate decides per book directory, so a
+        file under another book's directory never counts as text of this one, whatever
+        its frontmatter says. A file whose two answers disagree belongs to no book, and
+        validation reports it.
 
         Args:
             resource_id: Id of a resource.
 
         Returns:
-            The matching chapter files. The tuple is empty for a book with no chapters.
+            The chapter files. The tuple is empty for a book with no chapters.
         """
+        directory = Path(BOOKS_DIR) / resource_id / CHAPTERS_DIR
         return tuple(
             chapter_file
             for chapter_file in self.chapters
-            if chapter_file.chapter.resource == resource_id
+            if chapter_file.path.parent == directory
+            and chapter_file.chapter.resource == resource_id
         )
 
 
