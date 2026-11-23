@@ -115,6 +115,14 @@ uv run python scripts/build.py --site
 
 The `validate` workflow runs the same commands.
 
+The site build ends with a check of the pages it wrote. A chapter is another
+person's text, so `scripts/kb/prose.py` writes it for the renderer to show and
+never run, and `scripts/kb/site_check.py` then reads the content area of every
+built page. The build fails and removes `dist/site/` when a page holds an element,
+an attribute, or a link scheme that the library's Markdown does not write, such as
+an image or a script link. When that happens, fix the staging step. Do not edit
+the chapter, and do not widen the list in `site_check.py` to let a page through.
+
 ## Conventions
 
 - Commits follow Conventional Commits: `type(topic): description`, imperative
