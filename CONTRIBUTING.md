@@ -120,12 +120,16 @@ did not write. The site and the exports render that text with raw HTML, images,
 attributes, and reference definitions turned off, and a link keeps its address
 only when it is a relative path or uses `http`, `https`, or `mailto`. The site
 does this in the MkDocs hook `scripts/site_hooks/outside_text.py`, and the exports
-do it in `scripts/kb/export_document.py`, on the document Pandoc parsed.
-Validation also refuses markup characters in record fields and titles.
+do it in `scripts/kb/export_document.py`, on the document Pandoc parsed. One
+feature stays on for the site: the options of a fenced code block, which
+`pymdownx.superfences` writes into the page unescaped. Only the check of the built
+site refuses what they write. Validation also refuses markup characters in record
+fields and titles.
 
 Each build then reads every file it wrote. `scripts/kb/site_check.py` reads every
 served file of the site whole, the page head and the theme's markup included.
-`scripts/kb/export_check.py` reads each EPUB and PDF back. When a file holds
+`scripts/kb/export_check.py` reads each EPUB and PDF back, and compares the
+PDF's outline with the headings of the document the export checked. When a file holds
 anything that the library and the pinned theme do not write, the build fails and
 deletes its output. When that happens, do not edit the chapter or the record, and
 do not widen a list in either check. Report the failure to the owner.
