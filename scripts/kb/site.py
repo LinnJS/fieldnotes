@@ -32,6 +32,7 @@ import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
+from urllib.parse import quote
 
 import yaml
 
@@ -92,6 +93,7 @@ from kb.readpath import (
     resolve,
     source_label,
 )
+from kb.site_check import site_problems
 
 __all__ = [
     "BASE_CONFIG",
@@ -154,14 +156,36 @@ _MARKDOWN_SPECIAL = re.compile(r"[\\`*_{}\[\]#]")
 _LINK = re.compile(r"\]\((?P<target>[^)\s#]+)(?P<rest>[^)]*)\)")
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 # A character of chapter prose that Python-Markdown reads as the start of an HTML tag or of an
-# attribute list, with the backslashes in front of it.
-_LIVE_MARK = re.compile(r"(?P<slashes>\\*)(?P<mark>[<{}])")
+# attribute list, a run of backticks it could read as the edge of a code span, or the mark
+# that makes a link an image, with the backslashes in front of it.
+_LIVE_MARK = re.compile(r"(?P<slashes>\\*)(?P<mark>[<{}]|`+|!(?=\[))")
 _AUTOLINK = re.compile(r"<https?://[^<>\s]*>")
+# The opening line of a fenced block as the ingest writer writes it: the fence and at most one
+# word. The renderer accepts more, and whatever this pattern leaves out is treated as prose.
+_FENCE_OPENING = re.compile(r"(?P<indent> *)(?P<fence>`{3,}|~{3,})[ \t]*[\w+#.-]*[ \t]*")
+# A run of backticks with the backslashes in front of it.
+_TICK_RUN = re.compile(r"(?P<slashes>\\*)(?P<ticks>`+)")
+# Where the renderer could start reading a link destination: after the ``](`` of an inline
+# link, or after the label of a reference definition.
+_DESTINATION_START = re.compile(
+    r"(?P<slashes>\\*)(?P<inline>\]\()|^ {0,3}(?P<definition>\[)[^\]\n]*\]:", re.MULTILINE
+)
+# A whole inline link whose destination is written in angle brackets.
+_ANGLE_LINK = re.compile(
+    r"(?<!\\)\[(?:\\.|[^\]\\\n])*\]\(<(?P<address>[^<>\n]*)>(?:[ \t]+\"[^\"\n]*\")?\)"
+)
+# What a destination keeps when it is percent-encoded: the characters a URL is built from,
+# and the percent sign of an encoding it already has.
+_DESTINATION_SAFE = "/:?#[]@!$&'*+,;=%~"
+_BLANK_LINE = re.compile(r"\n[ \t]*\n")
+_NOT_SHOWN = re.compile(r"[\x00-\x20\x7f]")
+# The schemes a link of a chapter may have. A destination with no scheme is a path.
+_LINK_SCHEMES = frozenset({"http", "https", "mailto"})
 # A whole inline link whose opening bracket is not escaped. Group ``destination`` is the one
 # part of it that is an address and not prose.
 _INLINE_LINK = re.compile(
     r"(?<!\\)\[(?:\\.|[^\]\\\n])*\]"
-    r"\((?P<destination><[^<>\n]*>|[^\s()<>]*(?:\([^\s()<>]*\)[^\s()<>]*)*)"
+    r"\((?P<destination>[^\s()<>]*(?:\([^\s()<>]*\)[^\s()<>]*)*)"
     r"(?:[ \t]+\"[^\"\n]*\")?\)"
 )
 _HEADING = "# "
@@ -373,7 +397,8 @@ def build_site(library: Library) -> Path:
 
     The steps run in this order, and the first failure stops the run: write the full-text
     files, write the bundle, export every mirrored book as PDF and EPUB, stage the pages with
-    those files as downloads, write the configuration, and run the strict MkDocs build. The
+    those files as downloads, write the configuration, run the strict MkDocs build, and
+    check the content of every built page. The
     bundle is written before the books because it checks the library's own files, so a missing
     one stops the run before the slower exports start.
 
@@ -418,6 +443,19 @@ def build_site(library: Library) -> Path:
         raise SiteError("staging", str(error)) from error
     write_config(library, navigation, config_file, docs_dir=staging_dir, site_dir=site_dir)
     run_mkdocs(config_file)
+    problems = site_problems(site_dir)
+    if problems:
+        shutil.rmtree(site_dir)
+        raise SiteError(
+            "built pages",
+            "A built page holds markup that Markdown does not write for a page of this "
+            "library, so text of a book, a record, or a topic was rendered and not shown. "
+            "The built site was removed. Find where the staging step in scripts/kb/site.py "
+            "writes that text, and write it so the renderer shows it. Never change the "
+            "chapter. "
+            + " ".join(f"{problem}." for problem in problems[:10])
+            + (f" And {len(problems) - 10} more." if len(problems) > 10 else ""),
+        )
     try:
         publish_canonical_files(library, site_dir)
     except ExportError as error:
@@ -599,14 +637,180 @@ def _facts(lines: Sequence[str]) -> str:
     return "\n".join(['<div class="library-facts" markdown>', "", *lines, "", "</div>"])
 
 
+def _closing_fence(lines: Sequence[str], opening: int) -> int | None:
+    """Find the line that closes the fenced block a line opens.
+
+    Args:
+        lines: The lines of the text.
+        opening: Index of the line to read as an opening fence.
+
+    Returns:
+        The index of the closing line, or ``None`` when the line opens no block or the block
+        never closes. The closing line is the same fence at the same indentation and nothing
+        else, which is the one shape every fence extension of the renderer agrees on.
+    """
+    opened = _FENCE_OPENING.fullmatch(lines[opening])
+    if opened is None:
+        return None
+    closing = opened["indent"] + opened["fence"]
+    for index in range(opening + 1, len(lines)):
+        if lines[index].rstrip(" \t") == closing:
+            return index
+    return None
+
+
+def _code_spans(line: str) -> list[tuple[int, int]]:
+    """Find the inline code of one line that every version of the renderer agrees on.
+
+    A span opens at a run of backticks that no backslash escapes and closes at the next run
+    of exactly as many. Python-Markdown has paired a run that finds no such partner in more
+    than one way over its versions, so a run with no partner on its own line opens nothing
+    here, and ``_shown_as_written`` escapes it so that it opens nothing in the renderer.
+
+    Args:
+        line: One line of Markdown outside a fenced block.
+
+    Returns:
+        The start and the end of each span, backticks included.
+    """
+    runs = [
+        (run.start("ticks"), run.end("ticks"), len(run["slashes"]) % 2 == 1)
+        for run in _TICK_RUN.finditer(line)
+    ]
+    spans: list[tuple[int, int]] = []
+    index = 0
+    while index < len(runs):
+        start, end, escaped = runs[index]
+        closing = next(
+            (
+                later
+                for later in range(index + 1, len(runs))
+                if runs[later][1] - runs[later][0] == end - start
+            ),
+            None,
+        )
+        if escaped or closing is None:
+            index += 1
+        else:
+            spans.append((start, runs[closing][1]))
+            index = closing + 1
+    return spans
+
+
+def _mask_rendered_code(text: str) -> str:
+    """Blank out what the site's renderer takes for code, keeping every offset and line break.
+
+    ``mask_code`` serves the citation checker, where taking prose for code only skips a token.
+    Here the same mistake leaves a tag of the prose unescaped, and the renderer runs it. So
+    this mask may take less for code than the renderer does and must never take more. A fenced
+    block counts only when its opening line is the plain one the ingest writer writes and a
+    matching line closes it. An inline span counts only inside one line, because where a
+    paragraph ends is the renderer's to decide.
+
+    Text that the renderer takes for code and this mask does not is escaped once too often, and
+    the page then shows ``&lt;`` where the chapter has ``<``. That is wrong on the page and
+    safe. The check of the built pages in ``kb.site_check`` catches the opposite mistake.
+
+    Args:
+        text: The Markdown.
+
+    Returns:
+        The text with every character of such code replaced by a space.
+    """
+    lines = text.split("\n")
+    masked: list[str] = []
+    index = 0
+    while index < len(lines):
+        closing = _closing_fence(lines, index)
+        if closing is None:
+            line = lines[index]
+            for start, end in _code_spans(line):
+                line = line[:start] + " " * (end - start) + line[end:]
+            masked.append(line)
+            index += 1
+        else:
+            masked.extend(" " * len(line) for line in lines[index : closing + 1])
+            index = closing + 1
+    return "\n".join(masked)
+
+
+def _runs_on_click(destination: str) -> bool:
+    """Say whether a link destination has a scheme other than a web address or a mail address.
+
+    A browser reads the scheme after it has decoded character references and dropped white
+    space and control characters, so ``java&#9;script:`` is read the same way here.
+
+    Args:
+        destination: The text that follows the opening of a link destination.
+
+    Returns:
+        True for a destination such as ``javascript:`` or ``data:``. A destination with no
+        scheme is a path and is fine.
+    """
+    shown = _NOT_SHOWN.sub("", html.unescape(destination)).lstrip("<")
+    scheme = _URL_SCHEME.match(shown)
+    return scheme is not None and scheme[0][:-1].lower() not in _LINK_SCHEMES
+
+
+def _with_plain_destinations(text: str) -> str:
+    """Rewrite the link destinations of a chapter that the page must not carry as written.
+
+    A destination with a scheme that runs code on a click is taken out of service: the ``](``
+    in front of it, or the label of its reference definition, gets a backslash, so the renderer
+    shows the link as the text it is. The destination of a whole link that is written in angle
+    brackets is written without them and percent-encoded instead, so that no angle bracket of
+    a chapter is left for the renderer to read as a tag when it pairs the square brackets
+    around it in another way.
+
+    Args:
+        text: The Markdown body of a chapter.
+
+    Returns:
+        The body with those destinations rewritten. Code is left as written.
+    """
+    parts: list[str] = []
+    end = 0
+    for start in _DESTINATION_START.finditer(_mask_rendered_code(text)):
+        if start.start() < end or (start["inline"] and len(start["slashes"]) % 2 == 1):
+            continue
+        paragraph_end = _BLANK_LINE.search(text, start.end())
+        destination = text[start.end() : paragraph_end.start() if paragraph_end else len(text)]
+        if _runs_on_click(destination):
+            marker, shown = ("[", "\\[") if start["definition"] else ("](", "\\]\\(")
+            written = text[start.start() : start.end()]
+            parts += [text[end : start.start()], written.replace(marker, shown, 1)]
+            end = start.end()
+    text = "".join([*parts, text[end:]])
+
+    parts, end = [], 0
+    for link in _ANGLE_LINK.finditer(_mask_rendered_code(text)):
+        address = text[link.start("address") : link.end("address")]
+        parts += [text[end : link.start("address") - 1], quote(address, safe=_DESTINATION_SAFE)]
+        end = link.end("address") + 1
+    return "".join([*parts, text[end:]])
+
+
 def _replace_outside_code(
-    text: str, pattern: re.Pattern[str], replace: Callable[[re.Match[str]], str]
+    text: str,
+    pattern: re.Pattern[str],
+    replace: Callable[[re.Match[str]], str],
+    mask: Callable[[str], str] = mask_code,
 ) -> str:
-    """Replace each match of a pattern that is not inside a code block or inline code."""
+    """Replace each match of a pattern that is not inside a code block or inline code.
+
+    Args:
+        text: The Markdown.
+        pattern: What to look for.
+        replace: Gives the replacement of one match.
+        mask: Blanks out the code of the text and keeps every offset.
+
+    Returns:
+        The text with each match outside code replaced.
+    """
     parts: list[str] = []
     end = 0
     # The mask keeps every offset, so a match in it sits at the same place in the text.
-    for match in pattern.finditer(mask_code(text)):
+    for match in pattern.finditer(mask(text)):
         parts += [text[end : match.start()], replace(match)]
         end = match.end()
     return "".join([*parts, text[end:]])
@@ -620,9 +824,14 @@ def _shown_as_written(text: str) -> str:
     Python-Markdown does not, so a tag the source prints would become a live element. A brace
     at the end of a heading or after a link would set attributes on it, because the site turns
     on ``attr_list``. Outside code, an angle bracket becomes an entity and a brace gets a
-    backslash, which Python-Markdown does honor. An ``http`` or ``https`` autolink and the
-    destination of an inline link are left as written, so links keep working. Parentheses that
-    only look like a link's are prose, and nothing in them is left alone.
+    backslash, which Python-Markdown does honor. A backtick outside code gets a backslash as
+    well, so the renderer cannot pair two of them around a tag and take the tag for code that
+    this function took for prose. An ``http`` or ``https`` autolink and the destination of an
+    inline link stay live, so links keep working. Parentheses that only look like a link's are
+    prose, and nothing in them is left alone. A link whose destination is not a web address is
+    shown as the text it is, and a destination in angle brackets is percent-encoded instead.
+    An image is shown as a link to it, because the library carries no image of a book and a
+    page must not fetch one from another host.
 
     Args:
         text: The Markdown body of a chapter.
@@ -630,12 +839,19 @@ def _shown_as_written(text: str) -> str:
     Returns:
         The body for the staged page. The canonical chapter file is not changed.
     """
-    links = [link.span("destination") for link in _INLINE_LINK.finditer(mask_code(text))]
+    text = _with_plain_destinations(text)
+    links = [link.span("destination") for link in _INLINE_LINK.finditer(_mask_rendered_code(text))]
 
     def show(match: re.Match[str]) -> str:
         slashes, mark = match["slashes"], match["mark"]
         escaped = len(slashes) % 2 == 1
         start = match.start("mark")
+        if mark.startswith("`"):
+            # Every backtick of the run gets its own backslash, because the renderer opens a
+            # span at the second backtick of a run whose first one is escaped.
+            return slashes[: len(slashes) - escaped] + "\\`" * len(mark)
+        if mark == "!":
+            return match[0] if escaped else f"{slashes}\\!"
         if any(first <= start < last for first, last in links):
             return match[0]
         if mark == "<":
@@ -644,7 +860,7 @@ def _shown_as_written(text: str) -> str:
             return slashes[: len(slashes) - escaped] + "&lt;"
         return match[0] if escaped else f"{slashes}\\{mark}"
 
-    return _replace_outside_code(text, _LIVE_MARK, show)
+    return _replace_outside_code(text, _LIVE_MARK, show, _mask_rendered_code)
 
 
 def _retargeted(canonical: str, page: str, text: str, staged_paths: Mapping[str, str]) -> str:

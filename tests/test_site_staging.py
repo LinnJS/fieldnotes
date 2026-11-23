@@ -12,6 +12,7 @@ from kb.catalog import Library, load_library
 from kb.export import bundle_files
 from kb.indexes import build_full_text, build_indexes
 from kb.site import Downloads, SiteError, publish_canonical_files, stage, write_config
+from kb.site_check import page_problems
 
 MIRRORED = "fixture-mirrored-book"
 REFERENCE = "fixture-reference-book"
@@ -214,7 +215,8 @@ def test_a_bare_tag_in_a_chapter_is_shown_and_links_keep_working(
     assert "<script" not in built
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in built
     assert '<a href="https://example.invalid/a">https://example.invalid/a</a>' in built
-    assert '<a href="https://example.invalid/a b">bracketed link</a>' in built
+    # The angle brackets of a destination are taken away and the space is percent-encoded.
+    assert '<a href="https://example.invalid/a%20b">bracketed link</a>' in built
 
 
 NOT_A_LINK = [
@@ -241,6 +243,110 @@ def test_a_tag_in_parentheses_that_are_not_a_link_destination_is_shown(
 
     assert "<img" not in built
     assert "&lt;img src=x onerror=alert(1)&gt;" in built
+
+
+TAG = "<img src=x onerror=alert(1)>"
+NOT_CODE = [
+    # What the ingest writer emits for source prose with literal backticks around a tag.
+    "Use \\`\\<img src=x onerror=alert(1)>\\` here",
+    f"Use \\`{TAG}\\` here",
+    # The first backtick pairs with the second, so the tag stands outside the code.
+    f"an open ` tick\n`{TAG}` here",
+    # A fence that never closes is prose to the renderer.
+    f"~~~\n{TAG}\n",
+    f"```\n{TAG}\n",
+    # So is a fence whose opening line the renderer does not accept.
+    f"~~~ two words\n{TAG}\n~~~",
+    # A closing fence that is shorter than the opening one closes nothing.
+    f"````\n{TAG}\n```",
+    # A tag that opens a line is a raw block even between two backticks.
+    "a `\n<script>alert(1)</script>\n` b",
+]
+
+
+@pytest.mark.parametrize("prose", NOT_CODE)
+def test_a_tag_in_text_that_only_looks_like_code_is_shown(
+    prose: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+
+    assert "<img" not in built
+    assert "<script" not in built
+    assert page_problems(f"<article>{built}</article>") == []
+
+
+SCRIPT_LINKS = [
+    "a [link](javascript:alert(1)) here",
+    "a [link](<javascript:alert(1)>) here",
+    "a [link]( JaVaScRiPt:alert(1)) here",
+    "a [link](java&#9;script:alert(1)) here",
+    "a [link](javascript&colon;alert(1)) here",
+    "a [link](data:text/html,x) here",
+    "a [link][1] here\n\n[1]: javascript:alert(1)",
+    "an outer [text [link](<javascript:alert(1)>)\n \\[more](x) here",
+]
+
+
+@pytest.mark.parametrize("prose", SCRIPT_LINKS)
+def test_a_link_that_is_not_a_web_address_is_shown_as_text(
+    prose: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+
+    assert page_problems(f"<article>{built}</article>") == []
+    assert "alert(1)" in built or "text/html" in built
+
+
+def test_an_image_in_a_chapter_is_shown_as_a_link(library_root: Path, tmp_path: Path) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write("\nSee ![the hull](https://example.invalid/hull.png) here.\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+
+    assert "<img" not in built
+    assert 'See !<a href="https://example.invalid/hull.png">the hull</a> here.' in built
+    assert page_problems(f"<article>{built}</article>") == []
+
+
+CODE = [
+    ("Use `<kept a=1>` here", "<code>&lt;kept a=1&gt;</code>"),
+    ("Use ``a ` <kept>`` here", "<code>a ` &lt;kept&gt;</code>"),
+    ("Two \\\\`<kept>` slashes", "<code>&lt;kept&gt;</code>"),
+    ("```text\n<kept>\n```", "&lt;kept&gt;"),
+    ("~~~\n<kept>\n~~~~", "&lt;kept&gt;"),
+]
+
+
+@pytest.mark.parametrize(("prose", "shown"), CODE)
+def test_a_tag_in_code_is_shown_once_and_not_as_an_entity(
+    prose: str, shown: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+
+    assert shown in built
+    assert "&amp;lt;" not in built
+    assert page_problems(f"<article>{built}</article>") == []
 
 
 def test_reviewed_chapter_carries_no_machine_extraction_notice(staged: Path) -> None:
