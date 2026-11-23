@@ -33,6 +33,7 @@ from pathlib import Path
 from kb.blocks import section_text
 from kb.catalog import AcceptedDifference, ChapterFile, Resource
 from kb.ingest import IngestError, extract_book
+from kb.pdf_spans import Span
 from kb.readpath import CODE_FENCE, opening_fence
 
 __all__ = [
@@ -129,12 +130,16 @@ class BookFidelity:
         results: One result per chapter, in the order the chapters were given.
         missing: Titles of the sections of the source that none of the chapters holds, in
             the order of the source. A book with one is not mirrored in full.
+        unmatched: Spans of the source that fit no role rule of the profile, in reading order.
+            They are in no section, so no chapter holds them and no comparison sees them. A
+            book with one is not mirrored in full either.
     """
 
     error: IngestError | None
     source: Path | None
     results: tuple[FidelityResult, ...]
     missing: tuple[str, ...] = ()
+    unmatched: tuple[Span, ...] = ()
 
 
 def words(text: str) -> list[str]:
@@ -305,8 +310,9 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
         chapters: The chapter files to compare.
 
     Returns:
-        One result per chapter, and the sections of the source that no chapter holds. When
-        the source file cannot be extracted, the report holds the error and no results.
+        One result per chapter, the sections of the source that no chapter holds, and the
+        spans of the source that are in no section. When the source file cannot be extracted,
+        the report holds the error and no results.
     """
     profile = resource.extraction_profile
     try:
@@ -344,7 +350,13 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
         )
     held = {titles.get(chapter_file.chapter.slug) for chapter_file in chapters}
     missing = tuple(section.title for section in book.sections if section.title not in held)
-    return BookFidelity(error=None, source=book.source, results=tuple(results), missing=missing)
+    return BookFidelity(
+        error=None,
+        source=book.source,
+        results=tuple(results),
+        missing=missing,
+        unmatched=book.unmatched,
+    )
 
 
 def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
@@ -356,8 +368,8 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
 
     Returns:
         The lines to print: the source file, one line per chapter with the message of each
-        failure below it, one line per section that no chapter holds, every accepted difference
-        of the book with its reason, and a count.
+        failure below it, one line per section that no chapter holds, one line per span that
+        is in no section, every accepted difference of the book with its reason, and a count.
     """
     lines = [] if report.source is None else [f"Source: {report.source.as_posix()}"]
     for result in report.results:
@@ -366,6 +378,9 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
         if not result.passed:
             lines.append(f"        {result.message}")
     lines.extend(f'  MISSING  no chapter holds the section "{title}"' for title in report.missing)
+    lines.extend(
+        f"  UNMATCHED  page {span.page}: {span.text.strip()!r}" for span in report.unmatched
+    )
     profile = resource.extraction_profile
     accepted = () if profile is None else profile.accepted_differences
     lines.append(f"Accepted differences: {len(accepted)}")
@@ -378,6 +393,8 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
     count = f"Chapters checked: {len(report.results)}. Failed: {failed}."
     if report.missing:
         count += f" Sections with no chapter: {len(report.missing)}."
+    if report.unmatched:
+        count += f" Spans in no chapter: {len(report.unmatched)}."
     lines.append(count)
     return lines
 

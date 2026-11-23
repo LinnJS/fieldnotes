@@ -636,6 +636,9 @@ def _check_fidelity(library: Library) -> list[Finding]:
     A mirrored book must hold its pinned source file, because the comparison runs offline. A
     source file that is not recorded, is missing, or has another SHA-256 than the metadata is
     one finding, and no chapter of that book is compared.
+
+    Text of the source that fits no role rule is in no section, so every chapter can match its
+    section while part of the book is left out. That is one finding for the book.
     """
     findings: list[Finding] = []
     for resource in library.resources:
@@ -687,6 +690,25 @@ def _check_fidelity(library: Library) -> list[Finding]:
             # look as if it had no chapter.
             if _chapters_loaded(library, resource.id)
         )
+        if report.unmatched:
+            first = report.unmatched[0]
+            findings.append(
+                Finding(
+                    rule="fidelity-unmatched-text",
+                    file=_metadata_path(resource.id),
+                    message=(
+                        f"Text of the source file of {resource.id} fits no role rule in "
+                        f"{len(report.unmatched)} places, so it is in no section and no chapter "
+                        f"holds it. The first is on page {first.page}: {first.text.strip()!r}"
+                    ),
+                    fix=(
+                        "Add a role rule for its font size to extraction_profile.roles, or list "
+                        "its page under excluded_pages when the page is not part of the book's "
+                        f"text. `uv run python scripts/ingest.py --book {resource.id}` prints "
+                        "every span with its page, size, and indent."
+                    ),
+                )
+            )
     return findings
 
 

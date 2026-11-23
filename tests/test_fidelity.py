@@ -356,6 +356,33 @@ def test_the_report_for_a_person_names_a_section_that_no_chapter_holds(library_c
     assert lines[-1] == "Chapters checked: 2. Failed: 0. Sections with no chapter: 1."
 
 
+def test_source_text_that_fits_no_role_rule_is_a_finding(library_copy: Path) -> None:
+    # Page 7 is the back cover. Once it is not excluded, its text fits no rule and is in no
+    # section, and every chapter still matches its own section.
+    replace_in(library_copy / METADATA, "    - 2\n    - 7\n", "    - 2\n")
+
+    findings = fidelity_findings(library_copy)
+
+    assert located(findings) == [("fidelity-unmatched-text", f"{BOOK.as_posix()}/metadata.yaml")]
+    assert "in 2 places" in findings[0].message
+    assert "The first is on page 7: 'Paper Boat Engineering'" in findings[0].message
+    assert "excluded_pages" in findings[0].fix
+
+
+def test_the_report_for_a_person_lists_the_text_that_fits_no_role_rule(library_copy: Path) -> None:
+    replace_in(library_copy / METADATA, "    - 2\n    - 7\n", "    - 2\n")
+    resource = load_resource(library_copy, MIRRORED)
+
+    report = check_book(library_copy, resource, load_chapters(library_copy, MIRRORED))
+
+    assert [span.page for span in report.unmatched] == [7] * len(report.unmatched)
+    lines = report_lines(resource, report)
+    assert "  UNMATCHED  page 7: 'A test fixture. Every word in it is invented.'" in lines
+    assert lines[-1] == (
+        f"Chapters checked: 3. Failed: 0. Spans in no chapter: {len(report.unmatched)}."
+    )
+
+
 def test_a_chapter_with_no_section_in_the_source_is_a_finding(library_copy: Path) -> None:
     text = (library_copy / SUNK).read_text(encoding="utf-8")
     extra = library_copy / BOOK / "chapters" / "04-naming-the-boat.md"

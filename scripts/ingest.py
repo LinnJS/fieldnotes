@@ -157,6 +157,14 @@ def _check(root: Path, resource: Resource) -> int:
             f"Run `uv run python scripts/ingest.py --book {resource.id} --write` to add the "
             "missing chapters.",
         )
+    if report.unmatched:
+        return _fail(
+            f"Text of the source file fits no role rule in {len(report.unmatched)} places, so "
+            "no chapter holds it.",
+            "Add a role rule for its font size to extraction_profile.roles in "
+            f"{BOOKS_DIR}/{resource.id}/{METADATA_FILE}, or list its page under excluded_pages "
+            "when the page is not part of the book's text.",
+        )
     return 0
 
 

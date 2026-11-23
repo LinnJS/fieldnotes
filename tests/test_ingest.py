@@ -450,6 +450,20 @@ def test_check_fails_and_names_a_chapter_that_was_reworded(
     assert not (library_copy / "build").exists()
 
 
+def test_check_fails_when_source_text_fits_no_role_rule(
+    library_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    replace_in(library_copy / METADATA, "    - 2\n    - 7\n", "    - 2\n")
+
+    code = run(library_copy, "--check")
+
+    output = capsys.readouterr()
+    assert code == 1
+    assert "  UNMATCHED  page 7: 'A test fixture. Every word in it is invented.'\n" in output.out
+    assert "Chapters checked: 3. Failed: 0. Spans in no chapter: " in output.out
+    assert "excluded_pages" in output.err + output.out
+
+
 def test_check_prints_the_accepted_differences(
     library_copy: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

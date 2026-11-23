@@ -62,7 +62,7 @@ uv run python scripts/ingest.py --book <id>
 
 The command writes drafts to `build/ingest/<id>/`, which Git ignores. It prints the sections it found with their pages, the spans of text that fit no rule with their page, size, and indent, and the slugs it proposes.
 
-Adjust the profile and run again until the sections match the book's own table of contents and no span is unmatched without a reason you can state. Unmatched text is in no chapter.
+Adjust the profile and run again until the sections match the book's own table of contents and no span is unmatched. Unmatched text is in no chapter, and both `--check` and validation fail while any is left. Give its font size a role rule, or list its page under `excluded_pages` when the page is not part of the book's text, such as a cover.
 
 ### 6. Assign slugs
 
