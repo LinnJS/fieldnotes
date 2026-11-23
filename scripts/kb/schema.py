@@ -49,23 +49,37 @@ class LoadError(Exception):
 
 
 class _Loader(yaml.SafeLoader):
-    """Safe YAML loader that keeps unquoted dates as strings and refuses a repeated key."""
+    """Safe YAML loader that keeps dates as strings and refuses a repeated key or a merge key."""
 
     def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:
-        """Build a mapping, and fail when one of its keys is written a second time.
+        """Build a mapping, and fail when one of its keys could hold two values.
 
         PyYAML keeps the last of two equal keys and says nothing. A record decides a license
         status, so a second ``third_party_rights`` line below the first would change the
-        decision while a reader of the file sees both.
+        decision while a reader of the file sees both. A merge key does the same thing by
+        another route, because the mapping it merges gives a key a value that an explicit
+        line overrides. No file of the library needs one, so a merge key is refused.
+
+        Args:
+            node: The mapping node.
+            deep: Whether to build the values at once, as PyYAML defines it.
+
+        Returns:
+            The mapping.
 
         Raises:
-            yaml.constructor.ConstructorError: A key of the mapping is repeated.
+            yaml.constructor.ConstructorError: A key of the mapping is repeated, or the
+                mapping holds a merge key.
         """
         seen: set[Hashable] = set()
         for key_node, _ in node.value:
-            # A merge key may stand more than once, and it names no key of its own.
             if key_node.tag == _MERGE_TAG:
-                continue
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    "found a merge key, and a file of this library takes none",
+                    key_node.start_mark,
+                )
             key = self.construct_object(key_node, deep=True)
             # The base class reports a key that cannot be hashed.
             if not isinstance(key, Hashable):

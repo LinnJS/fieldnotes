@@ -639,6 +639,24 @@ def test_a_repeated_key_in_a_record_is_a_finding_and_does_not_pass_the_gate(
     assert "a second time" in findings[0].message
 
 
+def test_a_merge_key_in_a_record_is_a_finding_and_does_not_pass_the_gate(
+    library_copy: Path,
+) -> None:
+    # A merge key gives a key a second value that the explicit line below it overrides.
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "  third_party_rights: false\n",
+        "  <<: {third_party_rights: true}\n  third_party_rights: false\n",
+    )
+
+    findings = [finding for finding in run_checks(library_copy) if finding.rule == "invalid-file"]
+
+    assert located(findings) == [
+        ("invalid-file", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert "merge key" in findings[0].message
+
+
 def test_a_repeated_key_in_chapter_frontmatter_is_a_finding(library_copy: Path) -> None:
     replace_in(
         library_copy / "books" / MIRRORED / "chapters" / "02-choosing-a-pond.md",
