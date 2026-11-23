@@ -1130,6 +1130,19 @@ def test_a_chapter_title_that_starts_with_a_list_number_is_a_finding(library_cop
     assert "title" in findings[0].message
 
 
+def test_a_book_title_that_starts_with_a_list_mark_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / MIRRORED_RECORD,
+        "english: Paper Boat Engineering (Test Fixture)",
+        'english: "- Paper Boat Engineering (Test Fixture)"',
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", MIRRORED_RECORD, None)]
+    assert "title.english starts with a list mark" in findings[0].message
+
+
 def test_a_library_description_that_starts_with_a_list_mark_is_a_finding(
     library_copy: Path,
 ) -> None:
