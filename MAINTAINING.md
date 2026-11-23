@@ -157,6 +157,11 @@ from its collections, so a rename needs no structural change.
   writes. A change of the theme pin means reading those lists again from a build of
   the new version. A change of the Pandoc minimum means running the export tests,
   which stop on a node type the export check does not know.
+- The read-back of a PDF compares the block elements of its structure tree with
+  what `pdf_structure` in `scripts/kb/export.py` computes, and that mapping was
+  measured with typst 0.15.2 and `templates/book.typ`. A change of the typst pin
+  or of the template means running the export tests, which stop when the compiler
+  writes other elements.
 - The EPUB carries its build time, so two builds differ by a timestamp. The PDF
   and the bundle are reproducible.
 
