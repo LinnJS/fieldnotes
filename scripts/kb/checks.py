@@ -429,15 +429,26 @@ def _check_license_evidence(library: Library) -> list[Finding]:
     pinned source in another repository than upstream is text the evidence does not cover, and
     a license file is not a README.
 
-    A record with no evidence, or with an upstream that is not a Git repository, holds none of
-    these fields to compare.
+    An upstream that is a web page names no repository. The evidence is then held to the
+    repository the text was taken from, which is the pinned source, so a license file of one
+    repository cannot stand for a book pinned in another. With no pinned source either, the
+    permalink must still be a plain link to a file at the recorded commit.
+
+    A record with no evidence holds none of these fields to compare.
     """
     findings: list[Finding] = []
     for resource in library.resources:
         terms = resource.license
         upstream = resource.upstream
-        if terms.evidence is EvidenceKind.NONE or not isinstance(upstream, GitSource):
+        pinned = resource.pinned_source
+        if terms.evidence is EvidenceKind.NONE:
             continue
+        if isinstance(upstream, GitSource):
+            field, repository = "upstream.repository", upstream.repository
+        elif pinned is not None:
+            field, repository = "pinned_source.repository", pinned.repository
+        else:
+            field, repository = "", None
         problems: list[str] = []
         if terms.permalink is not None and terms.commit is not None:
             link = _blob_link(terms.permalink)
@@ -447,11 +458,15 @@ def _check_license_evidence(library: Library) -> list[Finding]:
                     "one file of a GitHub repository at a commit, which reads "
                     "https://github.com/<owner>/<name>/blob/<commit>/<path>"
                 )
-            elif link.repository != upstream.repository or link.commit != terms.commit:
+            elif repository is not None and link.repository != repository:
                 problems.append(
                     f"license.permalink is {terms.permalink}, and it names a file of "
-                    f"{link.repository} at {link.commit}, while upstream.repository is "
-                    f"{upstream.repository} and license.commit is {terms.commit}"
+                    f"{link.repository}, while {field} is {repository}"
+                )
+            elif link.commit != terms.commit:
+                problems.append(
+                    f"license.permalink is {terms.permalink}, and it names a file at "
+                    f"{link.commit}, while license.commit is {terms.commit}"
                 )
             elif terms.evidence is EvidenceKind.LICENSE_FILE and link.file_name.lower().startswith(
                 "readme"
@@ -460,8 +475,11 @@ def _check_license_evidence(library: Library) -> list[Finding]:
                     "license.evidence is license-file, and license.permalink names a README: "
                     f"{terms.permalink}"
                 )
-        pinned = resource.pinned_source
-        if pinned is not None and pinned.repository != upstream.repository:
+        if (
+            isinstance(upstream, GitSource)
+            and pinned is not None
+            and pinned.repository != upstream.repository
+        ):
             problems.append(
                 f"pinned_source.repository is {pinned.repository}, and upstream.repository is "
                 f"{upstream.repository}"

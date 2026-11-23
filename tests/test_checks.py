@@ -551,6 +551,58 @@ def test_a_license_file_whose_permalink_names_an_encoded_readme_is_a_finding(
     assert "README" in findings[0].message
 
 
+GIT_UPSTREAM = (
+    "upstream:\n  kind: git\n  repository: fixture-author/fixture-mirrored-book\n"
+    "  default_branch: main\n  head_commit: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+)
+URL_UPSTREAM = "upstream:\n  kind: url\n  url: https://example.invalid/books/paper-boat\n"
+
+
+def test_license_evidence_of_a_record_with_a_web_page_upstream_is_tied_to_the_pinned_source(
+    library_copy: Path,
+) -> None:
+    metadata = library_copy / "books" / MIRRORED / "metadata.yaml"
+    replace_in(metadata, GIT_UPSTREAM, URL_UPSTREAM)
+
+    assert evidence_findings(library_copy) == []
+
+    elsewhere = f"https://github.com/third-party/another-repo/blob/{'a' * 40}/LICENSE"
+    replace_in(metadata, LICENSE_LINK, elsewhere)
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert elsewhere in findings[0].message
+    assert "pinned_source.repository" in findings[0].message
+
+
+def test_license_evidence_with_no_repository_on_record_is_still_read_as_a_link(
+    library_copy: Path,
+) -> None:
+    metadata = library_copy / "books" / REFERENCE / "metadata.yaml"
+    replace_in(
+        metadata,
+        "  evidence: none\n  statement: null\n  permalink: null\n  blob_sha: null\n"
+        "  commit: null\n",
+        "  evidence: readme-statement\n  statement: All rights reserved.\n"
+        f"  permalink: https://github.com/someone/somewhere/blob/{'d' * 40}/README.md?plain=1#L3\n"
+        f"  blob_sha: {'e' * 40}\n  commit: {'d' * 40}\n",
+    )
+
+    assert evidence_findings(library_copy) == []
+
+    replace_in(metadata, f"blob/{'d' * 40}/", f"blob/{'f' * 40}/")
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-reference-book/metadata.yaml", None)
+    ]
+    assert "license.commit" in findings[0].message
+
+
 def test_a_pinned_source_in_another_repository_than_upstream_is_a_finding(
     library_copy: Path,
 ) -> None:
