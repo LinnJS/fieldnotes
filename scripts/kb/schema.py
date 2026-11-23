@@ -5,6 +5,7 @@ from it, so a loader can trust the shape of what it receives.
 """
 
 import json
+from collections.abc import Hashable
 from functools import cache
 from pathlib import Path
 from typing import Any, Literal
@@ -19,6 +20,7 @@ SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schemas"
 type SchemaName = Literal["resource", "catalog", "chapter", "topic"]
 
 _TIMESTAMP_TAG = "tag:yaml.org,2002:timestamp"
+_MERGE_TAG = "tag:yaml.org,2002:merge"
 
 
 class LoadError(Exception):
@@ -47,7 +49,36 @@ class LoadError(Exception):
 
 
 class _Loader(yaml.SafeLoader):
-    """Safe YAML loader that keeps unquoted dates as strings."""
+    """Safe YAML loader that keeps unquoted dates as strings and refuses a repeated key."""
+
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:
+        """Build a mapping, and fail when one of its keys is written a second time.
+
+        PyYAML keeps the last of two equal keys and says nothing. A record decides a license
+        status, so a second ``third_party_rights`` line below the first would change the
+        decision while a reader of the file sees both.
+
+        Raises:
+            yaml.constructor.ConstructorError: A key of the mapping is repeated.
+        """
+        seen: set[Hashable] = set()
+        for key_node, _ in node.value:
+            # A merge key may stand more than once, and it names no key of its own.
+            if key_node.tag == _MERGE_TAG:
+                continue
+            key = self.construct_object(key_node, deep=True)
+            # The base class reports a key that cannot be hashed.
+            if not isinstance(key, Hashable):
+                continue
+            if key in seen:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    f"found the key {key!r} a second time",
+                    key_node.start_mark,
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep=deep)
 
 
 # PyYAML turns an unquoted 2026-11-20 into a date object, which no JSON Schema string type

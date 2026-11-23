@@ -439,6 +439,53 @@ def test_malformed_yaml_is_a_finding(library_copy: Path) -> None:
     assert "malformed" in findings[0].message
 
 
+def test_a_repeated_key_in_a_record_is_a_finding_and_does_not_pass_the_gate(
+    library_copy: Path,
+) -> None:
+    # PyYAML keeps the last of two equal keys, so the second line would hide the first.
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "  third_party_rights: false\n",
+        "  third_party_rights: true\n  third_party_rights: false\n",
+    )
+
+    findings = [finding for finding in run_checks(library_copy) if finding.rule == "invalid-file"]
+
+    assert located(findings) == [
+        ("invalid-file", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert "third_party_rights" in findings[0].message
+    assert "a second time" in findings[0].message
+
+
+def test_a_repeated_key_in_chapter_frontmatter_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "chapters" / "02-choosing-a-pond.md",
+        "extraction_status: machine-extracted\n",
+        "extraction_status: machine-extracted\nextraction_status: human-reviewed\n",
+    )
+
+    findings = [finding for finding in run_checks(library_copy) if finding.rule == "invalid-file"]
+
+    assert located(findings) == [
+        ("invalid-file", "books/fixture-mirrored-book/chapters/02-choosing-a-pond.md", None)
+    ]
+    assert "extraction_status" in findings[0].message
+
+
+def test_a_repeated_key_in_the_catalog_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / "catalog.yaml",
+        "license_allowlist:",
+        "license_allowlist: [CC-BY-NC-SA-4.0]\nlicense_allowlist:",
+    )
+
+    findings = run_checks(library_copy)
+
+    assert located(findings) == [("invalid-file", "catalog.yaml", None)]
+    assert "license_allowlist" in findings[0].message
+
+
 def test_a_schema_violation_is_a_finding_that_gives_the_json_path(library_copy: Path) -> None:
     replace_in(
         library_copy / "books" / REFERENCE / "metadata.yaml",
