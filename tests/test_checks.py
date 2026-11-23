@@ -494,6 +494,63 @@ def test_a_license_file_whose_permalink_names_a_readme_is_a_finding(library_copy
     assert "README" in findings[0].message
 
 
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        f"../../../../someone-else/unrelated-fork/blob/{'a' * 40}/LICENSE",
+        f"%2e%2e/%2e%2e/%2e%2e/%2e%2e/someone-else/unrelated-fork/blob/{'a' * 40}/LICENSE",
+        "docs/./LICENSE",
+        "docs//LICENSE",
+        "docs%2FLICENSE",
+        "LICENSE)<svg/onload=alert(1)>",
+        'LICENSE"onmouseover="alert(1)',
+        "LICENSE?raw=1",
+        "LICENSE#L1)<script>alert(1)</script>",
+        "",
+    ],
+)
+def test_a_license_permalink_that_leaves_the_recorded_file_is_a_finding(
+    suffix: str, library_copy: Path
+) -> None:
+    permalink = LICENSE_LINK.removesuffix("LICENSE") + suffix
+    replace_in(library_copy / "books" / MIRRORED / "metadata.yaml", LICENSE_LINK, permalink)
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert permalink in findings[0].message
+
+
+@pytest.mark.parametrize(
+    "permalink", [LICENSE_LINK, LICENSE_LINK.replace("LICENSE", "docs/LICENSE.txt")]
+)
+def test_a_license_permalink_to_a_file_of_the_recorded_repository_and_commit_passes(
+    permalink: str, library_copy: Path
+) -> None:
+    replace_in(library_copy / "books" / MIRRORED / "metadata.yaml", LICENSE_LINK, permalink)
+
+    assert evidence_findings(library_copy) == []
+
+
+def test_a_license_file_whose_permalink_names_an_encoded_readme_is_a_finding(
+    library_copy: Path,
+) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        LICENSE_LINK,
+        LICENSE_LINK.removesuffix("LICENSE") + "%52EADME.md?plain=1#L29",
+    )
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert "README" in findings[0].message
+
+
 def test_a_pinned_source_in_another_repository_than_upstream_is_a_finding(
     library_copy: Path,
 ) -> None:

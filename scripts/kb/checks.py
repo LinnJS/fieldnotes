@@ -17,9 +17,9 @@ import re
 from collections import defaultdict
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Literal
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from kb.catalog import (
     BOOKS_DIR,
@@ -41,7 +41,6 @@ from kb.catalog import (
     load_resource,
     load_topics,
 )
-from kb.evidence import blob_permalink
 from kb.fidelity import check_book
 from kb.frontmatter import split_frontmatter
 from kb.gate import evaluate
@@ -357,6 +356,69 @@ def _check_license_file(library: Library) -> list[Finding]:
     return findings
 
 
+# What a permalink may carry after its path: nothing, or the source view of one file with a
+# line or a range of lines, which is what ``scripts/evidence.py`` writes for a README.
+_PERMALINK_QUERIES = frozenset({"", "plain=1"})
+_PERMALINK_LINES = re.compile(r"(?:L\d+(?:-L\d+)?)?")
+# Characters that no path segment of a permalink holds. Each one could end the Markdown link
+# the site writes the permalink into, or start markup after it.
+_PERMALINK_UNSAFE = re.compile(r"[\x00-\x20\x7f<>()\"'`\\\[\]{}]")
+
+
+@dataclass(frozen=True)
+class _BlobLink:
+    """What a GitHub permalink to a file names.
+
+    Attributes:
+        repository: The repository as ``owner/name``.
+        commit: The ref the link reads the file at.
+        file_name: The last segment of the file's path, percent-decoded.
+    """
+
+    repository: str
+    commit: str
+    file_name: str
+
+
+def _blob_link(permalink: str) -> _BlobLink | None:
+    """Read a permalink as a plain GitHub link to one file at one ref.
+
+    The link is taken apart and every part is compared, because a link that only starts the
+    right way can go on to leave the file: a ``..`` segment leads a browser to another
+    repository, a percent-encoded name hides what the file is, and a parenthesis ends the
+    Markdown link the site writes.
+
+    Args:
+        permalink: The recorded link.
+
+    Returns:
+        The repository, the ref, and the file name, or ``None`` when the link is anything but
+        ``https://github.com/<owner>/<name>/blob/<ref>/<path>`` with no query but ``plain=1``
+        and no fragment but a line or a range of lines.
+    """
+    try:
+        parts = urlsplit(permalink)
+    except ValueError:
+        return None
+    if parts.scheme != "https" or parts.netloc != "github.com":
+        return None
+    if parts.query not in _PERMALINK_QUERIES or not _PERMALINK_LINES.fullmatch(parts.fragment):
+        return None
+    if not parts.path.startswith("/"):
+        return None
+    segments = [unquote(segment) for segment in parts.path[1:].split("/")]
+    if any(
+        segment in {"", ".", ".."} or "/" in segment or _PERMALINK_UNSAFE.search(segment)
+        for segment in segments
+    ):
+        return None
+    if len(segments) < 5 or segments[2] != "blob":
+        return None
+    return _BlobLink(
+        repository=f"{segments[0]}/{segments[1]}", commit=segments[3], file_name=segments[-1]
+    )
+
+
 def _check_license_evidence(library: Library) -> list[Finding]:
     """Report each record whose license evidence does not agree with the rest of the record.
 
@@ -378,15 +440,22 @@ def _check_license_evidence(library: Library) -> list[Finding]:
             continue
         problems: list[str] = []
         if terms.permalink is not None and terms.commit is not None:
-            expected = blob_permalink(upstream.repository, terms.commit, "")
-            if not terms.permalink.startswith(expected):
+            link = _blob_link(terms.permalink)
+            if link is None:
                 problems.append(
-                    f"license.permalink is {terms.permalink}, and a file of upstream.repository "
-                    f"at license.commit has a link that starts with {expected}"
+                    f"license.permalink is {terms.permalink}, and that is not a plain link to "
+                    "one file of a GitHub repository at a commit, which reads "
+                    "https://github.com/<owner>/<name>/blob/<commit>/<path>"
                 )
-            elif terms.evidence is EvidenceKind.LICENSE_FILE and PurePosixPath(
-                urlsplit(terms.permalink).path
-            ).name.lower().startswith("readme"):
+            elif link.repository != upstream.repository or link.commit != terms.commit:
+                problems.append(
+                    f"license.permalink is {terms.permalink}, and it names a file of "
+                    f"{link.repository} at {link.commit}, while upstream.repository is "
+                    f"{upstream.repository} and license.commit is {terms.commit}"
+                )
+            elif terms.evidence is EvidenceKind.LICENSE_FILE and link.file_name.lower().startswith(
+                "readme"
+            ):
                 problems.append(
                     "license.evidence is license-file, and license.permalink names a README: "
                     f"{terms.permalink}"
