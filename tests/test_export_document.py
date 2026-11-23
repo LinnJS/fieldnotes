@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import unicodedata
 from collections.abc import Iterator
 
 import pytest
@@ -145,7 +146,31 @@ def test_raw_html_becomes_text_with_the_same_characters() -> None:
 
     assert not types(cleaned) & {"RawInline", "RawBlock"}
     assert 'An <b onclick="x">inline</b> tag.' in text(cleaned)
-    assert cleaned[-1] == para(str_("<script>alert(1)</script>\n"))
+    assert cleaned[-1] == para(str_("<script>alert(1)</script>"))
+
+
+def test_text_that_spans_lines_becomes_words_on_one_line() -> None:
+    cleaned = clean(
+        "<div>\n= Raw heading\n- raw item\n</div>\n\n"
+        "First line\u2028= Prose heading\x85and\u2029more.\n"
+    )
+
+    for node in nodes(cleaned):
+        if node["t"] == "Str":
+            assert not any(
+                unicodedata.category(character) in ("Cc", "Zl", "Zp")
+                for character in str(node["c"])
+            ), node
+    assert "<div> = Raw heading - raw item </div>" in text(cleaned)
+    assert "First line = Prose heading and more." in text(cleaned)
+
+
+@pytest.mark.parametrize(
+    "character", ["\n", "\r", "\t", "\x0b", "\x0c", "\x00", "\x85", "\u2028", "\u2029"]
+)
+def test_the_check_refuses_a_line_break_or_a_control_character_in_a_word(character: str) -> None:
+    with pytest.raises(DocumentError, match="character"):
+        check_document(document([para(str_(f"a{character}= b"))]), set(), LIBRARY_IDS)
 
 
 def test_an_image_becomes_its_text() -> None:

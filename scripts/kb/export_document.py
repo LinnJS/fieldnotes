@@ -13,6 +13,7 @@ Both functions work on the JSON alone. They read no file and run no program.
 """
 
 import re
+import unicodedata
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 
@@ -45,6 +46,8 @@ _LIST_STYLES = frozenset(
 )
 _LIST_DELIMITERS = frozenset({"DefaultDelim", "Period", "OneParen", "TwoParens"})
 _DOCUMENT_KEYS = frozenset({"pandoc-api-version", "meta", "blocks"})
+# The Unicode categories of a control character, a line separator, and a paragraph separator.
+_WORD_BREAKS = frozenset({"Cc", "Zl", "Zp"})
 
 
 class DocumentError(Exception):
@@ -98,7 +101,9 @@ def clean_chapters(
 ) -> CleanBook:
     """Rewrite a book's parsed chapters into what the export writes.
 
-    A raw node becomes text with the same characters. An image becomes its text. A link
+    A raw node becomes text with the same characters, and a line break or a control character
+    inside text becomes a space between words, so no text starts a line of a writer's output.
+    An image becomes its text. A link
     outside ``LINK_SCHEMES`` becomes its text, except a link to a chapter file of the same
     book, which points at that chapter's anchor. Every attribute is cleared, except one plain
     language word on a code block. The title takes the chapter's anchor, and every other
@@ -146,7 +151,9 @@ def check_document(document: Json, ids: Collection[str], library_ids: Collection
     """Hold a whole export document to what the library writes.
 
     The document, metadata values included, may hold only the node types the library's text
-    and the cleaned chapters use. It may hold no raw node and no image. A link may go to an
+    and the cleaned chapters use. It may hold no raw node and no image. A word may hold no
+    control character and no line or paragraph separator, so it cannot start a line of the
+    Typst source, where a mark at the start of a line makes a heading or a list. A link may go to an
     address of ``LINK_SCHEMES`` or to an id in ``ids``. An id may sit only on a heading, must
     be in ``ids``, and must be used once. The only classes are ``unnumbered`` on a heading whose
     id is in ``library_ids`` and one plain language word on a code block. No node may carry a
@@ -211,6 +218,27 @@ def _unknown(kind: str) -> DocumentError:
     return DocumentError(f"The node type {kind} is not one the export writes.")
 
 
+def _breaks_a_word(character: str) -> bool:
+    """Say whether a character is a control character or a line or paragraph separator.
+
+    The test is by Unicode category rather than by a list of characters, so it covers every
+    character Typst or any other writer could read as the end of a line.
+    """
+    return unicodedata.category(character) in _WORD_BREAKS
+
+
+def _words(text: str) -> list[Json]:
+    """Return text as words joined by spaces, splitting it where a character breaks a word."""
+    words = "".join(" " if _breaks_a_word(character) else character for character in text)
+    nodes: list[Json] = []
+    for word in words.split(" "):
+        if word:
+            if nodes:
+                nodes.append({"t": "Space"})
+            nodes.append({"t": "Str", "c": word})
+    return nodes
+
+
 def _empty_attr() -> Json:
     return ["", [], []]
 
@@ -258,7 +286,7 @@ class _Cleaner:
                 )
                 return [{"t": "CodeBlock", "c": [["", kept, []], _text(code)]}]
             case "RawBlock":
-                return [{"t": "Para", "c": [{"t": "Str", "c": _text(_items(content, 2)[1])}]}]
+                return [{"t": "Para", "c": _words(_text(_items(content, 2)[1]))}]
             case "BlockQuote":
                 return [{"t": "BlockQuote", "c": self.blocks(content)}]
             case "BulletList":
@@ -321,7 +349,7 @@ class _Cleaner:
         kind, content = _node(value)
         match kind:
             case "Str":
-                return [{"t": "Str", "c": _text(content)}]
+                return _words(_text(content))
             case "Space" | "SoftBreak" | "LineBreak":
                 return [{"t": kind}]
             case "Emph" | "Strong":
@@ -329,7 +357,7 @@ class _Cleaner:
             case "Code":
                 return [{"t": "Code", "c": [_empty_attr(), _text(_items(content, 2)[1])]}]
             case "RawInline":
-                return [{"t": "Str", "c": _text(_items(content, 2)[1])}]
+                return _words(_text(_items(content, 2)[1]))
             case "Image":
                 return self.inlines(_items(content, 3)[1])
             case "Link":
@@ -499,7 +527,12 @@ class _Checker:
         kind, content = _node(value)
         match kind:
             case "Str":
-                _text(content)
+                word = _text(content)
+                if any(_breaks_a_word(character) for character in word):
+                    raise DocumentError(
+                        f"The word {word!r} holds a control character or a line or paragraph "
+                        "separator, which could start a line of the Typst source."
+                    )
             case "Space" | "SoftBreak" | "LineBreak":
                 pass
             case "Emph" | "Strong":
