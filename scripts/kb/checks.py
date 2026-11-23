@@ -436,6 +436,19 @@ def _blob_link(permalink: str) -> _BlobLink | None:
     )
 
 
+_RECAPTURE_FIX = (
+    "Capture the evidence again with scripts/evidence.py at the pinned commit, copy the "
+    "permalink, the commit, and the blob id from its output, and have the owner review the record."
+)
+# scripts/evidence.py lists license files at any depth, so this fix does not send anyone back
+# to copy a permalink from its output.
+_EVIDENCE_FILE_FIX = (
+    "A file below the root of the repository, or a file of another name, is not accepted "
+    "evidence. Stop, leave the record as it is, and report the finding to the owner, who alone "
+    "changes license evidence."
+)
+
+
 def _check_license_evidence(library: Library) -> list[Finding]:
     """Report each record whose license evidence does not agree with the rest of the record.
 
@@ -525,19 +538,6 @@ def _check_license_evidence(library: Library) -> list[Finding]:
             for problem, fix in problems
         )
     return findings
-
-
-_RECAPTURE_FIX = (
-    "Capture the evidence again with scripts/evidence.py at the pinned commit, copy the "
-    "permalink, the commit, and the blob id from its output, and have the owner review the record."
-)
-# scripts/evidence.py lists license files at any depth, so this fix does not send anyone back
-# to copy a permalink from its output.
-_EVIDENCE_FILE_FIX = (
-    "A file below the root of the repository, or a file of another name, is not accepted "
-    "evidence. Stop, leave the record as it is, and report the finding to the owner, who alone "
-    "changes license evidence."
-)
 
 
 def _evidence_file_problem(evidence: EvidenceKind, path: str, permalink: str) -> str | None:
@@ -1495,8 +1495,7 @@ _TEXT_REFUSED = {
 }
 _ATTRIBUTE_REFUSED = {**_TEXT_REFUSED, '"': "a straight double quotation mark"}
 _URL_REFUSED = {
-    **_TEXT_REFUSED,
-    '"': "a straight double quotation mark",
+    **_ATTRIBUTE_REFUSED,
     "\\": "a backslash",
     "^": "a caret",
     "|": "a vertical bar",
@@ -1505,6 +1504,12 @@ _URL_REFUSED = {
 _TEXT_CONTROLS_ALLOWED = frozenset("\t\n\r")
 
 type _FieldClass = Literal["text", "attribute", "url"]
+
+_REFUSED: dict[_FieldClass, dict[str, str]] = {
+    "text": _TEXT_REFUSED,
+    "attribute": _ATTRIBUTE_REFUSED,
+    "url": _URL_REFUSED,
+}
 
 _RECORD_MARKUP_SINK: dict[_FieldClass, str] = {
     "text": "a record field that the site and the exports show as text",
@@ -1637,9 +1642,7 @@ def _field_class(schema: SchemaName, field: str) -> _FieldClass | None:
 
 def _refused_character(value: str, field_class: _FieldClass) -> str | None:
     """Name the first character of a string that its field may not hold, or return ``None``."""
-    refused = {"text": _TEXT_REFUSED, "attribute": _ATTRIBUTE_REFUSED, "url": _URL_REFUSED}[
-        field_class
-    ]
+    refused = _REFUSED[field_class]
     for character in value:
         if character in refused:
             return refused[character]
