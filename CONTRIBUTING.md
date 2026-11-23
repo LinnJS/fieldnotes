@@ -124,15 +124,37 @@ do it in `scripts/kb/export_document.py`, on the document Pandoc parsed. One
 feature stays on for the site: the options of a fenced code block, which
 `pymdownx.superfences` writes into the page unescaped. Only the check of the built
 site refuses what they write. Validation also refuses markup characters in record
-fields and titles.
+fields and titles, and a record field that starts with a mark that Markdown or
+Typst reads as the start of a block, such as `-` or `1.` before a space.
 
-Each build then reads every file it wrote. `scripts/kb/site_check.py` reads every
-served file of the site whole, the page head and the theme's markup included.
-`scripts/kb/export_check.py` reads each EPUB and PDF back, and compares the
-PDF's outline with the headings of the document the export checked. When a file holds
-anything that the library and the pinned theme do not write, the build fails and
-deletes its output. When that happens, do not edit the chapter or the record, and
-do not widen a list in either check. Report the failure to the owner.
+Each build then reads back what it wrote. Each check reads the parts named here
+and nothing else.
+
+- `scripts/kb/site_check.py` reads every HTML page whole, the page head and the
+  theme's markup included, and the search index. It accepts every other file by
+  its extension, its directory, or its name, and does not read it.
+- `scripts/kb/export_check.py` reads every member of an EPUB. It reads each XML
+  member against a list of elements, attributes, and addresses, compares the
+  `mimetype` member with the EPUB type, and accepts the stylesheet by its name
+  without reading it.
+- For a PDF, the same module reads the entries of the catalog and of each page,
+  every link with its action and its address, and every outline item. It compares
+  the outline's titles and the block elements of the structure tree with what
+  the export computes from the document it checked. The block elements are the
+  headings, lists, list items, tables, rows, cells, block quotes, and contents
+  entries, and their order is compared, not their nesting. It does not read the
+  text drawn on a page, the paragraph and inline elements of the structure tree,
+  or the attributes of an element.
+
+When one of those parts holds something that the library, the pinned theme, and
+the export do not write, the build fails and deletes its output. When that
+happens, do not edit the chapter or the record, and do not widen a list in either
+check. Report the failure to the owner.
+
+A PDF fails this way when a table cell, a list item, or the text of a link in a
+chapter starts with such a mark, because Pandoc's Typst writer does not escape a
+mark there. That holds for a faithful chapter too, so report it and leave the
+chapter as it is.
 
 ## Conventions
 
