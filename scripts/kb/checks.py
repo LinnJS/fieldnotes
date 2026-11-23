@@ -1511,6 +1511,19 @@ _REFUSED: dict[_FieldClass, dict[str, str]] = {
     "url": _URL_REFUSED,
 }
 
+# Each pattern is matched at the start of a value written on one line, the way the site and the
+# exports write a record field. The rule comes first, because a rule of asterisks with spaces
+# between also starts like a list item.
+_LINE_START_MARKS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(?:-(?: ?-){2,}|\*(?: ?\*){2,}|_(?: ?_){2,})$"), "a rule mark"),
+    (re.compile(r"[-+*](?: |$)"), "a list mark"),
+    (re.compile(r"[0-9]+[.)](?: |$)"), "a list number"),
+    (re.compile(r"(?:#+|=+)(?: |$)"), "a heading mark"),
+    (re.compile(r"/ "), "a term mark"),
+    (re.compile(r"~~~"), "a fence mark"),
+    (re.compile(r"\|"), "a table mark"),
+)
+
 _RECORD_MARKUP_SINK: dict[_FieldClass, str] = {
     "text": "a record field that the site and the exports show as text",
     "attribute": "a field that the theme writes into the page head unescaped",
@@ -1544,8 +1557,11 @@ def _check_record_markup(library: Library) -> list[Finding]:
     A text field may not hold ``<``, ``>``, a brace, a backtick, an HTML character reference,
     or a control character other than a tab or a line end. A character reference is any text
     that ``html.unescape`` changes, so a legacy reference with no semicolon is one and a bare
-    ``&`` is not. The other two classes are in ``RECORD_ATTRIBUTE_FIELDS`` and
-    ``RECORD_URL_FIELDS``, and ``RECORD_UNRENDERED_FIELDS`` lists what is never checked.
+    ``&`` is not. It may not start with a mark that Markdown or Typst reads as the start of a
+    block either, such as ``-`` or ``1.`` before a space, because the site and the exports
+    write a notice as a list item and Pandoc's Typst writer does not escape a mark there. The
+    other two classes are in ``RECORD_ATTRIBUTE_FIELDS`` and ``RECORD_URL_FIELDS``, and
+    ``RECORD_UNRENDERED_FIELDS`` lists what is never checked.
     """
     findings: list[Finding] = []
     for file, schema, document in _raw_records(library):
@@ -1553,17 +1569,23 @@ def _check_record_markup(library: Library) -> list[Finding]:
             field_class = _field_class(schema, field)
             if field_class is None:
                 continue
+            sink = _RECORD_MARKUP_SINK[field_class]
             refused = _refused_character(value, field_class)
-            if refused is None:
+            mark = None if field_class == "url" else _line_start_mark(value)
+            if refused is not None:
+                message = f"The field {shown} holds {refused}, and {sink} may not hold one."
+            elif mark is not None:
+                message = (
+                    f"The field {shown} starts with {mark}, and {sink} may not start with "
+                    "one, because Markdown or Typst reads it as the start of a block."
+                )
+            else:
                 continue
             findings.append(
                 Finding(
                     rule="record-markup",
                     file=file,
-                    message=(
-                        f"The field {shown} holds {refused}, and "
-                        f"{_RECORD_MARKUP_SINK[field_class]} may not hold one."
-                    ),
+                    message=message,
                     fix=_RECORD_MARKUP_FIX[field_class],
                 )
             )
@@ -1654,6 +1676,20 @@ def _refused_character(value: str, field_class: _FieldClass) -> str | None:
             return f"the white-space character U+{ord(character):04X}"
     if field_class != "url" and html.unescape(value) != value:
         return "an HTML character reference"
+    return None
+
+
+def _line_start_mark(value: str) -> str | None:
+    """Name the mark a string starts with that opens a block in Markdown or Typst, if any.
+
+    The string is read with its white space joined to single spaces and trimmed, which is how
+    the site and the exports write a record field. A mark counts only when white space or the
+    end of the string follows it, so ``-5 degrees``, ``1.5 times``, and ``/usr/bin`` hold none.
+    """
+    written = " ".join(value.split())
+    for pattern, name in _LINE_START_MARKS:
+        if pattern.match(written):
+            return name
     return None
 
 

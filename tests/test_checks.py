@@ -1027,6 +1027,129 @@ def test_a_string_under_a_key_no_schema_knows_is_held_to_the_text_rule(
     assert "subtitle" in findings[0].message
 
 
+MIRRORED_RECORD = f"books/{MIRRORED}/metadata.yaml"
+FIXTURE_NOTICE = "  - Test fixture. This book and its text are invented for automated tests.\n"
+
+
+def set_notice(root: Path, notice: str) -> None:
+    """Replace the one notice of the mirrored fixture book with a notice."""
+    replace_in(root / MIRRORED_RECORD, FIXTURE_NOTICE, f"  - {json.dumps(notice)}\n")
+
+
+@pytest.mark.parametrize(
+    ("notice", "mark"),
+    [
+        ("1. Launch from the lee bank.", "a list number"),
+        ("/ Reprint: the second printing moves the pond table.", "a term mark"),
+    ],
+    ids=["a nested list on the site and in the EPUB", "a term list in the PDF"],
+)
+def test_a_notice_that_starts_with_a_line_start_mark_is_a_finding_that_says_to_stop_and_report(
+    notice: str, mark: str, library_copy: Path
+) -> None:
+    set_notice(library_copy, notice)
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", MIRRORED_RECORD, None)]
+    assert "notices[0]" in findings[0].message
+    assert f"starts with {mark}" in findings[0].message
+    assert says_stop_and_report(findings[0].fix)
+
+
+@pytest.mark.parametrize(
+    ("notice", "mark"),
+    [
+        ("- Keep it dry.", "a list mark"),
+        ("+ Keep it dry.", "a list mark"),
+        ("* Keep it dry.", "a list mark"),
+        ("-", "a list mark"),
+        ("2) Fold the sheet.", "a list number"),
+        ("# Folding", "a heading mark"),
+        ("= Folding", "a heading mark"),
+        ("===", "a heading mark"),
+        ("---", "a rule mark"),
+        ("* * *", "a rule mark"),
+        ("___", "a rule mark"),
+        ("~~~ text", "a fence mark"),
+        ("| a | b |", "a table mark"),
+        ("  - Keep it dry.", "a list mark"),
+        ("\n\n1. Launch.", "a list number"),
+    ],
+)
+def test_each_line_start_mark_at_the_start_of_a_notice_is_a_finding(
+    notice: str, mark: str, library_copy: Path
+) -> None:
+    set_notice(library_copy, notice)
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", MIRRORED_RECORD, None)]
+    assert f"starts with {mark}" in findings[0].message
+
+
+@pytest.mark.parametrize(
+    "notice",
+    [
+        "-5 degrees is too cold for the glue.",
+        "1.5 times the size of the sheet.",
+        "/usr/bin is the path.",
+        "#12 in the series.",
+        "2024 edition.",
+        "The hull - not the sail - takes the water.",
+        "The steps are 1. fold and 2. launch.",
+        "__init__ is not a rule.",
+    ],
+)
+def test_a_notice_that_only_looks_like_a_line_start_mark_is_not_a_finding(
+    notice: str, library_copy: Path
+) -> None:
+    set_notice(library_copy, notice)
+
+    assert markup_findings(library_copy) == []
+
+
+def test_a_mark_on_a_later_line_of_a_notice_is_not_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / MIRRORED_RECORD,
+        FIXTURE_NOTICE,
+        "  - |-\n    The pond table moved.\n    - It now follows the hull table.\n",
+    )
+
+    assert markup_findings(library_copy) == []
+
+
+def test_a_chapter_title_that_starts_with_a_list_number_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / CHAPTER_ONE, "title: Folding the Hull\n", "title: 1. Folding the Hull\n"
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", CHAPTER_ONE, None)]
+    assert "title" in findings[0].message
+
+
+def test_a_library_description_that_starts_with_a_list_mark_is_a_finding(
+    library_copy: Path,
+) -> None:
+    replace_in(library_copy / "catalog.yaml", "A synthetic library", "- A synthetic library")
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", "catalog.yaml", None)]
+    assert "library.description" in findings[0].message
+    assert "starts with a list mark" in findings[0].message
+
+
+def test_a_line_start_mark_in_a_field_that_no_page_shows_is_not_a_finding(
+    library_copy: Path,
+) -> None:
+    replace_in(library_copy / MIRRORED_RECORD, "    - README.md\n", '    - "- README.md"\n')
+
+    assert markup_findings(library_copy) == []
+
+
 def schema_nodes(schema: dict[str, Any], node: dict[str, Any]) -> list[dict[str, Any]]:
     """Return a schema node with every node it refers to or applies conditionally."""
     nodes = [node]
