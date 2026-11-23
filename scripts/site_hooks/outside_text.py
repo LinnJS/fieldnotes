@@ -5,7 +5,8 @@ promises to show that text and never run it. This hook does not guess which char
 renderer will read as markup. It turns the features off instead, for every page, so that no
 pairing of characters can reach them:
 
-- Raw HTML, inline and as a block, is not read. A tag is shown as the characters it is.
+- Raw HTML, inline and as a block, is not read. A tag is shown as the characters it is, and an
+  angle bracket that the ingest writer escaped keeps its backslash.
 - Images and reference definitions are not read. Both are shown as text.
 - A link whose address has a scheme other than ``http``, ``https``, or ``mailto``, or that
   starts like an address on another host without one, is replaced with its text.
@@ -207,11 +208,10 @@ class OutsideTextExtension(Extension):
             md.parser.blockprocessors.deregister(name)
         for name in _INLINE_PATTERNS:
             md.inlinePatterns.deregister(name)
-        # The ingest writer puts a backslash in front of an angle bracket of the source, which
-        # Pandoc honors. With this, the site shows the bracket without the backslash as well.
-        # It is a display setting, and raw HTML is off whatever it does.
-        if "<" not in md.ESCAPED_CHARS:
-            md.ESCAPED_CHARS.append("<")
+        # The ingest writer puts a backslash in front of an angle bracket of the source, and the
+        # site shows that backslash. Adding "<" to the escapable characters would hide it, but
+        # the table of contents then holds the bare bracket, and the theme prints that entry
+        # without escaping it.
         md.parser.blockprocessors.register(_LibraryBlock(md.parser), "library_block", 105)
         # Below the step that restores escaped characters in attributes, so the address is read
         # as the page will hold it.

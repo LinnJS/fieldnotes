@@ -184,6 +184,21 @@ def test_the_fixture_copy_builds_strictly_with_the_hook_from_the_generated_confi
     assert site_problems(site_dir, ADDRESSES) == []
 
 
+def test_an_escaped_angle_bracket_in_a_heading_reaches_no_page_as_an_element(
+    library_copy: Path,
+) -> None:
+    # The ingest writer puts a backslash in front of every angle bracket of the source. The
+    # theme prints a heading's table of contents entry without escaping it.
+    append(library_copy, CHAPTER, "## Use a \\< b\n\n## Fold \\<img src=x onerror=alert(1)//")
+    write_root_files(library_copy)
+
+    site_dir = build_site(load_library(library_copy))
+
+    page = built_page(site_dir, CHAPTER)
+    assert re.search(r"<img", page, re.IGNORECASE) is None
+    assert "Fold \\<img src=x onerror=alert(1)//" in html.unescape(page)
+
+
 def test_a_whole_build_of_the_fixture_copy_passes_the_check_of_every_served_file(
     library_copy: Path,
 ) -> None:

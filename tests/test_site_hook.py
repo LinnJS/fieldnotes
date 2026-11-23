@@ -76,9 +76,9 @@ def test_a_relative_a_web_and_a_mail_link_stay_links() -> None:
     ]
 
 
-def test_an_escaped_angle_bracket_is_shown_without_the_backslash_and_without_an_element() -> None:
+def test_an_escaped_angle_bracket_is_shown_with_its_backslash_and_without_an_element() -> None:
     assert render("Never trust \\<img src=x> here.") == (
-        "<p>Never trust &lt;img src=x&gt; here.</p>"
+        "<p>Never trust \\&lt;img src=x&gt; here.</p>"
     )
 
 

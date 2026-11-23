@@ -203,7 +203,7 @@ def test_chapter_prose_that_looks_like_markup_is_shown_and_not_rendered(
 
     assert "<img" not in rendered
     assert re.search(r"<h2[^>]*\sonclick=", rendered) is None
-    assert "Never trust &lt;img src=x onerror=alert(1)&gt; in a page." in rendered
+    assert "Never trust \\&lt;img src=x onerror=alert(1)&gt; in a page." in rendered
     assert 'Config { onclick="alert(1)" }' in html.unescape(rendered)
     assert "Code keeps `\\<kept> {kept}` as written." in page
     assert "```text\n\\<kept> {kept}\n```" in page
