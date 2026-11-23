@@ -981,6 +981,42 @@ def test_the_structure_the_library_computes_from_a_document(
     assert pdf_structure({"blocks": blocks}) == structure
 
 
+# Headings a faithful chapter may hold, with the words the outline shows for each. A heading
+# with a line break is written in the setext form, since a line ends an ATX heading.
+COPIED_HEADINGS = {
+    "inline code": ("\n## Trim the `sail` first\n\nText.\n", "Trim the sail first"),
+    "inline code and a hard break": (
+        "\nTrim the `sail`\\\nbefore the launch\n---\n\nText.\n",
+        "Trim the sail before the launch",
+    ),
+    "a soft break": (
+        "\nTrim the sail\nbefore the launch\n---\n\nText.\n",
+        "Trim the sail before the launch",
+    ),
+    "emphasis and a web link": (
+        "\n## Trim *the* [sail](https://example.invalid/sail) first\n\nText.\n",
+        "Trim the sail first",
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("added", "words"), list(COPIED_HEADINGS.values()), ids=list(COPIED_HEADINGS)
+)
+def test_a_heading_with_inline_code_or_a_line_break_exports_and_passes_both_checks(
+    fixture_library_root: Path, tmp_path: Path, added: str, words: str
+) -> None:
+    library, resource = copy_library(fixture_library_root, tmp_path / "library", added)
+    pandoc = find_pandoc()
+
+    epub = write_epub(library, resource, tmp_path / "out", pandoc)
+    pdf = write_pdf(library, resource, tmp_path / "out", pandoc)
+
+    assert epub_problems(epub) == []
+    titles = [" ".join(title.split()) for title in outline_titles(pdf)]
+    assert [title for title in titles if title.endswith(f" {words}")] != []
+
+
 def test_a_chapter_link_with_a_title_exports_and_passes_both_checks(
     fixture_library_root: Path, tmp_path: Path
 ) -> None:
