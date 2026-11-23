@@ -597,3 +597,14 @@ def test_with_the_document_pass_switched_off_the_outline_check_stops_a_line_star
     assert "holds what the export does not write" in raised.value.message
     assert "Injected heading" in raised.value.message
     assert list(out.iterdir()) == []
+
+
+def test_a_chapter_link_with_a_title_exports_and_passes_both_checks(
+    fixture_library_root: Path, tmp_path: Path
+) -> None:
+    added = '\nA [titled link](https://example.invalid/a "A title") here.\n'
+    library, resource = copy_library(fixture_library_root, tmp_path / "library", added)
+
+    epub = write_epub(library, resource, tmp_path / "out", find_pandoc())
+
+    assert epub_problems(epub) == []

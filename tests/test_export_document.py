@@ -330,3 +330,22 @@ def test_the_check_refuses_an_id_a_class_or_an_attribute_the_library_did_not_com
 ) -> None:
     with pytest.raises(DocumentError, match=problem):
         check_document(document(blocks), {ANCHOR} | LIBRARY_IDS, LIBRARY_IDS)
+
+
+def test_a_link_title_is_cleared() -> None:
+    cleaned = clean('A [titled link](https://example.invalid/a "A title") here.\n')
+
+    targets: list[Json] = []
+    for node in nodes(cleaned):
+        if node["t"] == "Link":
+            content = node["c"]
+            assert isinstance(content, list)
+            targets.append(content[2])
+    assert targets == [["https://example.invalid/a", ""]]
+
+
+def test_the_check_refuses_a_link_with_a_title() -> None:
+    titled: Json = {"t": "Link", "c": [EMPTY_ATTR, [str_("here")], ["https://a", "A title"]]}
+
+    with pytest.raises(DocumentError, match="title"):
+        check_document(document([para(titled)]), set(), LIBRARY_IDS)

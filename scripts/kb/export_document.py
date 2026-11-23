@@ -103,12 +103,11 @@ def clean_chapters(
 
     A raw node becomes text with the same characters, and a line break or a control character
     inside text becomes a space between words, so no text starts a line of a writer's output.
-    An image becomes its text. A link
-    outside ``LINK_SCHEMES`` becomes its text, except a link to a chapter file of the same
-    book, which points at that chapter's anchor. Every attribute is cleared, except one plain
-    language word on a code block. The title takes the chapter's anchor, and every other
-    heading keeps the id the reader gave it, with a number added when the id is already taken
-    in the book.
+    An image becomes its text. A link outside ``LINK_SCHEMES`` becomes its text, except a link
+    to a chapter file of the same book, which points at that chapter's anchor. A link's title
+    is cleared. Every attribute is cleared, except one plain language word on a code block.
+    The title takes the chapter's anchor, and every other heading keeps the id the reader gave
+    it, with a number added when the id is already taken in the book.
 
     Args:
         chapters: The chapters, in reading order.
@@ -153,11 +152,11 @@ def check_document(document: Json, ids: Collection[str], library_ids: Collection
     The document, metadata values included, may hold only the node types the library's text
     and the cleaned chapters use. It may hold no raw node and no image. A word may hold no
     control character and no line or paragraph separator, so it cannot start a line of the
-    Typst source, where a mark at the start of a line makes a heading or a list. A link may go to an
-    address of ``LINK_SCHEMES`` or to an id in ``ids``. An id may sit only on a heading, must
-    be in ``ids``, and must be used once. The only classes are ``unnumbered`` on a heading whose
-    id is in ``library_ids`` and one plain language word on a code block. No node may carry a
-    key and value attribute.
+    Typst source, where a mark at the start of a line makes a heading or a list. A link has no
+    title, and it may go to an address of ``LINK_SCHEMES`` or to an id in ``ids``. An id may
+    sit only on a heading, must be in ``ids``, and must be used once. The only classes are
+    ``unnumbered`` on a heading whose id is in ``library_ids`` and one plain language word on
+    a code block. No node may carry a key and value attribute.
 
     Args:
         document: The Pandoc JSON document.
@@ -362,13 +361,13 @@ class _Cleaner:
                 return self.inlines(_items(content, 3)[1])
             case "Link":
                 _, inlines, target = _items(content, 3)
-                url, title = (_text(part) for part in _items(target, 2))
+                url = _text(_items(target, 2)[0])
                 shown = self.inlines(inlines)
                 if _is_web_address(url):
-                    return [{"t": "Link", "c": [_empty_attr(), shown, [url, title]]}]
+                    return [{"t": "Link", "c": [_empty_attr(), shown, [url, ""]]}]
                 anchor = self.chapter_links.get(url.partition("#")[0])
                 if anchor is not None:
-                    return [{"t": "Link", "c": [_empty_attr(), shown, [f"#{anchor}", title]]}]
+                    return [{"t": "Link", "c": [_empty_attr(), shown, [f"#{anchor}", ""]]}]
                 return shown
             case _:
                 raise _unknown(kind)
@@ -546,7 +545,11 @@ class _Checker:
                 self.plain_attr(attr, kind)
                 self.inlines(inlines)
                 url, title = _items(target, 2)
-                _text(title)
+                if _text(title):
+                    raise DocumentError(
+                        f"A link to {url!r} has the title {title!r}. A link of the export has "
+                        "no title."
+                    )
                 self.link(_text(url))
             case _:
                 raise _unknown(kind)
