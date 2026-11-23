@@ -656,7 +656,9 @@ def test_a_chapter_cannot_set_attributes_or_markup_in_an_export(library_copy: Pa
         file.write(
             '\n## Config { onclick="alert(1)" }\n\n'
             'A [link](https://example.invalid/a){ onclick="x" } and `code`{ onclick="y" }.\n\n'
-            "<script>alert(1)</script>\n"
+            "<script>alert(1)</script>\n\n"
+            # A fence that never closes is a code block to Pandoc, and its line sets attributes.
+            "~~~ {.c onmouseover=x}\n"
         )
     library = load_library(library_copy)
     [resource] = [resource for resource in library.resources if resource.id == MIRRORED]
@@ -670,7 +672,8 @@ def test_a_chapter_cannot_set_attributes_or_markup_in_an_export(library_copy: Pa
         check=True,
     ).stdout
 
-    assert re.search(r"<[^<>]*\sonclick=", built) is None
+    assert re.search(r"<[^<>]*\son(?:click|mouseover)=", built) is None
+    assert "~~~ {.c onmouseover=x}" in built
     assert "<script" not in built
     assert 'Config { onclick="alert(1)" }</h2>' in built
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in built

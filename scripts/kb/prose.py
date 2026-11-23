@@ -22,10 +22,10 @@ from urllib.parse import quote
 __all__ = ["link_address", "shown_as_written"]
 
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
-# A character of chapter prose that Python-Markdown reads as the start of an HTML tag or of an
-# attribute list, a run of backticks it could read as the edge of a code span, or the mark
-# that makes a link an image, with the backslashes in front of it.
-_LIVE_MARK = re.compile(r"(?P<slashes>\\*)(?P<mark>[<{}]|`+|!(?=\[))")
+# A character of chapter prose that a renderer reads as the start of an HTML tag or of an
+# attribute list, a run of backticks or tildes it could read as the edge of a code span or of
+# a fenced block, or the mark that makes a link an image, with the backslashes in front of it.
+_LIVE_MARK = re.compile(r"(?P<slashes>\\*)(?P<mark>[<{}]|`+|~{3,}|!(?=\[))")
 _AUTOLINK = re.compile(r"<https?://[^<>\s]*>")
 # The opening line of a fenced block as the ingest writer writes it: the fence and at most one
 # word. The renderer accepts more, and whatever this pattern leaves out is treated as prose.
@@ -261,6 +261,12 @@ def shown_as_written(text: str) -> str:
             # Every backtick of the run gets its own backslash, because the renderer opens a
             # span at the second backtick of a run whose first one is escaped.
             return slashes[: len(slashes) - escaped] + "\\`" * len(mark)
+        if mark.startswith("~"):
+            # Pandoc reads an unclosed run of tildes as a fenced block to the end of the text,
+            # with the rest of its line as attributes, and Python-Markdown honors no backslash
+            # in front of a tilde. A character reference is a tilde to both and a fence to
+            # neither. An odd backslash would escape the reference, so it gets a partner.
+            return slashes + "\\" * escaped + "&#126;" * len(mark)
         if mark == "!":
             return match[0] if escaped else f"{slashes}\\!"
         if any(first <= start < last for first, last in links):

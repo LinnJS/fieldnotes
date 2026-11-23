@@ -363,6 +363,9 @@ CODE = [
     ("Two \\\\`<kept>` slashes", "<code>&lt;kept&gt;</code>"),
     ("```text\n<kept>\n```", "&lt;kept&gt;"),
     ("~~~\n<kept>\n~~~~", "&lt;kept&gt;"),
+    # A run of tildes that opens no block is written as character references, which a
+    # browser shows as tildes.
+    ("~~~ two words\nkept", "<p>&#126;&#126;&#126; two words\nkept</p>"),
 ]
 
 
