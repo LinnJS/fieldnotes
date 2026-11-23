@@ -70,23 +70,32 @@ jobs:
         run: |
           set -euo pipefail
           title="chore(upstream): review upstream changes"
-          if [ -n "$(gh pr list --head "${SYNC_BRANCH}" --state open --json number --jq '.[].number')" ]; then
-            gh pr edit "${SYNC_BRANCH}" --title "${title}" --body-file upstream/report.md
+          # The listing matches a head branch by its name alone, so a pull request from a
+          # fork whose branch has the same name is listed too. Only the one from this
+          # repository is the sync pull request, and every later command names it by number.
+          sync_pull_request() {
+            gh pr list --head "${SYNC_BRANCH}" --state open --json number,isCrossRepository \
+              --jq 'map(select(.isCrossRepository | not)) | .[0].number // empty'
+          }
+          number="$(sync_pull_request)"
+          if [ -n "${number}" ]; then
+            gh pr edit "${number}" --title "${title}" --body-file upstream/report.md
           else
             gh pr create --head "${SYNC_BRANCH}" --base "${GITHUB_REF_NAME}" \
               --title "${title}" --body-file upstream/report.md
+            number="$(sync_pull_request)"
           fi
           # A license finding is a nested list item that starts with the marker. A file
           # name upstream can hold the marker too, and that must not earn the label.
           if grep --quiet '^  - LICENSE-FINDING ' upstream/report.md; then
             gh label create "${LICENSE_LABEL}" --force \
               --description "An upstream license file or statement changed" --color B60205
-            gh pr edit "${SYNC_BRANCH}" --add-label "${LICENSE_LABEL}"
+            gh pr edit "${number}" --add-label "${LICENSE_LABEL}"
           else
             # An earlier report may have earned the label. It is removed only when the
             # pull request carries it, so a pull request that never had it is left alone.
-            labels="$(gh pr view "${SYNC_BRANCH}" --json labels --jq '.labels[].name')"
+            labels="$(gh pr view "${number}" --json labels --jq '.labels[].name')"
             if grep --quiet --line-regexp --fixed-strings -- "${LICENSE_LABEL}" <<< "${labels}"; then
-              gh pr edit "${SYNC_BRANCH}" --remove-label "${LICENSE_LABEL}"
+              gh pr edit "${number}" --remove-label "${LICENSE_LABEL}"
             fi
           fi
