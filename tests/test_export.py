@@ -1,5 +1,6 @@
 """The export command writes a PDF, an EPUB, and a bundle that carry attribution and license."""
 
+import dataclasses
 import hashlib
 import json
 import os
@@ -829,6 +830,103 @@ def test_two_chapters_with_the_same_heading_get_different_ids_and_both_stay_in_t
         if "Shared heading" in "".join(link.itertext())
     ]
     assert [target.partition("#")[2] for target in targets] == headings
+
+
+# A record URL that closes the link the library writes around it and opens a script element.
+# The schema accepts it, because it starts with https:// and holds no white space.
+HOSTILE_URL = "https://example.invalid/x><script>alert(1)</script>"
+HOSTILE_URL_PERCENT = "https://example.invalid/x%3E%3Cscript%3Ealert%281%29%3C/script%3E"
+
+# Where each record URL of the notice sits in the fixture record.
+RECORD_URL_LINES = {
+    "person": "  url: https://example.invalid/fixture-author\n",
+    "official site": "  site: https://example.invalid/books/paper-boat\n",
+    "official repository": "  repository: https://example.invalid/fixture-author/fixture-mirrored-book\n",
+    "hosted edition": "      url: https://example.invalid/reader/paper-boat\n",
+}
+
+
+def epub_elements(epub: Path) -> list[str]:
+    """Return the tag of every element in the EPUB's XHTML files."""
+    with zipfile.ZipFile(epub) as archive:
+        return [
+            element.tag
+            for name in archive.namelist()
+            if name.endswith(".xhtml")
+            for element in ElementTree.fromstring(archive.read(name)).iter()
+        ]
+
+
+def notice_addresses(epub: Path) -> list[str]:
+    """Return the address of every link in the notice section, in order."""
+    with zipfile.ZipFile(epub) as archive:
+        notice = ElementTree.fromstring(archive.read(navigation(archive)[0][1]))
+    return [link.attrib["href"] for link in notice.iter(f"{XHTML}a")]
+
+
+@pytest.mark.parametrize("field", list(RECORD_URL_LINES))
+def test_a_record_url_with_markup_reaches_the_epub_as_its_percent_form(
+    repo_root: Path, library_copy: Path, tmp_path: Path, field: str
+) -> None:
+    metadata = library_copy / "books" / MIRRORED / "metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    line = RECORD_URL_LINES[field]
+    assert text.count(line) == 1
+    key = line.split(":")[0]
+    metadata.write_text(text.replace(line, f"{key}: '{HOSTILE_URL}'\n"), encoding="utf-8")
+
+    epub = export_epub(repo_root, library_copy, tmp_path)
+
+    assert not [tag for tag in epub_elements(epub) if tag.endswith("script")]
+    assert HOSTILE_URL_PERCENT in notice_addresses(epub)
+    with zipfile.ZipFile(epub) as archive:
+        assert all(b"<script" not in archive.read(name) for name in archive.namelist())
+
+
+def test_an_ordinary_record_url_is_written_unchanged(exported: Exported) -> None:
+    assert notice_addresses(exported.epub) == [
+        "https://example.invalid/fixture-author",
+        SOURCE_URL,
+        "https://example.invalid/books/paper-boat",
+        "https://example.invalid/fixture-author/fixture-mirrored-book",
+        "https://example.invalid/reader/paper-boat",
+    ]
+
+
+def test_a_record_url_with_a_script_scheme_stops_the_export(library_copy: Path) -> None:
+    library, resource = mirrored_book(library_copy)
+    # The schema refuses this URL when the record is loaded, so the test puts it in afterwards.
+    author = dataclasses.replace(resource.author, url="javascript:alert(1)")
+
+    with pytest.raises(ExportError) as raised:
+        checked_document(library, dataclasses.replace(resource, author=author), find_pandoc())
+
+    assert "A link goes to 'javascript:alert" in raised.value.message
+    assert "which is not an address of http, https, mailto" in raised.value.message
+    assert "report" in raised.value.fix
+
+
+def test_a_notice_with_an_attribute_block_after_a_link_stops_the_export(
+    library_copy: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The escape of record text is switched off, so only the check of the document stands
+    # between the attribute block and the writers.
+    monkeypatch.setattr(kb_export, "_plain", lambda text: text)
+    metadata = library_copy / "books" / MIRRORED / "metadata.yaml"
+    metadata.write_text(
+        metadata.read_text(encoding="utf-8").replace(
+            "  - Test fixture. This book and its text are invented for automated tests.\n",
+            "  - 'See [the site](https://example.invalid/a){onclick=\"alert(1)\"} now.'\n",
+        ),
+        encoding="utf-8",
+    )
+    library, resource = mirrored_book(library_copy)
+
+    with pytest.raises(ExportError) as raised:
+        checked_document(library, resource, find_pandoc())
+
+    assert "key and value attributes" in raised.value.message
+    assert "onclick" in raised.value.message
 
 
 def test_a_node_type_the_check_does_not_know_stops_the_export(

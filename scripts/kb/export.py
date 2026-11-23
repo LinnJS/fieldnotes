@@ -9,6 +9,8 @@ in Pandoc's sandbox, with a dialect that holds only the features the chapters us
 chapters then go through ``kb.export_document``, which turns what the export must not write into
 text and checks the whole document, so a chapter is shown and never run. Pandoc writes the
 checked document as Typst markup, which the Typst compiler makes into the PDF, and as the EPUB.
+A URL of a record reaches the library's text only through ``kb.prose.link_address``, so a
+character of it that Markdown reads as markup is written in its percent-encoded form.
 
 The bundle is a zip archive of the library's own files, with the chapters and the license file
 of mirrored books only.
@@ -625,7 +627,7 @@ def _metadata_block(
         metadata["contributor"] = [{"role": "trl", "text": translator}]
     metadata["lang"] = pinned.language
     metadata["rights"] = _plain(" ".join(rights))
-    metadata["source"] = blob_permalink(pinned.repository, pinned.commit, pinned.path)
+    metadata["source"] = link_address(blob_permalink(pinned.repository, pinned.commit, pinned.path))
     # The same book and edition always get the same identifier, so a reader treats a rebuilt
     # file as the same publication.
     identifier = uuid.uuid5(uuid.NAMESPACE_URL, f"{info.name}/{resource.id}/{pinned.edition}")
@@ -663,7 +665,7 @@ def _person_name(person: Person) -> str:
 
 
 def _person_line(label: str, person: Person) -> str:
-    link = "" if person.url is None else f", <{person.url}>"
+    link = "" if person.url is None else f", <{link_address(person.url)}>"
     return f"- **{label}:** {_plain(_person_name(person))}{link}"
 
 
@@ -675,7 +677,7 @@ def _notice_section(
     license_text: str,
 ) -> str:
     urls = resource.official_urls
-    permalink = blob_permalink(pinned.repository, pinned.commit, pinned.path)
+    permalink = link_address(blob_permalink(pinned.repository, pinned.commit, pinned.path))
     machine_extracted = sum(
         file.chapter.extraction_status is ExtractionStatus.MACHINE_EXTRACTED for file in chapters
     )
@@ -695,12 +697,15 @@ def _notice_section(
         f"{_plain(pinned.repository)}, at commit {pinned.commit}"
     )
     if urls.site is not None:
-        facts.append(f"- **Official site:** <{urls.site}>")
+        facts.append(f"- **Official site:** <{link_address(urls.site)}>")
     if urls.repository is not None:
-        facts.append(f"- **Official repository:** <{urls.repository}>")
+        facts.append(f"- **Official repository:** <{link_address(urls.repository)}>")
     for hosted in urls.hosted_editions:
         note = "" if hosted.note is None else f". {_plain(hosted.note)}"
-        facts.append(f"- **Official hosted edition:** {_plain(hosted.name)}, <{hosted.url}>{note}")
+        facts.append(
+            f"- **Official hosted edition:** {_plain(hosted.name)}, "
+            f"<{link_address(hosted.url)}>{note}"
+        )
     facts.append(
         f"- **Extraction:** {machine_extracted} of {len(chapters)} chapters are "
         "machine-extracted. A program converted a machine-extracted chapter from the source "
