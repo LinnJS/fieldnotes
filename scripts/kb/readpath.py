@@ -584,11 +584,12 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
 
     A token must resolve, and an edition after ``@`` must be the indexed edition. A quote is a
     Markdown block quote, at any indentation and inside a list item as well, or a long enough
-    span in quotation marks in a paragraph that holds a token. The marks are straight double quotes, curly double quotes, and the corner brackets
-    「」 and 『』. A span is long enough when it holds four words or more, or six characters or
-    more of a script written without spaces, which are Han, Hiragana, Katakana, and Hangul. A
-    span is checked against the first token after it in its paragraph, and against the nearest
-    token in front of it when none follows.
+    span in quotation marks in a paragraph that holds a token. The marks are straight double
+    quotes, curly double quotes, and the corner brackets 「」 and 『』. A span is long enough
+    when it holds four words or more, or six characters or more of a script written without
+    spaces, which are Han, Hiragana, Katakana, and Hangul. A span is checked against the first
+    token after it in its paragraph, and against the nearest token in front of it when none
+    follows.
 
     A quote must appear word for word in the chapter it cites, or in any chapter of the book
     when it cites a book. White space, emphasis markers, inline code markers, and backslash
