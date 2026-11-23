@@ -555,3 +555,51 @@ def test_a_backtick_fence_opens_a_block_only_when_no_backtick_follows_it(
     line: str, fence: str | None
 ) -> None:
     assert opening_fence(line) == fence
+
+
+NESTED_BLOCK_QUOTES = [
+    "- The book on drying:\n\n    > {quote}\n\n    {token}\n",
+    "- The book on drying:\n    > {quote}\n    {token}\n",
+    "- > {quote}\n\n  {token}\n",
+    "1. > {quote}\n\n   {token}\n",
+    "\t> {quote}\n\n{token}\n",
+]
+
+
+@pytest.mark.parametrize("layout", NESTED_BLOCK_QUOTES)
+def test_a_fabricated_block_quote_inside_a_list_item_fails(
+    layout: str, fixture_library_root: Path
+) -> None:
+    index = load_index(fixture_library_root)
+    text = layout.format(quote="A boat that dries flat will float again.", token=f"[cite:{SUNK}]")
+
+    problems = check_text(index, text)
+
+    assert [problem.message for problem in problems] == [
+        f'The quote is not in {SUNK} word for word: "A boat that dries flat will float again."'
+    ]
+
+
+@pytest.mark.parametrize("layout", NESTED_BLOCK_QUOTES)
+def test_a_block_quote_inside_a_list_item_with_no_citation_fails(
+    layout: str, fixture_library_root: Path
+) -> None:
+    index = load_index(fixture_library_root)
+    text = layout.format(quote="A boat that dries flat will fold again.", token="No source.")
+
+    problems = check_text(index, text)
+
+    assert [problem.message for problem in problems] == [
+        "The block quote has no citation token in its paragraph or on the next line: "
+        '"A boat that dries flat will fold again."'
+    ]
+
+
+@pytest.mark.parametrize("layout", NESTED_BLOCK_QUOTES)
+def test_an_exact_block_quote_inside_a_list_item_passes(
+    layout: str, fixture_library_root: Path
+) -> None:
+    index = load_index(fixture_library_root)
+    text = layout.format(quote="A boat that dries flat will fold again.", token=f"[cite:{SUNK}]")
+
+    assert check_text(index, text) == []

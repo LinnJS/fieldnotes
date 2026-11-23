@@ -37,6 +37,7 @@ __all__ = [
     "CHAPTERS_INDEX",
     "CODE_FENCE",
     "LLMS_FILE",
+    "QUOTE_LINE",
     "RESOLVE_POINTER",
     "TOKEN_PATTERN",
     "TOPICS_INDEX",
@@ -118,8 +119,14 @@ RESOLVE_POINTER = re.compile(
 # A span between straight or curly double quotation marks, or between the corner brackets that
 # Chinese and Japanese prose quotes with. Every mark is one character long.
 _QUOTED_SPAN = re.compile(r'"[^"]+"|“[^”]+”|「[^」]+」|『[^』]+』')
-_QUOTE_LINE = re.compile(r" {0,3}>")
-_QUOTE_MARKERS = re.compile(r"(?m)^(?: {0,3}> ?)+")
+# What may stand in front of the mark of a block quote: any indentation, and the markers of the
+# list items the quote is nested in. A quote under a list item is indented four spaces or more,
+# and one that opens a list item follows its marker, and both are still quotes to a reader. A
+# line that only looks like a quote is asked for a citation token, which is the safe direction.
+_QUOTE_PREFIX = r"[ \t]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)*"
+# A line of a Markdown block quote.
+QUOTE_LINE = re.compile(_QUOTE_PREFIX + r">")
+_QUOTE_MARKERS = re.compile(r"(?m)^" + _QUOTE_PREFIX + r"(?:[ \t]{0,3}> ?)+")
 # A backslash is how Markdown escapes one of the markers, so it is dropped with them.
 _INLINE_MARKERS = re.compile(r"[*_`\\]")
 _INLINE_CODE = re.compile(r"(`+).+?\1")
@@ -576,8 +583,8 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     """Check every citation token and every quote in a Markdown document.
 
     A token must resolve, and an edition after ``@`` must be the indexed edition. A quote is a
-    Markdown block quote, or a long enough span in quotation marks in a paragraph that holds a
-    token. The marks are straight double quotes, curly double quotes, and the corner brackets
+    Markdown block quote, at any indentation and inside a list item as well, or a long enough
+    span in quotation marks in a paragraph that holds a token. The marks are straight double quotes, curly double quotes, and the corner brackets
     「」 and 『』. A span is long enough when it holds four words or more, or six characters or
     more of a script written without spaces, which are Han, Hiragana, Katakana, and Hangul. A
     span is checked against the first token after it in its paragraph, and against the nearest
@@ -1042,7 +1049,7 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
         prose = list(masked[paragraph[0][0] : paragraph_end])
         run: list[tuple[int, int]] = []
         for line in [*paragraph, None]:
-            if line is not None and _QUOTE_LINE.match(masked, line[0], line[1]):
+            if line is not None and QUOTE_LINE.match(masked, line[0], line[1]):
                 run.append(line)
                 continue
             if run:

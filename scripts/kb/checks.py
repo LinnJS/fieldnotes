@@ -44,6 +44,7 @@ from kb.indexes import STALE_FIX, quote_permitted, stale_files
 from kb.readpath import (
     CHAPTERS_INDEX,
     CODE_FENCE,
+    QUOTE_LINE,
     RESOLVE_POINTER,
     ReadPathError,
     check_text,
@@ -68,7 +69,6 @@ _LINK = re.compile(r"\]\(\s*([^)\s]+)[^)]*\)")
 _NOT_A_FILE_LINK = ("http:", "https:", "mailto:", "#")
 _HEADING = re.compile(r" {0,3}#{1,6}(?:\s|$)")
 _LIST_ITEM = re.compile(r"\s*(?:[-*+]|\d+[.)])\s+(.*)")
-_QUOTE_LINE = re.compile(r" {0,3}>")
 # A reading-list item that points somewhere and claims nothing is a link alone, or the
 # instruction to resolve the id of a book whose text is not in the library.
 _LINK_POINTER = re.compile(r"\[[^\]]*\]\([^)\s]+\)")
@@ -817,7 +817,7 @@ def _paragraphs(body: str) -> Iterator[_Paragraph]:
                 first=first,
                 last=index - 1,
                 text=" ".join(" ".join(lines).split()),
-                quote=all(_QUOTE_LINE.match(quoted) for quoted in lines),
+                quote=all(QUOTE_LINE.match(quoted) for quoted in lines),
             )
             lines = []
         if not separator:
