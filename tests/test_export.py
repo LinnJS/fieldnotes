@@ -930,3 +930,19 @@ def test_a_node_type_the_check_does_not_know_stops_the_export(
     assert "Note" in raised.value.message
     assert "Pandoc 3." in raised.value.message
     assert "report" in raised.value.fix
+
+
+def test_a_notice_with_colons_and_a_bare_address_exports_as_its_text(library_copy: Path) -> None:
+    metadata = library_copy / "books" / MIRRORED / "metadata.yaml"
+    metadata.write_text(
+        metadata.read_text(encoding="utf-8").replace(
+            "  - Test fixture. This book and its text are invented for automated tests.\n",
+            "  - 'Options a:b:c and ok:ok: values, see ftp://example.invalid/x now.'\n",
+        ),
+        encoding="utf-8",
+    )
+    library, resource = mirrored_book(library_copy)
+
+    document = checked_document(library, resource, find_pandoc())
+
+    assert "Options a:b:c and ok:ok: values, see ftp://example.invalid/x now." in words(document)

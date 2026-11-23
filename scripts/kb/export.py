@@ -129,7 +129,9 @@ as the characters the chapter holds, and a chapter can set no attribute and no m
 
 # The library's own text is GitHub-flavored Markdown too. Attributes let this module give a
 # heading an anchor and leave it unnumbered, and the metadata block carries the title data.
-_LIBRARY_FORMAT = "gfm+attributes+yaml_metadata_block"
+# It holds record text, such as a notice, so emoji and bare addresses are off, as they are for
+# chapters. The library writes its own links in full.
+_LIBRARY_FORMAT = "gfm+attributes+yaml_metadata_block-emoji-autolink_bare_uris"
 
 _NOTICE_ANCHOR = "copy-notice"
 _LIBRARY_IDS = frozenset({_NOTICE_ANCHOR, f"{_NOTICE_ANCHOR}-notices", f"{_NOTICE_ANCHOR}-license"})
