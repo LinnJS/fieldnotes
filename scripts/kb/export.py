@@ -52,6 +52,7 @@ from kb.frontmatter import ExtractionStatus
 from kb.gate import evaluate
 from kb.indexes import newer_editions
 from kb.markdown import backtick_fence
+from kb.prose import link_address, shown_as_written
 from kb.readpath import BUILD_COMMAND, CATALOG_INDEX, CHAPTERS_INDEX, LLMS_FILE, TOPICS_INDEX
 
 __all__ = [
@@ -619,7 +620,9 @@ def _chapter_section(chapter_file: ChapterFile, anchors: Mapping[str, str]) -> s
         anchors: The heading anchor of each chapter of the book, by chapter file name.
     """
     chapter = chapter_file.chapter
-    heading, _, text = chapter_file.body.partition("\n")
+    # The chapter is the author's text. Pandoc would read a brace after a heading or a link in
+    # it as attributes and a tag as HTML, so it is written to be shown.
+    heading, _, text = shown_as_written(chapter_file.body).partition("\n")
     blocks = [
         f"{heading.rstrip()} {{#{anchors[chapter_file.path.name]}}}",
         f"**{_plain(chapter.part)}**",
@@ -629,7 +632,8 @@ def _chapter_section(chapter_file: ChapterFile, anchors: Mapping[str, str]) -> s
             "> **Machine-extracted.** No person has compared this chapter with the source file yet."
         )
     blocks.extend(
-        f"> **Erratum.** {_plain(erratum.description)} Source: <{erratum.source_url}>"
+        f"> **Erratum.** {_plain(erratum.description)} Source: "
+        f"[{_plain(erratum.source_url)}]({link_address(erratum.source_url)})"
         for erratum in chapter.errata
     )
 

@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -647,3 +648,29 @@ def test_pdf_build_succeeds_with_a_warning_when_no_cjk_font_is_installed(
     assert "warning" in warning
     for family in CJK_FONT_FAMILIES:
         assert family in warning
+
+
+def test_a_chapter_cannot_set_attributes_or_markup_in_an_export(library_copy: Path) -> None:
+    chapter = library_copy / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(
+            '\n## Config { onclick="alert(1)" }\n\n'
+            'A [link](https://example.invalid/a){ onclick="x" } and `code`{ onclick="y" }.\n\n'
+            "<script>alert(1)</script>\n"
+        )
+    library = load_library(library_copy)
+    [resource] = [resource for resource in library.resources if resource.id == MIRRORED]
+
+    stream = assemble_markdown(library, resource)
+    built = subprocess.run(
+        [str(export.find_pandoc()), "--from=gfm+attributes+yaml_metadata_block", "--to=html"],
+        input=stream,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+    assert re.search(r"<[^<>]*\sonclick=", built) is None
+    assert "<script" not in built
+    assert 'Config { onclick="alert(1)" }</h2>' in built
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in built
