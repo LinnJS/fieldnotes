@@ -40,15 +40,23 @@
   margin: 0.8em 0 0.4em;
 }
 
-/* The label states the status in words. The color only repeats it. */
+/* The label states the status in words. The color only repeats it. The label is a block that
+   holds one paragraph, and it is drawn as a badge as wide as its word. The outer margin is the
+   one a paragraph of the page has, so the card keeps the spacing it had around the label. */
 .md-typeset .library-status {
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin: 0.8rem 0;
   padding: 0.1em 0.7em;
   border-radius: 1em;
   color: #fff;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.md-typeset .library-status p {
+  margin: 0;
 }
 
 .md-typeset .library-status--mirrored {

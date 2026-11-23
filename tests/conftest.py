@@ -10,6 +10,24 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_LIBRARY_ROOT = REPO_ROOT / "tests" / "fixtures" / "library"
 SAMPLE_BOOK = REPO_ROOT / "tests" / "fixtures" / "sample-book.typ"
 
+# The fixture library carries none of these, so each test library that is exported or built
+# into a site gets its own.
+ROOT_FILES = {
+    "AGENTS.md": "# Agent guide\n\nInvented for automated tests.\n",
+    "LICENSES.md": "# Licenses\n\nInvented for automated tests.\n",
+    "llms.txt": "# Fixture Library\n",
+    "index/catalog.json": '{"resources": []}\n',
+    "index/topics.json": '{"topics": []}\n',
+    "index/chapters.jsonl": '{"id": "fixture-mirrored-book/folding-the-hull"}\n',
+}
+
+
+def write_root_files(root: Path) -> None:
+    """Write the root files a whole build reads into a copy of the fixture library."""
+    for name, text in ROOT_FILES.items():
+        (root / name).parent.mkdir(exist_ok=True)
+        (root / name).write_text(text, encoding="utf-8")
+
 
 def compile_sample_book(directory: Path, edition: str) -> Path:
     """Compile the fixture book with the fonts the Typst compiler embeds and return the PDF."""

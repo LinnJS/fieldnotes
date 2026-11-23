@@ -5,14 +5,15 @@ import re
 import shutil
 from pathlib import Path
 
-import markdown
 import pytest
 import yaml
 from kb.catalog import Library, load_library
 from kb.export import bundle_files
 from kb.indexes import build_full_text, build_indexes
-from kb.site import Downloads, SiteError, publish_canonical_files, stage, write_config
+from kb.site import HOOK, Downloads, SiteError, publish_canonical_files, stage, write_config
 from kb.site_check import page_problems
+from mkdocs.utils.meta import get_data
+from site_hooks.outside_text import CLOSE, MARKER, render
 
 MIRRORED = "fixture-mirrored-book"
 REFERENCE = "fixture-reference-book"
@@ -110,9 +111,30 @@ def catalog_sections(staging_dir: Path) -> dict[str, str]:
 
 def card(section: str, resource_id: str) -> str:
     """Return the one card of a catalog section that carries the given resource id."""
-    cards = [text for text in section.split("</div>") if f"#{resource_id} " in text]
+    cards = [
+        text
+        for text in section.split(f"{MARKER} library-card ")[1:]
+        if f" #{resource_id} " in text.partition("\n")[0]
+    ]
     assert len(cards) == 1
     return cards[0]
+
+
+def status_label(status: str, label: str) -> str:
+    """Return the staged status label of a card, as the library block writes it."""
+    return f"{MARKER} library-status library-status--{status}\n\n{label}\n\n{CLOSE}"
+
+
+def body(page: str) -> str:
+    """Return a staged page without its front matter, as MkDocs reads it."""
+    text, settings = get_data(page)
+    assert settings == {}
+    return text
+
+
+def built(page: str) -> str:
+    """Render a staged page with the features the site build uses."""
+    return render(body(page))
 
 
 def test_each_mirrored_chapter_gets_a_page_and_the_reference_book_gets_none(staged: Path) -> None:
@@ -145,30 +167,20 @@ def test_chapter_page_keeps_the_canonical_body_under_its_title(
     staged: Path, library: Library
 ) -> None:
     page = read(staged, CHAPTER_PAGES[0])
-    body = library.chapters_of(MIRRORED)[0].body
-    title, _, text = body.partition("\n")
+    canonical = library.chapters_of(MIRRORED)[0].body
+    title, _, text = canonical.partition("\n")
 
     assert title == "# Folding the Hull"
-    assert page.startswith(f"{title}\n")
+    assert page.startswith("---\n{}\n---\n")
+    assert body(page).startswith(f"{title}\n")
     assert page.endswith(text)
-
-
-SITE_EXTENSIONS = [
-    "tables",
-    "admonition",
-    "attr_list",
-    "md_in_html",
-    "pymdownx.highlight",
-    "pymdownx.superfences",
-    "toc",
-]
 
 
 def test_chapter_prose_that_looks_like_markup_is_shown_and_not_rendered(
     library_root: Path, tmp_path: Path
 ) -> None:
-    # The ingest writer puts a backslash in front of an angle bracket of the source, which
-    # Python-Markdown does not honor, and it leaves a brace as written.
+    # The ingest writer puts a backslash in front of an angle bracket of the source, and it
+    # leaves a brace as written.
     chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
     with chapter.open("a", encoding="utf-8") as file:
         file.write(
@@ -187,12 +199,12 @@ def test_chapter_prose_that_looks_like_markup_is_shown_and_not_rendered(
     stage(load_library(library_root), staging_dir)
 
     page = read(staging_dir, CHAPTER_PAGES[0])
-    built = markdown.markdown(page, extensions=SITE_EXTENSIONS)
+    rendered = built(page)
 
-    assert "<img" not in built
-    assert re.search(r"<h2[^>]*\sonclick=", built) is None
-    assert "Never trust &lt;img src=x onerror=alert(1)&gt; in a page." in built
-    assert 'Config { onclick="alert(1)" }' in html.unescape(built)
+    assert "<img" not in rendered
+    assert re.search(r"<h2[^>]*\sonclick=", rendered) is None
+    assert "Never trust &lt;img src=x onerror=alert(1)&gt; in a page." in rendered
+    assert 'Config { onclick="alert(1)" }' in html.unescape(rendered)
     assert "Code keeps `\\<kept> {kept}` as written." in page
     assert "```text\n\\<kept> {kept}\n```" in page
 
@@ -210,13 +222,13 @@ def test_a_bare_tag_in_a_chapter_is_shown_and_links_keep_working(
     staging_dir = tmp_path / "site-src"
     stage(load_library(library_root), staging_dir)
 
-    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
 
-    assert "<script" not in built
-    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in built
-    assert '<a href="https://example.invalid/a">https://example.invalid/a</a>' in built
-    # The angle brackets of a destination are taken away and the space is percent-encoded.
-    assert '<a href="https://example.invalid/a%20b">bracketed link</a>' in built
+    assert "<script" not in rendered
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in rendered
+    assert '<a href="https://example.invalid/a">https://example.invalid/a</a>' in rendered
+    # A destination in angle brackets may hold a space, and the link keeps working.
+    assert '<a href="https://example.invalid/a b">bracketed link</a>' in rendered
 
 
 NOT_A_LINK = [
@@ -239,10 +251,10 @@ def test_a_tag_in_parentheses_that_are_not_a_link_destination_is_shown(
     staging_dir = tmp_path / "site-src"
     stage(load_library(library_root), staging_dir)
 
-    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
 
-    assert "<img" not in built
-    assert "&lt;img src=x onerror=alert(1)&gt;" in built
+    assert "<img" not in rendered
+    assert "&lt;img src=x onerror=alert(1)&gt;" in rendered
 
 
 TAG = "<img src=x onerror=alert(1)>"
@@ -274,11 +286,11 @@ def test_a_tag_in_text_that_only_looks_like_code_is_shown(
     staging_dir = tmp_path / "site-src"
     stage(load_library(library_root), staging_dir)
 
-    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
 
-    assert "<img" not in built
-    assert "<script" not in built
-    assert page_problems(f"<article>{built}</article>") == []
+    assert "<img" not in rendered
+    assert "<script" not in rendered
+    assert page_problems(f"<article>{rendered}</article>") == []
 
 
 SCRIPT_LINKS = [
@@ -303,24 +315,30 @@ def test_a_link_that_is_not_a_web_address_is_shown_as_text(
     staging_dir = tmp_path / "site-src"
     stage(load_library(library_root), staging_dir)
 
-    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
 
-    assert page_problems(f"<article>{built}</article>") == []
-    assert "alert(1)" in built or "text/html" in built
+    assert page_problems(f"<article>{rendered}</article>") == []
+    # Below the header boxes, no link has a scheme. The renderer may still pair the outer
+    # brackets of the last case into a link to the relative path ``x``.
+    chapter_body = rendered.rpartition("</div>")[2]
+    hrefs = [html.unescape(href) for href in re.findall(r'href="([^"]*)"', chapter_body)]
+    assert hrefs
+    assert [href for href in hrefs if re.match(r"\s*[A-Za-z][A-Za-z0-9+.-]*:", href)] == []
+    assert "link" in html.unescape(chapter_body).rpartition("</h2>")[2]
 
 
-def test_an_image_in_a_chapter_is_shown_as_a_link(library_root: Path, tmp_path: Path) -> None:
+def test_an_image_in_a_chapter_is_shown_as_text(library_root: Path, tmp_path: Path) -> None:
     chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
     with chapter.open("a", encoding="utf-8") as file:
         file.write("\nSee ![the hull](https://example.invalid/hull.png) here.\n")
     staging_dir = tmp_path / "site-src"
     stage(load_library(library_root), staging_dir)
 
-    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
 
-    assert "<img" not in built
-    assert 'See !<a href="https://example.invalid/hull.png">the hull</a> here.' in built
-    assert page_problems(f"<article>{built}</article>") == []
+    assert "<img" not in rendered
+    assert "See ![the hull](https://example.invalid/hull.png) here." in rendered
+    assert page_problems(f"<article>{rendered}</article>") == []
 
 
 def test_a_url_of_a_record_cannot_end_its_link_and_start_markup(
@@ -348,10 +366,10 @@ def test_a_url_of_a_record_cannot_end_its_link_and_start_markup(
     pages = sorted(staging_dir.rglob("*.md"))
     assert pages
     for page in pages:
-        built = markdown.markdown(page.read_text(encoding="utf-8"), extensions=SITE_EXTENSIONS)
-        assert "<svg" not in built, page
-        assert page_problems(f"<article>{built}</article>") == [], page
-    catalog = markdown.markdown(read(staging_dir, "catalog.md"), extensions=SITE_EXTENSIONS)
+        rendered = built(page.read_text(encoding="utf-8"))
+        assert "<svg" not in rendered, page
+        assert page_problems(f"<article>{rendered}</article>") == [], page
+    catalog = built(read(staging_dir, "catalog.md"))
     assert (
         'href="https://example.invalid/books/paper-boat%29%3Csvg/onload=alert%281%29%3E"' in catalog
     )
@@ -363,9 +381,8 @@ CODE = [
     ("Two \\\\`<kept>` slashes", "<code>&lt;kept&gt;</code>"),
     ("```text\n<kept>\n```", "&lt;kept&gt;"),
     ("~~~\n<kept>\n~~~~", "&lt;kept&gt;"),
-    # A run of tildes that opens no block is written as character references, which a
-    # browser shows as tildes.
-    ("~~~ two words\nkept", "<p>&#126;&#126;&#126; two words\nkept</p>"),
+    # A run of tildes that opens no block is shown as the tildes it is.
+    ("~~~ two words\nkept", "<p>~~~ two words\nkept</p>"),
 ]
 
 
@@ -379,11 +396,11 @@ def test_a_tag_in_code_is_shown_once_and_not_as_an_entity(
     staging_dir = tmp_path / "site-src"
     stage(load_library(library_root), staging_dir)
 
-    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
 
-    assert shown in built
-    assert "&amp;lt;" not in built
-    assert page_problems(f"<article>{built}</article>") == []
+    assert shown in rendered
+    assert "&amp;lt;" not in rendered
+    assert page_problems(f"<article>{rendered}</article>") == []
 
 
 def test_reviewed_chapter_carries_no_machine_extraction_notice(staged: Path) -> None:
@@ -414,7 +431,7 @@ def test_catalog_page_shows_the_reference_book_with_its_link_and_label(staged: P
     mirrored = card(sections["Mirrored"], MIRRORED)
     reference = card(sections["Reference-only"], REFERENCE)
     assert "Clockwork Tea Manual (Test Fixture)" in reference
-    assert ">Reference-only</span>" in reference
+    assert status_label("reference-only", "Reference-only") in reference
     assert "https://example.invalid/books/clockwork-tea" in reference
     assert "发条茶事手册测试夹具" in reference
     assert "It is this library's translation, not the author's." in reference
@@ -423,7 +440,7 @@ def test_catalog_page_shows_the_reference_book_with_its_link_and_label(staged: P
     assert "Fixture Author (夹具作者)" in reference
     assert "Test fixture. This book is invented for automated tests" in reference
 
-    assert ">Mirrored</span>" in mirrored
+    assert status_label("mirrored", "Mirrored") in mirrored
     assert f"(books/{MIRRORED}/index.md)" in mirrored
     assert REFERENCE not in sections["Mirrored"]
     assert MIRRORED not in sections["Reference-only"]
@@ -444,7 +461,7 @@ def test_eligible_book_gets_a_card_that_says_so_and_no_pages(
     stage(load_library(library_root), staging_dir)
 
     eligible = card(catalog_sections(staging_dir)["Eligible"], MIRRORED)
-    assert ">Eligible</span>" in eligible
+    assert status_label("eligible", "Eligible") in eligible
     assert "Its license allows mirroring, and the book has not been mirrored yet." in eligible
     assert not (staging_dir / "books").exists()
     assert not list(staging_dir.glob("llms-full/*.txt"))
@@ -469,7 +486,9 @@ def test_book_recorded_as_eligible_gets_a_reference_only_card_when_the_gate_reje
     stage(load_library(library_root), staging_dir)
 
     sections = catalog_sections(staging_dir)
-    assert ">Reference-only</span>" in card(sections["Reference-only"], MIRRORED)
+    assert status_label("reference-only", "Reference-only") in card(
+        sections["Reference-only"], MIRRORED
+    )
     assert MIRRORED not in sections["Eligible"]
     assert not (staging_dir / "books").exists()
 
@@ -507,7 +526,9 @@ def test_links_between_canonical_files_point_at_staged_pages(staged: Path) -> No
     for target in targets:
         assert (staged / "topics" / target).resolve().is_file(), target
     # A chapter's link to a sibling chapter also lands on a staged page.
-    for target in _LINK_TARGET.findall(read(staged, CHAPTER_PAGES[2]).partition("</div>")[2]):
+    chapter_body = read(staged, CHAPTER_PAGES[2]).rpartition(f"\n{CLOSE}\n")[2]
+    assert "](" in chapter_body
+    for target in _LINK_TARGET.findall(chapter_body):
         if "://" not in target:
             assert (staged / CHAPTER_PAGES[2]).parent.joinpath(target).resolve().is_file(), target
 
@@ -596,7 +617,7 @@ def test_downloads_are_staged_and_only_the_mirrored_book_links_them(
 def test_home_page_says_what_the_library_is_and_that_it_is_independent(staged: Path) -> None:
     home = read(staged, "index.md")
 
-    assert home.startswith("# Fixture Library\n")
+    assert body(home).startswith("# Fixture Library\n")
     assert "A synthetic library used only by automated tests." in home
     assert "independent" in home
     assert "(catalog.md)" in home
@@ -622,6 +643,8 @@ def test_generated_config_takes_its_names_from_the_catalog_and_lists_every_page(
     assert config["repo_url"] == "https://example.invalid/fixture-owner/fixture-library"
     assert config["docs_dir"] == "site-src"
     assert config["site_dir"] == "../dist/site"
+    assert [(config_file.parent / hook).resolve() for hook in config["hooks"]] == [HOOK]
+    assert repo_root / "scripts" / "site_hooks" / "outside_text.py" == HOOK
     assert [next(iter(entry)) for entry in config["nav"]] == [
         "Home",
         "Books",

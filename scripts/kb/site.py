@@ -13,13 +13,20 @@ canonical files of a library, and nothing it writes is committed. The staged tre
 A chapter page and a topic page keep the path their canonical file has under the library root,
 so a relative link between two canonical files still holds between their pages.
 
+Every page opens with front matter the library writes, so MkDocs never reads the first lines of
+a chapter or a topic as page settings. The library's boxes, such as the facts box, a catalog
+card, and a notice, are written with the block of ``site_hooks.outside_text``, which turns
+off the renderer features that outside text could use. Staging refuses outside text that holds
+that block's marker or a control character, so outside text cannot open a box.
+
 Only a book whose text may be carried gets pages, full text, or downloads. That is decided by
 ``kb.indexes.quote_permitted`` and nowhere else. Every other book is one card on the catalog
 page, built from its record alone.
 
 ``write_config`` writes the MkDocs configuration of one build. It inherits the committed
-``mkdocs.yml`` and adds what comes from the library: the site's names and URLs and the
-navigation. ``build_site`` makes the exports, stages, and runs the strict MkDocs build.
+``mkdocs.yml`` and adds what comes from the library, the site's names and URLs and the
+navigation, and the hook. ``build_site`` makes the exports, stages, and runs the strict MkDocs
+build.
 """
 
 import html
@@ -29,11 +36,13 @@ import re
 import shutil
 import subprocess
 import sys
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path, PurePosixPath
 
 import yaml
+from site_hooks import outside_text
+from site_hooks.outside_text import CLOSE, MARKER
 
 from kb.catalog import (
     BOOKS_DIR,
@@ -72,7 +81,7 @@ from kb.indexes import (
     write_files,
 )
 from kb.markdown import backtick_fence
-from kb.prose import link_address, shown_as_written
+from kb.prose import link_address
 from kb.readpath import (
     CATALOG_INDEX,
     CHAPTERS_INDEX,
@@ -98,6 +107,7 @@ from kb.site_check import site_problems
 __all__ = [
     "BASE_CONFIG",
     "CONFIG_FILE",
+    "HOOK",
     "SITE_DIR",
     "STAGING_DIR",
     "Downloads",
@@ -120,6 +130,9 @@ SITE_DIR = Path("dist") / "site"
 
 BASE_CONFIG = Path(__file__).resolve().parents[2] / "mkdocs.yml"
 """The committed MkDocs configuration, which every generated configuration inherits."""
+
+HOOK = Path(outside_text.__file__).resolve()
+"""The MkDocs hook that every generated configuration loads."""
 
 type NavEntry = str | dict[str, str | list[NavEntry]]
 """One entry of the MkDocs ``nav`` setting: a page path, or a title over a page or a section."""
@@ -156,6 +169,14 @@ _MARKDOWN_SPECIAL = re.compile(r"[\\`*_{}\[\]#]")
 _LINK = re.compile(r"\]\((?P<target>[^)\s#]+)(?P<rest>[^)]*)\)")
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 _HEADING = "# "
+# Front matter that is an empty mapping. MkDocs reads it as the page's settings and then reads
+# no line after it as one, which closes the route for a chapter or a topic that opens with a
+# line such as ``template: ...``. The mapping is empty because the theme writes extra white
+# space into the content of a page whose settings are not.
+_FRONT_MATTER = "---\n{}\n---\n\n"
+# A control character other than a tab and the line ends. Python-Markdown deletes some of them
+# before it reads blocks, so one could split the box marker and still let it open a box.
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
 
 class SiteError(Exception):
@@ -237,9 +258,11 @@ def stage(
 
     Raises:
         SiteError: A citation token in a topic names no cataloged resource and no mirrored
-            chapter. The message names the topic file.
+            chapter, or text the library did not write holds the box marker or a control
+            character. The message names the file.
         BuildError: A book whose text is carried has no readable license file.
     """
+    _refuse_box_markers(library)
     downloads = downloads or Downloads()
     if staging_dir.exists():
         shutil.rmtree(staging_dir)
@@ -282,7 +305,7 @@ def stage(
         pages[book.license_page] = _license_page(library, book)
         for chapter in book.chapters:
             pages[chapter.path.as_posix()] = _chapter_page(book, chapter, staged_paths)
-    write_files(staging_dir, pages)
+    write_files(staging_dir, {name: _FRONT_MATTER + text for name, text in pages.items()})
 
     _copy(_STYLESHEET_SOURCE, staging_dir / _STYLESHEET)
     served = [path for book in books for path in downloads.books.get(book.resource.id, ())]
@@ -303,8 +326,8 @@ def write_config(
     """Write the MkDocs configuration of one build.
 
     The file inherits ``BASE_CONFIG`` and adds the site name, description, and URL, the
-    repository link, the two directories, and the navigation. Every path in it is relative to
-    the file's own directory, which is how MkDocs reads them.
+    repository link, the two directories, the navigation, and ``HOOK``. Every path in it is
+    relative to the file's own directory, which is how MkDocs reads them.
 
     Args:
         library: The loaded library, whose catalog names the site.
@@ -328,6 +351,7 @@ def write_config(
         "docs_dir": relative(docs_dir),
         "site_dir": relative(site_dir),
         "nav": list(navigation),
+        "hooks": [relative(HOOK)],
     }
     text = (
         "# Generated for one build of the site. Do not edit this file, and do not commit it.\n"
@@ -527,7 +551,68 @@ def _document(*blocks: str) -> str:
 
 
 def _admonition(kind: str, title: str, text: str) -> str:
-    return f'!!! {kind} "{title}"\n\n    {text}'
+    return _box(f"admonition {kind}", [text], title)
+
+
+def _strings(value: object) -> Iterator[str]:
+    """Yield every string a record holds, at any depth."""
+    if isinstance(value, str):
+        yield value
+    elif is_dataclass(value) and not isinstance(value, type):
+        for item in fields(value):
+            yield from _strings(getattr(value, item.name))
+    elif isinstance(value, tuple):
+        for item in value:
+            yield from _strings(item)
+
+
+def _refuse_box_markers(library: Library) -> None:
+    """Refuse text the library did not write when it could open a library box.
+
+    The text is every record, every chapter and topic with its frontmatter, the topic landing
+    page, and the license file of each carried book. A string that holds the box marker, or a
+    control character that the renderer deletes, is refused as a whole. Nothing guesses how the
+    renderer would read it.
+
+    Raises:
+        SiteError: A string holds the marker or such a character. The message names the file.
+    """
+    outside: list[tuple[str, object]] = [("catalog.yaml", library.catalog)]
+    outside += [
+        (f"{BOOKS_DIR}/{resource.id}/metadata.yaml", resource) for resource in library.resources
+    ]
+    outside += [(file.path.as_posix(), file) for file in library.chapters]
+    outside += [(file.path.as_posix(), file) for file in library.topics]
+    files = [f"{TOPICS_DIR}/{TOPIC_INDEX_FILE}"] + [
+        f"{BOOKS_DIR}/{resource.id}/{LICENSE_FILE}"
+        for resource in library.resources
+        if quote_permitted(resource, library.catalog.license_allowlist)
+    ]
+    outside += [
+        (name, (library.root / name).read_text(encoding="utf-8"))
+        for name in files
+        if (library.root / name).is_file()
+    ]
+    stop = (
+        "Do not change the file to get past this check. Stop and report it to the owner of "
+        "the library."
+    )
+    for name, value in outside:
+        for text in _strings(value):
+            if MARKER in text:
+                raise SiteError(
+                    "staging",
+                    f"{name}: The text holds {MARKER}, which the site keeps for the boxes the "
+                    f"library writes itself, so the page cannot show it as written. {stop}",
+                )
+            control = _CONTROL.search(text)
+            if control is not None:
+                raise SiteError(
+                    "staging",
+                    f"{name}: The text holds the control character U+{ord(control[0]):04X}, "
+                    "which the renderer deletes, so the page cannot show it as written. "
+                    f"{stop}",
+                )
 
 
 def _relative(page: str, target: str) -> str:
@@ -600,8 +685,30 @@ def _nested(label: str, items: Sequence[str]) -> list[str]:
     return [f"- **{label}:**", *(f"    - {item}" for item in items)] if items else []
 
 
+def _box(
+    classes: str, lines: Sequence[str], title: str | None = None, anchor: str | None = None
+) -> str:
+    """Write a library box with the block that only staging writes.
+
+    Args:
+        classes: The classes of the box's element, separated by spaces.
+        lines: The Markdown inside the box.
+        title: The box's title as Markdown on one line, or ``None`` for a box without one.
+        anchor: The id of the title, which makes the title a heading, or ``None``.
+
+    Returns:
+        The block, from its open line to its close line.
+    """
+    opening = f"{MARKER} {classes}"
+    if anchor is not None:
+        opening += f" #{anchor}"
+    if title is not None:
+        opening += f' "{title}"'
+    return "\n".join([opening, "", *lines, "", CLOSE])
+
+
 def _facts(lines: Sequence[str]) -> str:
-    return "\n".join(['<div class="library-facts" markdown>', "", *lines, "", "</div>"])
+    return _box("library-facts", lines)
 
 
 def _replace_outside_code(
@@ -769,19 +876,13 @@ def _card(resource: Resource, status: MirrorStatus, book: _Book | None) -> str:
         )
     lines += _nested("Official links", _official_links(resource))
     lines += _nested("Notices", [_plain(notice) for notice in resource.notices])
-    return "\n".join(
-        [
-            f'<div class="library-card library-card--{status.value}" markdown>',
-            "",
-            f"### {_plain(resource.title.english)} {{ #{resource.id} }}",
-            "",
-            f'<span class="library-status library-status--{status.value}">'
-            f"{_STATUS_LABELS[status]}</span>",
-            "",
-            *lines,
-            "",
-            "</div>",
-        ]
+    label = _box(f"library-status library-status--{status.value}", [_STATUS_LABELS[status]])
+    # The title is a heading with the resource id, so a link to catalog.md#<id> finds the card.
+    return _box(
+        f"library-card library-card--{status.value}",
+        [label, "", *lines],
+        title=_plain(resource.title.english),
+        anchor=resource.id,
     )
 
 
@@ -938,7 +1039,7 @@ def _overview_page(library: Library, book: _Book) -> str:
         link = _relative(book.overview, chapter.path.as_posix())
         chapters.append(
             f"- [{_plain(_chapter_label(chapter))}]({link}), "
-            f"{source_label(chapter.chapter.source.path)} {_pages(chapter)}"
+            f"{_plain(source_label(chapter.chapter.source.path))} {_pages(chapter)}"
         )
 
     blocks = [
@@ -990,8 +1091,9 @@ def _license_page(library: Library, book: _Book) -> str:
 def _chapter_page(book: _Book, chapter_file: ChapterFile, staged_paths: Mapping[str, str]) -> str:
     """Write a chapter page: the title, the generated header, and the canonical body.
 
-    The body is the chapter's text with its links retargeted and with the characters that the
-    site's Markdown would render as markup written so that they are shown.
+    The body is the chapter's text with its links retargeted. Nothing else in it is rewritten.
+    The hook turns off the renderer features that would run it, and the check of the built pages
+    refuses what the options of a fenced code block write.
     """
     chapter = chapter_file.chapter
     resource = book.resource
@@ -1032,7 +1134,7 @@ def _chapter_page(book: _Book, chapter_file: ChapterFile, staged_paths: Mapping[
     ]
     header = _document(_facts(facts), *notices)
 
-    body = shown_as_written(_retargeted(canonical, page, chapter_file.body, staged_paths))
+    body = _retargeted(canonical, page, chapter_file.body, staged_paths)
     # The header sits under the chapter's own title when the body opens with one, so the page
     # still starts with its title.
     title, newline, text = body.partition("\n")

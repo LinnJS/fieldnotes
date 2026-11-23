@@ -43,15 +43,21 @@ plugins:
 extra_css:
   - stylesheets/library.css
 
+# Pages hold text the library did not write, so they render with only the features that text
+# needs, and no extension here reads an attribute list. The hook in
+# scripts/site_hooks/outside_text.py, which the generated file names, turns off what
+# Python-Markdown itself reads: raw HTML, images, reference definitions, and links that are not
+# web or mail addresses. It also writes the library's own boxes, and it lists these same
+# extensions for its tests. The options of a fenced code block, such as an id, are the one
+# feature left on, because pymdownx.superfences has no setting for them. The check of the built
+# pages refuses what they write. An empty marker keeps a [TOC] line in a chapter as text.
 markdown_extensions:
   - tables
-  - admonition
-  - attr_list
-  - md_in_html
   - pymdownx.highlight
   - pymdownx.superfences
   - toc:
       permalink: true
+      marker: ""
 
 # The strict build treats each of these as an error, so a page that is missing from the
 # navigation, or a link or anchor that leads nowhere, stops the build.
