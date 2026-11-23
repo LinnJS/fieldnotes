@@ -153,6 +153,10 @@ _STATUS_INTRODUCTIONS = {
 _MARKDOWN_SPECIAL = re.compile(r"[\\`*_{}\[\]#]")
 _LINK = re.compile(r"\]\((?P<target>[^)\s#]+)(?P<rest>[^)]*)\)")
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
+# A character of chapter prose that Python-Markdown reads as the start of an HTML tag or of an
+# attribute list, with the backslashes in front of it.
+_LIVE_MARK = re.compile(r"(?P<slashes>\\*)(?P<mark>[<{}])")
+_AUTOLINK = re.compile(r"<https?://[^<>\s]*>")
 _HEADING = "# "
 
 
@@ -474,17 +478,30 @@ def _navigation(library: Library, books: Sequence[_Book]) -> list[NavEntry]:
     book_sections: list[NavEntry] = []
     for book in books:
         pages: list[NavEntry] = [book.overview]
-        pages += [{_chapter_label(chapter): chapter.path.as_posix()} for chapter in book.chapters]
+        pages += [
+            {_nav_label(_chapter_label(chapter)): chapter.path.as_posix()}
+            for chapter in book.chapters
+        ]
         pages.append({"License": book.license_page})
-        book_sections.append({book.resource.title.english: pages})
+        book_sections.append({_nav_label(book.resource.title.english): pages})
     topics: list[NavEntry] = [f"{TOPICS_DIR}/{TOPIC_INDEX_FILE}"]
-    topics += [{topic.topic.title: topic.path.as_posix()} for topic in library.topics]
+    topics += [{_nav_label(topic.topic.title): topic.path.as_posix()} for topic in library.topics]
     navigation: list[NavEntry] = [{"Home": _HOME_PAGE}]
     # MkDocs rejects a section with no pages, so a library with no carried book has no tab.
     if book_sections:
         navigation.append({"Books": book_sections})
     navigation += [{"Topics": topics}, {"Catalog": _CATALOG_PAGE}, {"Agents": _AGENTS_PAGE}]
     return navigation
+
+
+def _nav_label(text: str) -> str:
+    """Write a title as a navigation label that cannot open an HTML tag.
+
+    The theme prints a label into the page as written, so an angle bracket in a title would
+    start a live element on every page. An ampersand is left alone, because the theme escapes a
+    label in other places, and an entity there would be shown as its letters.
+    """
+    return " ".join(text.split()).replace("<", "&lt;").replace(">", "&gt;")
 
 
 def _plain(text: str) -> str:
@@ -586,6 +603,40 @@ def _replace_outside_code(
         parts += [text[end : match.start()], replace(match)]
         end = match.end()
     return "".join([*parts, text[end:]])
+
+
+def _shown_as_written(text: str) -> str:
+    """Keep the prose of a chapter from being rendered as HTML or as an attribute list.
+
+    A chapter is the author's text, and the page must show it and never run it. The ingest
+    writer puts a backslash in front of an angle bracket, which Pandoc honors and
+    Python-Markdown does not, so a tag the source prints would become a live element. A brace
+    at the end of a heading or after a link would set attributes on it, because the site turns
+    on ``attr_list``. Outside code, an angle bracket becomes an entity and a brace gets a
+    backslash, which Python-Markdown does honor. An ``http`` or ``https`` autolink and the
+    inside of a link's parentheses are left as written, so links keep working.
+
+    Args:
+        text: The Markdown body of a chapter.
+
+    Returns:
+        The body for the staged page. The canonical chapter file is not changed.
+    """
+    links = [link.span() for link in _LINK.finditer(mask_code(text))]
+
+    def show(match: re.Match[str]) -> str:
+        slashes, mark = match["slashes"], match["mark"]
+        escaped = len(slashes) % 2 == 1
+        start = match.start("mark")
+        if any(first <= start < last for first, last in links):
+            return match[0]
+        if mark == "<":
+            if not escaped and _AUTOLINK.match(match.string, start):
+                return match[0]
+            return slashes[: len(slashes) - escaped] + "&lt;"
+        return match[0] if escaped else f"{slashes}\\{mark}"
+
+    return _replace_outside_code(text, _LIVE_MARK, show)
 
 
 def _retargeted(canonical: str, page: str, text: str, staged_paths: Mapping[str, str]) -> str:
@@ -953,7 +1004,11 @@ def _license_page(library: Library, book: _Book) -> str:
 
 
 def _chapter_page(book: _Book, chapter_file: ChapterFile, staged_paths: Mapping[str, str]) -> str:
-    """Write a chapter page: the title, the generated header, and the canonical body."""
+    """Write a chapter page: the title, the generated header, and the canonical body.
+
+    The body is the chapter's text with its links retargeted and with the characters that the
+    site's Markdown would render as markup written so that they are shown.
+    """
     chapter = chapter_file.chapter
     resource = book.resource
     canonical = chapter_file.path.as_posix()
@@ -992,7 +1047,7 @@ def _chapter_page(book: _Book, chapter_file: ChapterFile, staged_paths: Mapping[
     ]
     header = _document(_facts(facts), *notices)
 
-    body = _retargeted(canonical, page, chapter_file.body, staged_paths)
+    body = _shown_as_written(_retargeted(canonical, page, chapter_file.body, staged_paths))
     # The header sits under the chapter's own title when the body opens with one, so the page
     # still starts with its title.
     title, newline, text = body.partition("\n")

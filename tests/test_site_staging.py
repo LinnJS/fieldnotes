@@ -1,9 +1,11 @@
 """Staging writes the documentation site's source tree from the canonical files of a library."""
 
+import html
 import re
 import shutil
 from pathlib import Path
 
+import markdown
 import pytest
 import yaml
 from kb.catalog import Library, load_library
@@ -148,6 +150,71 @@ def test_chapter_page_keeps_the_canonical_body_under_its_title(
     assert title == "# Folding the Hull"
     assert page.startswith(f"{title}\n")
     assert page.endswith(text)
+
+
+SITE_EXTENSIONS = [
+    "tables",
+    "admonition",
+    "attr_list",
+    "md_in_html",
+    "pymdownx.highlight",
+    "pymdownx.superfences",
+    "toc",
+]
+
+
+def test_chapter_prose_that_looks_like_markup_is_shown_and_not_rendered(
+    library_root: Path, tmp_path: Path
+) -> None:
+    # The ingest writer puts a backslash in front of an angle bracket of the source, which
+    # Python-Markdown does not honor, and it leaves a brace as written.
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(
+            "\n"
+            "Never trust \\<img src=x onerror=alert(1)> in a page.\n"
+            "\n"
+            '## Config { onclick="alert(1)" }\n'
+            "\n"
+            "Code keeps `\\<kept> {kept}` as written.\n"
+            "\n"
+            "```text\n"
+            "\\<kept> {kept}\n"
+            "```\n"
+        )
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    page = read(staging_dir, CHAPTER_PAGES[0])
+    built = markdown.markdown(page, extensions=SITE_EXTENSIONS)
+
+    assert "<img" not in built
+    assert re.search(r"<h2[^>]*\sonclick=", built) is None
+    assert "Never trust &lt;img src=x onerror=alert(1)&gt; in a page." in built
+    assert 'Config { onclick="alert(1)" }' in html.unescape(built)
+    assert "Code keeps `\\<kept> {kept}` as written." in page
+    assert "```text\n\\<kept> {kept}\n```" in page
+
+
+def test_a_bare_tag_in_a_chapter_is_shown_and_links_keep_working(
+    library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(
+            "\n"
+            "A bare <script>alert(1)</script> tag, an autolink <https://example.invalid/a>, "
+            "and a [bracketed link](<https://example.invalid/a b>).\n"
+        )
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+
+    assert "<script" not in built
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in built
+    assert '<a href="https://example.invalid/a">https://example.invalid/a</a>' in built
+    assert '<a href="https://example.invalid/a b">bracketed link</a>' in built
 
 
 def test_reviewed_chapter_carries_no_machine_extraction_notice(staged: Path) -> None:
@@ -408,6 +475,38 @@ def test_generated_config_takes_its_names_from_the_catalog_and_lists_every_page(
     # The chapters of a book are listed in reading order, between its overview and its license.
     book = listed.index(f"books/{MIRRORED}/index.md")
     assert listed[book + 1 : book + 5] == [*CHAPTER_PAGES, f"books/{MIRRORED}/license-text.md"]
+
+
+def test_a_navigation_label_holds_no_tag(library_root: Path, tmp_path: Path) -> None:
+    # The theme prints a navigation label as written, so a tag in a title would be live.
+    topic = library_root / "topics" / "paper-craft.md"
+    topic.write_text(
+        topic.read_text(encoding="utf-8").replace(
+            "title: Paper Craft", 'title: "Paper & <b>Craft</b>"'
+        ),
+        encoding="utf-8",
+    )
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    chapter.write_text(
+        chapter.read_text(encoding="utf-8").replace(
+            "title: Folding the Hull", 'title: "Folding <i>the</i> Hull"'
+        ),
+        encoding="utf-8",
+    )
+
+    navigation = stage(load_library(library_root), tmp_path / "site-src")
+
+    def labels(entry: object) -> list[str]:
+        if isinstance(entry, dict):
+            return [*entry, *(label for value in entry.values() for label in labels(value))]
+        if isinstance(entry, list):
+            return [label for item in entry for label in labels(item)]
+        return []
+
+    found = labels(navigation)
+    assert "Paper & &lt;b&gt;Craft&lt;/b&gt;" in found
+    assert "§01 Folding &lt;i&gt;the&lt;/i&gt; Hull" in found
+    assert not [label for label in found if "<" in label or ">" in label]
 
 
 def test_canonical_files_are_served_at_their_repository_paths(
