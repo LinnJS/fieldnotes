@@ -78,7 +78,9 @@ carry a citation token and say only what the cited mirrored chapter says. A
 fenced block counts as a paragraph and takes its token on the next line that has
 text. A heading longer than 80 characters counts as one too, so keep headings
 short. The landing page `topics/index.md` follows the same rule after its first
-paragraph, and its table rows and link-only list items need no token. Map a
+paragraph. A table there needs no token unless a row holds a quote, and a
+link-only list item needs none. A line that opens with a pipe is a table row
+only below a header row and a delimiter row. Map a
 chapter to a topic only after reading it. Map a book that is not mirrored only at
 the resource level, from what its public description says it covers, and never
 state what it says.

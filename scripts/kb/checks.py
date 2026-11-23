@@ -53,6 +53,7 @@ from kb.readpath import (
     ReadPathError,
     check_text,
     cited_ids,
+    holds_quote,
     load_index,
     opening_fence,
 )
@@ -1007,13 +1008,30 @@ class _Paragraph:
     kind: _ParagraphKind
 
 
+# The second line of a Markdown table: cells of dashes, each with an optional colon at an end.
+_TABLE_DELIMITER_ROW = re.compile(r"\s*\|?(?:\s*:?-+:?\s*\|)+(?:\s*:?-+:?\s*)?")
+
+
+def _is_table(lines: list[str]) -> bool:
+    """Say whether a run of lines is a table as the renderer reads one.
+
+    A line that opens with a pipe is a table row only below a header row and a delimiter row.
+    Without them the renderer publishes it as an ordinary paragraph, so it is one here.
+    """
+    return (
+        len(lines) >= 2
+        and all(line.lstrip().startswith("|") for line in lines)
+        and _TABLE_DELIMITER_ROW.fullmatch(lines[1]) is not None
+    )
+
+
 def _paragraph(first: int, lines: list[str], kind: _ParagraphKind | None = None) -> _Paragraph:
     """Build a paragraph from its lines, and tell a quote and a table from prose by them."""
     if kind is None:
         kind = "prose"
         if all(QUOTE_LINE.match(line) for line in lines):
             kind = "quote"
-        elif all(line.lstrip().startswith("|") for line in lines):
+        elif _is_table(lines):
             kind = "table"
     return _Paragraph(
         first=first,
@@ -1243,7 +1261,9 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
                 paragraphs,
                 cited_lines(body),
                 lambda paragraph: (
-                    paragraph is first or paragraph.kind == "table" or _is_pointer(paragraph)
+                    paragraph is first
+                    or (paragraph.kind == "table" and not holds_quote(paragraph.text))
+                    or _is_pointer(paragraph)
                 ),
             )
         )

@@ -300,6 +300,48 @@ def test_a_paragraph_of_the_landing_page_after_its_first_needs_a_token(
     assert "landing page" in findings[0].message
 
 
+LANDING_PAGE = (
+    "# Topics\n"
+    "\n"
+    "Each topic is a reading path through the library.\n"
+    "\n"
+    "| Topic | Mirrored chapters |\n"
+    "| :--- | ---: |\n"
+    "| [Paper Craft](paper-craft.md) | 2 |\n"
+)
+
+
+def test_a_line_of_the_landing_page_that_opens_with_a_pipe_and_is_no_table_needs_a_token(
+    library_copy: Path,
+) -> None:
+    (library_copy / "topics" / "index.md").write_text(
+        LANDING_PAGE + '\n| The manual says "wind the kettle key nine turns" before tea.\n',
+        encoding="utf-8",
+    )
+
+    findings = topic_findings(library_copy)
+
+    assert located(findings) == [("topic-uncited-paragraph", "topics/index.md", 9)]
+
+
+def test_a_table_row_of_the_landing_page_that_holds_a_quote_needs_a_token(
+    library_copy: Path,
+) -> None:
+    (library_copy / "topics" / "index.md").write_text(
+        LANDING_PAGE + '| "Wind the kettle key nine turns" | 0 |\n', encoding="utf-8"
+    )
+
+    findings = topic_findings(library_copy)
+
+    assert located(findings) == [("topic-uncited-paragraph", "topics/index.md", 5)]
+
+
+def test_a_plain_table_on_the_landing_page_stands_without_a_token(library_copy: Path) -> None:
+    (library_copy / "topics" / "index.md").write_text(LANDING_PAGE, encoding="utf-8")
+
+    assert topic_findings(library_copy) == []
+
+
 def test_a_quote_on_the_landing_page_that_cites_a_reference_only_book_is_a_finding(
     library_copy: Path,
 ) -> None:
