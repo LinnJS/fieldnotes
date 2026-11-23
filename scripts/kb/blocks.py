@@ -41,6 +41,7 @@ __all__ = [
     "Table",
     "TextBlock",
     "build_sections",
+    "section_links",
     "section_text",
 ]
 
@@ -224,6 +225,26 @@ def section_text(section: Section) -> str:
             rows = block.rows if block.header is None else (block.header, *block.rows)
             lines.extend(" ".join(_plain(cell) for cell in row if cell) for row in rows)
     return "\n".join(lines)
+
+
+def section_links(section: Section) -> tuple[str, ...]:
+    """Return the target of every link a section holds, in reading order.
+
+    Args:
+        section: The section.
+
+    Returns:
+        One target per run of linked text in the section's paragraphs and table cells. A
+        target that several runs carry is listed once for each.
+    """
+    runs: list[Run] = []
+    for block in section.blocks:
+        if isinstance(block, TextBlock):
+            runs.extend(block.runs)
+        elif isinstance(block, Table):
+            rows = block.rows if block.header is None else (block.header, *block.rows)
+            runs.extend(run for row in rows for cell in row for run in cell)
+    return tuple(run.link for run in runs if run.link is not None)
 
 
 type _Part = tuple[str, str | None, bool]

@@ -24,6 +24,7 @@ __all__ = [
     "ChapterDraft",
     "backtick_fence",
     "draft_chapters",
+    "link_target",
     "propose_slug",
     "render_body",
 ]
@@ -213,10 +214,22 @@ def _run(run: Run) -> str:
         text = _EDGE_UNDERSCORE.sub(r"\\_", _ALWAYS_ESCAPED.sub(r"\\\g<0>", run.text))
     if run.link is None:
         return text
-    target = run.link
+    return f"[{text}]({link_target(run.link)})"
+
+
+def link_target(target: str) -> str:
+    """Write a link target of the source as the destination of a Markdown link.
+
+    Args:
+        target: The target as the source holds it.
+
+    Returns:
+        The destination. One that holds white space, a parenthesis, or an angle bracket is put
+        in angle brackets, with any angle bracket of its own percent-encoded.
+    """
     if _NEEDS_ANGLE_BRACKETS.search(target):
-        target = "<" + target.replace("<", "%3C").replace(">", "%3E") + ">"
-    return f"[{text}]({target})"
+        return "<" + target.replace("<", "%3C").replace(">", "%3E") + ">"
+    return target
 
 
 def _table(table: Table) -> str:

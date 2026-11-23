@@ -106,7 +106,7 @@ uv run python scripts/ingest.py --book <id> --check
 uv run python scripts/validate.py
 ```
 
-The check compares each chapter with a fresh extraction of the source, word by word. Every chapter must pass. When a chapter fails, restore the wording of the source in the chapter.
+The check compares each chapter with a fresh extraction of the source, word by word. It also compares the link destinations of the chapter with the links the source holds, and the frontmatter with the pinned source and the extracted section. Every chapter must pass. When a chapter fails, restore the wording, the destination, or the frontmatter value of the source in the chapter. Never add a link the source does not hold, and never give a link a title.
 
 When the chapter matches the page and the extraction is the one that is wrong, list the words under `extraction_profile.accepted_differences` with the chapter id, `words_removed`, `words_added`, and a reason that names the page. Use this only for words you compared with the page yourself.
 

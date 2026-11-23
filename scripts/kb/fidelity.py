@@ -25,15 +25,16 @@ Errata live in a chapter's frontmatter. They are not chapter text and take no pa
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Collection, Iterator, Sequence
 from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from kb.blocks import Section, section_text
+from kb.blocks import Section, section_links, section_text
 from kb.catalog import AcceptedDifference, ChapterFile, Resource
 from kb.frontmatter import Chapter
 from kb.ingest import IngestError, extract_book
+from kb.markdown import link_target
 from kb.pdf_spans import Span
 from kb.readpath import CODE_FENCE, opening_fence
 
@@ -43,6 +44,7 @@ __all__ = [
     "FidelityResult",
     "check_book",
     "compare",
+    "link_destinations",
     "markdown_text",
     "report_lines",
     "words",
@@ -86,12 +88,15 @@ _TABLE_RULE_CELL = re.compile(r"\s*:?-+:?\s*")
 
 _UNESCAPED_PIPE = re.compile(r"(?<!\\)\|")
 # In reading order: a backslash escape, an inline code span, or a link. An escape is matched
-# first so that an escaped backtick or bracket opens nothing.
+# first so that an escaped backtick or bracket opens nothing. A link gives its text, its
+# destination as written, and the text of its title. A link written in any other form matches
+# nothing here, so its destination and title are counted as words of the chapter.
 _INLINE = re.compile(
     r"\\(?P<escaped>[!-/:-@\[-`{-~])"
     r"|(?<!`)(?P<ticks>`+)(?!`)(?P<code>.+?)(?<!`)(?P=ticks)(?!`)"
-    r"|\[(?P<text>(?:\\.|[^\]\\])*)\]\((?:<[^>]*>|[^\s()]*(?:\([^\s()]*\)[^\s()]*)*)"
-    r"(?:\s+\"[^\"]*\")?\)"
+    r"|\[(?P<text>(?:\\.|[^\]\\])*)\]"
+    r"\((?P<target><[^>]*>|[^\s()]*(?:\([^\s()]*\)[^\s()]*)*)"
+    r"(?:\s+\"(?P<title>[^\"]*)\")?\)"
 )
 
 
@@ -185,10 +190,11 @@ def markdown_text(body: str) -> str:
     """Strip the Markdown markup from a chapter body.
 
     Fence lines of code blocks are dropped and the code is kept. Outside code, a link becomes
-    its text, an inline code span becomes its content, a backslash escape becomes the character
-    it escapes, and the cell separators of a table row become spaces. The marks that Markdown
-    puts in front of a line are dropped, which are quote, heading, and list markers, and so is
-    a line that is only a rule or the rule row of a table.
+    its text followed by the text of its title, an inline code span becomes its content, a
+    backslash escape becomes the character it escapes, and the cell separators of a table row
+    become spaces. The marks that Markdown puts in front of a line are dropped, which are
+    quote, heading, and list markers, and so is a line that is only a rule or the rule row of
+    a table.
 
     Args:
         body: The Markdown below a chapter's frontmatter.
@@ -196,7 +202,34 @@ def markdown_text(body: str) -> str:
     Returns:
         The text, line for line.
     """
-    lines: list[str] = []
+    return "\n".join(
+        line if in_code else _strip_structure(line) for line, in_code in _content_lines(body)
+    )
+
+
+def link_destinations(body: str) -> tuple[str, ...]:
+    """List the destination of every inline link of a chapter body, as the chapter writes it.
+
+    A link inside a code block or an inline code span is shown and not followed, so it is left
+    out.
+
+    Args:
+        body: The Markdown below a chapter's frontmatter.
+
+    Returns:
+        The destinations in reading order, with the angle brackets a destination is written in.
+    """
+    return tuple(
+        match["target"]
+        for line, in_code in _content_lines(body)
+        if not in_code
+        for match in _INLINE.finditer(line)
+        if match["target"] is not None
+    )
+
+
+def _content_lines(body: str) -> Iterator[tuple[str, bool]]:
+    """Yield each line of a chapter body that is not a code fence, and whether it is code."""
     open_fence: str | None = None
     for line in body.split("\n"):
         fence = CODE_FENCE.match(line)
@@ -205,12 +238,11 @@ def markdown_text(body: str) -> str:
             if fence and fence[1].startswith(open_fence) and not line[fence.end() :].strip():
                 open_fence = None
             else:
-                lines.append(line)
+                yield line, True
         elif (opened := opening_fence(line)) is not None:
             open_fence = opened
         else:
-            lines.append(_strip_structure(line))
-    return "\n".join(lines)
+            yield line, False
 
 
 def _strip_structure(line: str) -> str:
@@ -237,6 +269,7 @@ def compare(
     source_text: str,
     chapter_body: str,
     accepted: Sequence[AcceptedDifference] = (),
+    source_links: Collection[str] | None = None,
 ) -> FidelityResult:
     """Compare a chapter body with the plain text of its section in the source.
 
@@ -245,11 +278,16 @@ def compare(
         source_text: Plain text of the section, as ``kb.blocks.section_text`` returns it.
         chapter_body: The chapter's Markdown body.
         accepted: The book's accepted differences. Entries for other chapters are ignored.
+        source_links: The link targets the section holds, as ``kb.blocks.section_links``
+            returns them. ``None`` leaves the destinations of the chapter unchecked, which is
+            for a caller that has the plain text alone.
 
     Returns:
         The result. It fails when the words differ beyond the accepted differences, when an
-        accepted difference is listed that the chapter does not have, or when the word order
-        scores below ``SIMILARITY_FLOOR``.
+        accepted difference is listed that the chapter does not have, when the word order
+        scores below ``SIMILARITY_FLOOR``, or when the chapter links to another set of
+        destinations than the section does. A link reads the same whatever it points at, so
+        the words alone cannot show a destination that was added or swapped.
     """
     source = words(source_text)
     chapter = words(markdown_text(chapter_body))
@@ -293,6 +331,17 @@ def compare(
         )
     else:
         message = ""
+    if source_links is not None:
+        wanted = {link_target(link) for link in source_links}
+        found = set(link_destinations(chapter_body))
+        if found != wanted:
+            message = " ".join(
+                [
+                    message or f"The chapter {chapter_id} does not have the links of its source.",
+                    f"Destinations only in the chapter: {_listed(found - wanted)}.",
+                    f"Destinations only in the source: {_listed(wanted - found)}.",
+                ]
+            )
     return FidelityResult(
         chapter=chapter_id,
         passed=not message,
@@ -339,7 +388,13 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
         title = titles.get(chapter.slug)
         section = None if title is None else sections.get(title)
         if section is not None:
-            result = compare(chapter.id, section_text(section), chapter_file.body, accepted)
+            result = compare(
+                chapter.id,
+                section_text(section),
+                chapter_file.body,
+                accepted,
+                section_links(section),
+            )
             differing = _frontmatter_differences(
                 chapter, resource, section, orders[section.title], parts[chapter.slug]
             )
@@ -452,13 +507,19 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
     return lines
 
 
+def _listed(destinations: Collection[str]) -> str:
+    return ", ".join(sorted(destinations)) or "none"
+
+
 def _strip_inline(text: str) -> str:
     def plain(match: re.Match[str]) -> str:
         if match["escaped"] is not None:
             return match["escaped"]
         if match["code"] is not None:
             return match["code"]
-        return _strip_inline(match["text"])
+        # The source has no place for a title, so its words are words of the chapter alone.
+        title = f" {match['title']}" if match["title"] else ""
+        return _strip_inline(match["text"]) + title
 
     return _INLINE.sub(plain, text)
 

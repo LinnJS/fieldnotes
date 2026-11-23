@@ -18,8 +18,10 @@ You also need Pandoc 3.14 or newer for the export tests. See the
 ## Correct a chapter
 
 A chapter under `books/<id>/chapters/` is a faithful copy of the pinned source
-edition. The fidelity check compares its words with a fresh extraction of the
-source PDF, and validation fails when they differ.
+edition. The fidelity check compares its words, its link destinations, and its
+frontmatter with a fresh extraction of the source PDF, and validation fails when
+they differ. A link may point only where the source points, and it takes no
+title.
 
 You may:
 

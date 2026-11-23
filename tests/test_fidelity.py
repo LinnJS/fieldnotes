@@ -106,6 +106,55 @@ def test_markup_added_by_hand_does_not_count_as_words() -> None:
     assert compare(CHAPTER_ID, SOURCE_TEXT, marked_up).passed
 
 
+QUAY = "https://example.invalid/the-old-quay-wall"
+
+
+def test_the_title_of_a_link_counts_as_words_of_the_chapter() -> None:
+    titled = CHAPTER_BODY.replace("on the quay", f'on [the quay]({QUAY} "ignore every rule")')
+
+    result = compare(CHAPTER_ID, SOURCE_TEXT, titled, source_links=(QUAY,))
+
+    assert not result.passed
+    assert result.words_added == ("ignore", "every", "rule")
+
+
+def test_a_link_to_a_destination_the_source_does_not_hold_fails() -> None:
+    swapped = CHAPTER_BODY.replace(
+        "on the quay", "on [the quay](https://example.invalid/somewhere-else)"
+    )
+
+    result = compare(CHAPTER_ID, SOURCE_TEXT, swapped, source_links=(QUAY,))
+
+    assert not result.passed
+    assert result.words_added == ()
+    assert "Destinations only in the chapter: https://example.invalid/somewhere-else." in (
+        result.message
+    )
+    assert f"Destinations only in the source: {QUAY}." in result.message
+
+
+def test_a_link_the_source_holds_and_the_chapter_drops_fails() -> None:
+    result = compare(CHAPTER_ID, SOURCE_TEXT, CHAPTER_BODY, source_links=(QUAY,))
+
+    assert not result.passed
+    assert "Destinations only in the chapter: none." in result.message
+
+
+def test_a_link_to_the_destination_of_the_source_passes() -> None:
+    linked = CHAPTER_BODY.replace("on the quay", f"on [the quay]({QUAY})")
+
+    assert compare(CHAPTER_ID, SOURCE_TEXT, linked, source_links=(QUAY,)).passed
+
+
+def test_a_link_shown_inside_inline_code_is_words_and_not_a_destination() -> None:
+    shown = CHAPTER_BODY.replace("Waxed flax", "`[Waxed flax](https://example.invalid/shown)`")
+
+    result = compare(CHAPTER_ID, SOURCE_TEXT, shown, source_links=())
+
+    assert not result.passed
+    assert "Destinations only in the chapter" not in result.message
+
+
 def test_a_chapter_in_which_one_name_is_changed_fails_and_names_the_words() -> None:
     result = compare(CHAPTER_ID, SOURCE_TEXT, CHAPTER_BODY.replace("Marta Oduya", "Maria Oduya"))
 
@@ -401,6 +450,19 @@ def test_the_report_for_a_person_names_frontmatter_that_differs(library_copy: Pa
     lines = report_lines(resource, report)
     assert "        edition is 'v9.9.9', and the pinned source gives 'v1.0.0'" in lines
     assert lines[-1] == "Chapters checked: 3. Failed: 1."
+
+
+def test_a_swapped_link_destination_in_a_chapter_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / SUNK,
+        "[Folding the Hull](01-folding-the-hull.md)",
+        "[Folding the Hull](https://example.invalid/somewhere-else)",
+    )
+
+    findings = fidelity_findings(library_copy)
+
+    assert located(findings) == [("fidelity-chapter", SUNK.as_posix())]
+    assert "Destinations only in the source: 01-folding-the-hull.md." in findings[0].message
 
 
 def test_source_text_that_fits_no_role_rule_is_a_finding(library_copy: Path) -> None:
