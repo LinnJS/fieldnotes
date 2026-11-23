@@ -102,7 +102,7 @@ from kb.readpath import (
     resolve,
     source_label,
 )
-from kb.site_check import site_problems
+from kb.site_check import KINDS, THEME_VERSION, Problem, SiteAddresses, site_problems
 
 __all__ = [
     "BASE_CONFIG",
@@ -177,6 +177,8 @@ _FRONT_MATTER = "---\n{}\n---\n\n"
 # A control character other than a tab and the line ends. Python-Markdown deletes some of them
 # before it reads blocks, so one could split the box marker and still let it open a box.
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
+# How many problems of one kind a failed check of the built site prints.
+_PROBLEMS_SHOWN = 10
 
 
 class SiteError(Exception):
@@ -388,10 +390,11 @@ def build_site(library: Library) -> Path:
 
     The steps run in this order, and the first failure stops the run: write the full-text
     files, write the bundle, export every mirrored book as PDF and EPUB, stage the pages with
-    those files as downloads, write the configuration, run the strict MkDocs build, and
-    check the content of every built page. The
-    bundle is written before the books because it checks the library's own files, so a missing
-    one stops the run before the slower exports start.
+    those files as downloads, write the configuration, run the strict MkDocs build, copy the
+    canonical files in, and check every file the site serves. The bundle is written before
+    the books because it checks the library's own files, so a missing one stops the run before
+    the slower exports start. A site that fails the check, or whose canonical files cannot be
+    copied, is removed.
 
     Args:
         library: The loaded library.
@@ -434,24 +437,51 @@ def build_site(library: Library) -> Path:
         raise SiteError("staging", str(error)) from error
     write_config(library, navigation, config_file, docs_dir=staging_dir, site_dir=site_dir)
     run_mkdocs(config_file)
-    problems = site_problems(site_dir)
-    if problems:
-        shutil.rmtree(site_dir)
-        raise SiteError(
-            "built pages",
-            "A built page holds markup that Markdown does not write for a page of this "
-            "library, so text of a book, a record, or a topic was rendered and not shown. "
-            "The built site was removed. Find where the staging step in scripts/kb/site.py "
-            "writes that text, and write it so the renderer shows it. Never change the "
-            "chapter. "
-            + " ".join(f"{problem}." for problem in problems[:10])
-            + (f" And {len(problems) - 10} more." if len(problems) > 10 else ""),
-        )
     try:
         publish_canonical_files(library, site_dir)
     except ExportError as error:
+        # The site is not checked yet, so it is not left behind.
+        shutil.rmtree(site_dir)
         raise SiteError("canonical files", f"{error.message} {error.fix}") from error
+    info = library.catalog.library
+    problems = site_problems(site_dir, SiteAddresses(info.base_url, info.repository))
+    if problems:
+        shutil.rmtree(site_dir)
+        raise SiteError("built pages", _check_failure(problems))
     return site_dir
+
+
+def _check_failure(problems: Sequence[Problem]) -> str:
+    """Write the message of a failed site check, with the problems grouped by kind."""
+    lines = [
+        "A file of the built site holds something that the library and the pinned theme do "
+        "not write, so the site was removed. The check reads every served file whole, and it "
+        "means one of three things.",
+        "1. Text that the library did not write, such as a chapter, a record, or a topic, asked "
+        "for something the site does not render: markup, an id, a class, or a link outside "
+        "the site's schemes. That text stays as it is. Stop and report it to the owner.",
+        "2. The library's own markup changed, in the staging code, the hook, or mkdocs.yml, "
+        "and now writes what the lists of scripts/kb/site_check.py do not hold. Bring the "
+        "change and the list it would need to the owner.",
+        "3. The theme changed. The lists hold what Material for MkDocs "
+        f"{THEME_VERSION} writes, and they are read again from a build of a new version.",
+        "No list is widened on behalf of text the library did not write.",
+    ]
+    if any(problem.kind == "theme version" for problem in problems):
+        lines.append(
+            f"The theme version differs: install Material for MkDocs {THEME_VERSION} with "
+            "`uv sync`, or read every list of scripts/kb/site_check.py again from a build of "
+            "the installed version."
+        )
+    for kind in KINDS:
+        found = [problem for problem in problems if problem.kind == kind]
+        if not found:
+            continue
+        lines.append(f"{kind}, {len(found)}:")
+        lines.extend(f"- {problem}" for problem in found[:_PROBLEMS_SHOWN])
+        if len(found) > _PROBLEMS_SHOWN:
+            lines.append(f"- and {len(found) - _PROBLEMS_SHOWN} more of this kind")
+    return "\n".join(lines)
 
 
 def publish_canonical_files(library: Library, site_dir: Path) -> list[Path]:

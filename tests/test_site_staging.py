@@ -11,7 +11,7 @@ from kb.catalog import Library, load_library
 from kb.export import bundle_files
 from kb.indexes import build_full_text, build_indexes
 from kb.site import HOOK, Downloads, SiteError, publish_canonical_files, stage, write_config
-from kb.site_check import page_problems
+from kb.site_check import content_problems
 from mkdocs.utils.meta import get_data
 from site_hooks.outside_text import CLOSE, MARKER, render
 
@@ -290,7 +290,7 @@ def test_a_tag_in_text_that_only_looks_like_code_is_shown(
 
     assert "<img" not in rendered
     assert "<script" not in rendered
-    assert page_problems(f"<article>{rendered}</article>") == []
+    assert content_problems(rendered) == []
 
 
 SCRIPT_LINKS = [
@@ -317,7 +317,7 @@ def test_a_link_that_is_not_a_web_address_is_shown_as_text(
 
     rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
 
-    assert page_problems(f"<article>{rendered}</article>") == []
+    assert content_problems(rendered) == []
     # Below the header boxes, no link has a scheme. The renderer may still pair the outer
     # brackets of the last case into a link to the relative path ``x``.
     chapter_body = rendered.rpartition("</div>")[2]
@@ -338,7 +338,7 @@ def test_an_image_in_a_chapter_is_shown_as_text(library_root: Path, tmp_path: Pa
 
     assert "<img" not in rendered
     assert "See ![the hull](https://example.invalid/hull.png) here." in rendered
-    assert page_problems(f"<article>{rendered}</article>") == []
+    assert content_problems(rendered) == []
 
 
 def test_a_url_of_a_record_cannot_end_its_link_and_start_markup(
@@ -368,7 +368,7 @@ def test_a_url_of_a_record_cannot_end_its_link_and_start_markup(
     for page in pages:
         rendered = built(page.read_text(encoding="utf-8"))
         assert "<svg" not in rendered, page
-        assert page_problems(f"<article>{rendered}</article>") == [], page
+        assert content_problems(rendered) == [], page
     catalog = built(read(staging_dir, "catalog.md"))
     assert (
         'href="https://example.invalid/books/paper-boat%29%3Csvg/onload=alert%281%29%3E"' in catalog
@@ -400,7 +400,7 @@ def test_a_tag_in_code_is_shown_once_and_not_as_an_entity(
 
     assert shown in rendered
     assert "&amp;lt;" not in rendered
-    assert page_problems(f"<article>{rendered}</article>") == []
+    assert content_problems(rendered) == []
 
 
 def test_reviewed_chapter_carries_no_machine_extraction_notice(staged: Path) -> None:
