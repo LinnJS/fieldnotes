@@ -570,7 +570,7 @@ def _relative(page: str, target: str) -> str:
 
 def _person(person: Person) -> str:
     name = person.name if person.native_name is None else f"{person.name} ({person.native_name})"
-    return _plain(name) if person.url is None else f"[{_plain(name)}]({person.url})"
+    return _plain(name) if person.url is None else f"[{_plain(name)}]({_address(person.url)})"
 
 
 def _title_lines(resource: Resource) -> list[str]:
@@ -619,13 +619,30 @@ def _official_links(resource: Resource) -> list[str]:
     urls = resource.official_urls
     links = []
     if urls.site is not None:
-        links.append(f"[Official site]({urls.site})")
+        links.append(f"[Official site]({_address(urls.site)})")
     if urls.repository is not None:
-        links.append(f"[Official repository]({urls.repository})")
+        links.append(f"[Official repository]({_address(urls.repository)})")
     for hosted in urls.hosted_editions:
         note = "" if hosted.note is None else f". {_plain(hosted.note)}"
-        links.append(f"[{_plain(hosted.name)}]({hosted.url}), a hosted edition{note}")
+        links.append(f"[{_plain(hosted.name)}]({_address(hosted.url)}), a hosted edition{note}")
     return links
+
+
+def _address(url: str) -> str:
+    """Write a URL of a record as the destination of a Markdown link.
+
+    A record is data, and a URL in it may hold a parenthesis or an angle bracket. Written as
+    it stands, a closing parenthesis ends the link and whatever follows it is read as markup.
+    Every character that is not part of a URL's own syntax is percent-encoded, which leaves
+    an ordinary address unchanged.
+
+    Args:
+        url: The URL as the record holds it.
+
+    Returns:
+        The destination.
+    """
+    return quote(url, safe=_DESTINATION_SAFE)
 
 
 def _nested(label: str, items: Sequence[str]) -> list[str]:
@@ -975,7 +992,8 @@ def _home_page(library: Library, books: Sequence[_Book], bundle: str | None) -> 
         "\n".join(browse),
         "## How agents use it",
         "A coding agent reads the same files from a clone of the "
-        f"[repository]({info.repository}). It finds a chapter through the committed indexes, "
+        f"[repository]({_address(info.repository)}). It finds a chapter through the committed "
+        "indexes, "
         "reads the Markdown file, and cites it with a token that anyone can resolve. The "
         f"[Agents]({_AGENTS_PAGE}) page lists the machine-readable files and the two commands.",
     )
@@ -990,7 +1008,11 @@ def _license_summary(resource: Resource) -> str:
         summary = "no license terms found"
     else:
         summary = "informal terms"
-    return summary if terms.permalink is None else f"{summary} ([evidence]({terms.permalink}))"
+    return (
+        summary
+        if terms.permalink is None
+        else f"{summary} ([evidence]({_address(terms.permalink)}))"
+    )
 
 
 def _card(resource: Resource, status: MirrorStatus, book: _Book | None) -> str:
@@ -1090,7 +1112,8 @@ def _agents_page(library: Library, books: Sequence[_Book], bundle: str | None) -
         "# Agents",
         f"A coding agent uses {_plain(info.title)} through plain files. It needs no service "
         "and no account. The files below are served by this site, and the same files sit in "
-        f"the [repository]({info.repository}), where an agent also finds the chapter files, "
+        f"the [repository]({_address(info.repository)}), where an agent also finds the chapter "
+        "files, "
         "the agent instructions in `AGENTS.md`, and the two commands.",
         "## Machine-readable files",
         "\n".join(files),
@@ -1214,7 +1237,7 @@ def _license_page(library: Library, book: _Book) -> str:
     evidence = (
         ""
         if permalink is None
-        else f" It was read at [this commit of the author's repository]({permalink})."
+        else f" It was read at [this commit of the author's repository]({_address(permalink)})."
     )
     return _document(
         f"# License of {_plain(resource.title.english)}",
@@ -1265,7 +1288,8 @@ def _chapter_page(book: _Book, chapter_file: ChapterFile, staged_paths: Mapping[
             "warning",
             "Known erratum",
             f"{_plain(erratum.description)} The erratum is recorded here and is not applied to "
-            f"the text below. Source: <{erratum.source_url}>",
+            "the text below. Source: "
+            f"[{_plain(erratum.source_url)}]({_address(erratum.source_url)})",
         )
         for erratum in chapter.errata
     ]

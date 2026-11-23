@@ -323,6 +323,40 @@ def test_an_image_in_a_chapter_is_shown_as_a_link(library_root: Path, tmp_path: 
     assert page_problems(f"<article>{built}</article>") == []
 
 
+def test_a_url_of_a_record_cannot_end_its_link_and_start_markup(
+    library_root: Path, tmp_path: Path
+) -> None:
+    suffix = ")<svg/onload=alert(1)>"
+    metadata = library_root / "books" / MIRRORED / "metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    for url in (
+        "https://example.invalid/books/paper-boat",
+        "https://example.invalid/fixture-author/fixture-mirrored-book",
+        "https://example.invalid/reader/paper-boat",
+    ):
+        assert f"{url}\n" in text
+        text = text.replace(f"{url}\n", f"{url}{suffix}\n")
+    metadata.write_text(text, encoding="utf-8")
+    chapter = library_root / "books" / MIRRORED / "chapters" / "02-choosing-a-pond.md"
+    errata = "source_url: https://example.invalid/fixture-author/fixture-mirrored-book/errata"
+    text = chapter.read_text(encoding="utf-8")
+    assert f"{errata}\n" in text
+    chapter.write_text(text.replace(f"{errata}\n", f"{errata}{suffix}\n"), encoding="utf-8")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    pages = sorted(staging_dir.rglob("*.md"))
+    assert pages
+    for page in pages:
+        built = markdown.markdown(page.read_text(encoding="utf-8"), extensions=SITE_EXTENSIONS)
+        assert "<svg" not in built, page
+        assert page_problems(f"<article>{built}</article>") == [], page
+    catalog = markdown.markdown(read(staging_dir, "catalog.md"), extensions=SITE_EXTENSIONS)
+    assert (
+        'href="https://example.invalid/books/paper-boat%29%3Csvg/onload=alert%281%29%3E"' in catalog
+    )
+
+
 CODE = [
     ("Use `<kept a=1>` here", "<code>&lt;kept a=1&gt;</code>"),
     ("Use ``a ` <kept>`` here", "<code>a ` &lt;kept&gt;</code>"),
