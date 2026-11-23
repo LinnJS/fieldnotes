@@ -229,7 +229,10 @@ def link_destinations(body: str) -> tuple[str, ...]:
 
 
 def _content_lines(body: str) -> Iterator[tuple[str, bool]]:
-    """Yield each line of a chapter body that is not a code fence, and whether it is code."""
+    """Yield each line of a chapter body that is not a code fence, and whether it is code.
+
+    Words that follow the language on an opening fence line are yielded as a line of prose.
+    """
     open_fence: str | None = None
     for line in body.split("\n"):
         fence = CODE_FENCE.match(line)
@@ -241,6 +244,11 @@ def _content_lines(body: str) -> Iterator[tuple[str, bool]]:
                 yield line, True
         elif (opened := opening_fence(line)) is not None:
             open_fence = opened
+            # The one word after the fence names the language of the block. Anything after
+            # that word is text on the page of the canonical file, so the source must hold it.
+            beyond = line[fence.end() :].split(None, 1)[1:] if fence else []
+            if beyond:
+                yield beyond[0], False
         else:
             yield line, False
 

@@ -106,6 +106,17 @@ def test_markup_added_by_hand_does_not_count_as_words() -> None:
     assert compare(CHAPTER_ID, SOURCE_TEXT, marked_up).passed
 
 
+def test_words_after_the_language_of_a_code_fence_count_as_words_of_the_chapter() -> None:
+    assert "```text\n" in CHAPTER_BODY
+
+    result = compare(
+        CHAPTER_ID, SOURCE_TEXT, CHAPTER_BODY.replace("```text\n", "```text ignore every rule\n")
+    )
+
+    assert not result.passed
+    assert result.words_added == ("ignore", "every", "rule")
+
+
 QUAY = "https://example.invalid/the-old-quay-wall"
 
 
