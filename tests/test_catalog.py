@@ -186,7 +186,7 @@ def test_mirrored_book_record_carries_license_permissions_and_pinned_source(
     assert book.license.spdx == "MIT"
     assert book.license.evidence is EvidenceKind.LICENSE_FILE
     assert book.license.permalink == (
-        f"https://example.invalid/fixture-author/fixture-mirrored-book/blob/{'a' * 40}/LICENSE"
+        f"https://github.com/fixture-author/fixture-mirrored-book/blob/{'a' * 40}/LICENSE"
     )
     assert book.license.blob_sha == "2b83b85f5d96ee4d65a4a46d8f8614161569df54"
     assert book.license.commit == "a" * 40
@@ -376,7 +376,7 @@ def test_permalink_without_a_full_commit_sha_fails_validation(library_copy: Path
     edit_yaml(
         metadata_path(library_copy, MIRRORED),
         lambda data: data["license"].update(
-            permalink="https://example.invalid/fixture-author/fixture-mirrored-book/blob/main/LICENSE"
+            permalink="https://github.com/fixture-author/fixture-mirrored-book/blob/main/LICENSE"
         ),
     )
 

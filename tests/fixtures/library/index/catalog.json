@@ -39,7 +39,7 @@
       "license_evidence": "license-file",
       "license_id": "MIT",
       "license_path": "books/fixture-mirrored-book/LICENSE",
-      "license_permalink": "https://example.invalid/fixture-author/fixture-mirrored-book/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/LICENSE",
+      "license_permalink": "https://github.com/fixture-author/fixture-mirrored-book/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/LICENSE",
       "mirror_status": "mirrored",
       "newer_editions": [
         {

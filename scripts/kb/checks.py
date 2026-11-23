@@ -17,8 +17,9 @@ import re
 from collections import defaultdict
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Literal
+from urllib.parse import urlsplit
 
 from kb.catalog import (
     BOOKS_DIR,
@@ -29,6 +30,8 @@ from kb.catalog import (
     TOPIC_INDEX_FILE,
     TOPICS_DIR,
     ChapterFile,
+    EvidenceKind,
+    GitSource,
     Library,
     MirrorStatus,
     Resource,
@@ -38,6 +41,7 @@ from kb.catalog import (
     load_resource,
     load_topics,
 )
+from kb.evidence import blob_permalink
 from kb.fidelity import check_book
 from kb.frontmatter import split_frontmatter
 from kb.gate import evaluate
@@ -350,6 +354,62 @@ def _check_license_file(library: Library) -> list[Finding]:
                     ),
                 )
             )
+    return findings
+
+
+def _check_license_evidence(library: Library) -> list[Finding]:
+    """Report each record whose license evidence does not agree with the rest of the record.
+
+    The gate compares ``license.commit`` with the pinned source commit and reads nothing else of
+    the evidence. The permalink is what a person opened and what the site prints as the proof,
+    so it must be the link to a file of the upstream repository at the recorded commit. A link
+    to a fork, to another commit, or to another host is evidence about something else. A
+    pinned source in another repository than upstream is text the evidence does not cover, and
+    a license file is not a README.
+
+    A record with no evidence, or with an upstream that is not a Git repository, holds none of
+    these fields to compare.
+    """
+    findings: list[Finding] = []
+    for resource in library.resources:
+        terms = resource.license
+        upstream = resource.upstream
+        if terms.evidence is EvidenceKind.NONE or not isinstance(upstream, GitSource):
+            continue
+        problems: list[str] = []
+        if terms.permalink is not None and terms.commit is not None:
+            expected = blob_permalink(upstream.repository, terms.commit, "")
+            if not terms.permalink.startswith(expected):
+                problems.append(
+                    f"license.permalink is {terms.permalink}, and a file of upstream.repository "
+                    f"at license.commit has a link that starts with {expected}"
+                )
+            elif terms.evidence is EvidenceKind.LICENSE_FILE and PurePosixPath(
+                urlsplit(terms.permalink).path
+            ).name.lower().startswith("readme"):
+                problems.append(
+                    "license.evidence is license-file, and license.permalink names a README: "
+                    f"{terms.permalink}"
+                )
+        pinned = resource.pinned_source
+        if pinned is not None and pinned.repository != upstream.repository:
+            problems.append(
+                f"pinned_source.repository is {pinned.repository}, and upstream.repository is "
+                f"{upstream.repository}"
+            )
+        findings.extend(
+            Finding(
+                rule="gate-evidence",
+                file=_metadata_path(resource.id),
+                message=f"The license evidence of {resource.id} contradicts itself. {problem}.",
+                fix=(
+                    "Capture the evidence again with scripts/evidence.py at the pinned commit, "
+                    "copy the permalink, the commit, and the blob id from its output, and have "
+                    "the owner review the record."
+                ),
+            )
+            for problem in problems
+        )
     return findings
 
 
@@ -1161,5 +1221,6 @@ CHECKS: list[Check] = [
     _check_topic_bodies,
     _check_skill_exposure,
     _check_mirrored_book_files,
+    _check_license_evidence,
 ]
 """Every check, in the order it runs. A new check is one more entry at the end."""

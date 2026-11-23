@@ -439,6 +439,67 @@ def test_malformed_yaml_is_a_finding(library_copy: Path) -> None:
     assert "malformed" in findings[0].message
 
 
+LICENSE_LINK = f"https://github.com/fixture-author/fixture-mirrored-book/blob/{'a' * 40}/LICENSE"
+
+
+def evidence_findings(root: Path) -> list[Finding]:
+    return [finding for finding in run_checks(root) if finding.rule == "gate-evidence"]
+
+
+@pytest.mark.parametrize(
+    "permalink",
+    [
+        f"https://github.com/someone-else/unrelated-fork/blob/{'a' * 40}/LICENSE",
+        f"https://github.com/fixture-author/fixture-mirrored-book/blob/{'c' * 40}/LICENSE",
+        f"https://example.invalid/fixture-author/fixture-mirrored-book/blob/{'a' * 40}/LICENSE",
+        f"https://github.com/fixture-author/fixture-mirrored-book-2/blob/{'a' * 40}/LICENSE",
+    ],
+)
+def test_a_license_permalink_that_is_not_the_recorded_repository_and_commit_is_a_finding(
+    permalink: str, library_copy: Path
+) -> None:
+    replace_in(library_copy / "books" / MIRRORED / "metadata.yaml", LICENSE_LINK, permalink)
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert permalink in findings[0].message
+
+
+def test_a_license_file_whose_permalink_names_a_readme_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        LICENSE_LINK,
+        LICENSE_LINK.removesuffix("LICENSE") + "README.md?plain=1#L29",
+    )
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert "README" in findings[0].message
+
+
+def test_a_pinned_source_in_another_repository_than_upstream_is_a_finding(
+    library_copy: Path,
+) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "pinned_source:\n  repository: fixture-author/fixture-mirrored-book\n",
+        "pinned_source:\n  repository: someone-else/unrelated-fork\n",
+    )
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert "someone-else/unrelated-fork" in findings[0].message
+
+
 def test_a_repeated_key_in_a_record_is_a_finding_and_does_not_pass_the_gate(
     library_copy: Path,
 ) -> None:
