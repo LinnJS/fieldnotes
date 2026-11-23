@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 license = "MIT"
 dependencies = [
     "jsonschema>=4.26.0",
+    "markdown==3.11.3",
     "mkdocs==1.6.1",
     "mkdocs-material==9.8.2",
     "pypdf>=7.1.1",
@@ -39,6 +40,12 @@ strict = true
 mypy_path = "scripts"
 explicit_package_bases = true
 files = ["scripts"]
+
+# Python-Markdown ships no type marker, and the site hook extends its classes. Adding
+# types-Markdown would be one more dependency, so mypy reads the package's own annotations.
+[[tool.mypy.overrides]]
+module = ["markdown.*"]
+follow_untyped_imports = true
 
 [tool.ruff]
 line-length = 100
