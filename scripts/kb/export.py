@@ -12,7 +12,9 @@ checked document as Typst markup, which the Typst compiler makes into the PDF, a
 A URL of a record reaches the library's text only through ``kb.prose.link_address``, so a
 character of it that Markdown reads as markup is written in its percent-encoded form. Each
 written PDF and EPUB is then read back by ``kb.export_check``, and a file that holds anything
-the library's exports do not write is removed.
+the library's exports do not write is removed. The read-back of a PDF also compares its outline
+and the block elements of its structure tree with what ``pdf_outline`` and ``pdf_structure``
+compute from the checked document.
 
 The bundle is a zip archive of the library's own files, with the chapters and the license file
 of mirrored books only.
@@ -77,6 +79,7 @@ __all__ = [
     "find_cjk_font",
     "find_pandoc",
     "pdf_outline",
+    "pdf_structure",
     "select_books",
     "write_bundle",
     "write_epub",
@@ -378,12 +381,128 @@ def _words(inlines: Json) -> str:
             return _words(content)
 
 
+# The depth of ``#outline(depth: 2)`` in templates/book.typ. The contents page lists a heading
+# only down to this level.
+_CONTENTS_DEPTH = 2
+
+
+def pdf_structure(document: Json) -> list[str]:
+    """Compute the block elements of the structure tree of the PDF written from a document.
+
+    The Typst compiler writes a tagged PDF. Its structure tree holds one element for each
+    heading, list, list item, table, row, cell, and block quote of the Typst source, and for
+    each entry of the contents page that ``templates/book.typ`` writes. Pandoc's Typst writer
+    escapes a mark such as ``-`` or ``1.`` at the start of a paragraph and not at the start of
+    a table cell, a list item, or the text of a link, where the compiler reads it as a list.
+    The types come from the document alone, so the read-back of the PDF can tell a list the
+    document holds from one that the Typst source made out of text.
+
+    The contents page gives ``H1`` for its title and then ``TOC``. Each heading down to the
+    template's depth gives ``TOCI``, and ``Lbl`` after it when the heading is numbered. A step
+    from the first level down to the second gives ``TOC`` first. In the body, a heading of
+    level n gives ``Hn``. A list gives ``L`` and then ``LI``, ``Lbl``, and ``LBody`` for each
+    item. A block quote gives ``BlockQuote``. A table gives ``Table``, then ``THead``, ``TR``,
+    and one ``TH`` for each cell when it has head rows, then ``TBody`` and a ``TR`` with one
+    ``TD`` for each cell of each row. The blocks inside an item, a quote, or a cell follow
+    their element. A paragraph, a code block, a rule, and inline text give nothing, because the
+    compiler does not write their elements in a way the document predicts. A table caption,
+    foot rows, and head rows inside a table body give nothing either, since no export was
+    measured with one, so the read-back refuses a PDF that holds them.
+
+    Args:
+        document: The document ``checked_document`` returned.
+
+    Returns:
+        The element types, in reading order, without the leading slash of a PDF name.
+    """
+    blocks = document.get("blocks") if isinstance(document, dict) else None
+    tags = ["H1", "TOC"]
+    above = 1
+    for level, numbered, _ in _headings(blocks):
+        if level > _CONTENTS_DEPTH:
+            continue
+        if level > above:
+            tags.append("TOC")
+        above = level
+        tags.append("TOCI")
+        if numbered:
+            tags.append("Lbl")
+    tags.extend(_block_tags(blocks))
+    return tags
+
+
+def _block_tags(blocks: Json) -> Iterator[str]:
+    """Yield the structure element types of some blocks, in reading order."""
+    if not isinstance(blocks, list):
+        return
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        content = block.get("c")
+        match block.get("t"):
+            case "Header" if isinstance(content, list) and content:
+                yield f"H{content[0]}"
+            case "BlockQuote":
+                yield "BlockQuote"
+                yield from _block_tags(content)
+            case "BulletList":
+                yield from _list_tags(content)
+            case "OrderedList" if isinstance(content, list) and len(content) == 2:
+                yield from _list_tags(content[1])
+            case "Table" if isinstance(content, list) and len(content) == 6:
+                yield from _table_tags(content[3], content[4])
+            case _:
+                pass
+
+
+def _list_tags(items: Json) -> Iterator[str]:
+    """Yield the element types of a list, given its items."""
+    yield "L"
+    if isinstance(items, list):
+        for item in items:
+            yield from ("LI", "Lbl", "LBody")
+            yield from _block_tags(item)
+
+
+def _table_tags(head: Json, bodies: Json) -> Iterator[str]:
+    """Yield the element types of a table, given its head and its bodies."""
+    yield "Table"
+    head_rows = head[1] if isinstance(head, list) and len(head) == 2 else None
+    if isinstance(head_rows, list) and head_rows:
+        yield "THead"
+        yield from _row_tags(head_rows, "TH")
+    if isinstance(bodies, list):
+        for body in bodies:
+            yield "TBody"
+            if isinstance(body, list) and len(body) == 4:
+                yield from _row_tags(body[3], "TD")
+
+
+def _row_tags(rows: Json, cell_tag: str) -> Iterator[str]:
+    """Yield the element types of some table rows, with a cell type for each cell."""
+    if not isinstance(rows, list):
+        return
+    for row in rows:
+        yield "TR"
+        cells = row[1] if isinstance(row, list) and len(row) == 2 else None
+        if not isinstance(cells, list):
+            continue
+        for cell in cells:
+            yield cell_tag
+            if isinstance(cell, list) and len(cell) == 5:
+                yield from _block_tags(cell[4])
+
+
 def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path) -> Path:
     """Write a book's PDF.
 
     Pandoc writes Typst markup through ``templates/book.typ``, and the Typst compiler makes the
     PDF. The compiler draws a character as an empty box when no installed font has it, and it
     does not fail. ``find_cjk_font`` tells a caller beforehand whether that will happen.
+
+    The written file is read back. Its outline must hold the titles of ``pdf_outline``, and
+    the block elements of its structure tree must be the ones of ``pdf_structure``, so text
+    that the compiler read as a heading, a list, or a table removes the file.
 
     Args:
         library: The loaded library.
@@ -423,9 +542,10 @@ def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path)
                 "Correct templates/book.typ, or the chapter the message points at, and run "
                 "the command again.",
             ) from error
-    return _checked_file(
-        target, pdf_problems(target, outline=pdf_outline(document)), resource, "PDF"
+    problems = pdf_problems(
+        target, outline=pdf_outline(document), structure=pdf_structure(document)
     )
+    return _checked_file(target, problems, resource, "PDF")
 
 
 def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path) -> Path:

@@ -8,6 +8,12 @@ on them is a problem: a member of another kind, an element or an attribute of an
 link that is neither a web address nor a file of the book, or a PDF action other than a web
 link or a jump inside the file.
 
+Two parts of a PDF are compared with what the library computed from the checked document: the
+titles of the outline, and the block elements of the structure tree, which are the headings,
+lists, tables, block quotes, and contents entries. Text that the Typst source read as the start
+of a block adds an element to one of them. The words on the pages are not compared, and the
+paragraph and inline elements of the structure tree are not either.
+
 An EPUB is read with the standard library's XML parser. A PDF is read with pypdf. Neither
 check runs a program or fetches anything.
 """
@@ -23,7 +29,14 @@ from urllib.parse import unquote
 from xml.parsers import expat
 
 from pypdf import PdfReader
-from pypdf.generic import ArrayObject, DictionaryObject, IndirectObject, PdfObject
+from pypdf.generic import (
+    ArrayObject,
+    DictionaryObject,
+    IndirectObject,
+    NameObject,
+    NumberObject,
+    PdfObject,
+)
 
 from kb.export_document import LINK_SCHEMES
 
@@ -45,6 +58,7 @@ class ProblemKind(StrEnum):
     ANNOTATION = "annotation"
     ACTION = "action"
     OUTLINE = "outline"
+    STRUCTURE = "structure"
 
 
 @dataclass(frozen=True)
@@ -240,6 +254,44 @@ _OUTLINE_ITEM_KEYS = frozenset(
     {"/Count", "/Dest", "/First", "/Last", "/Next", "/Parent", "/Prev", "/Title"}
 )
 
+# The block elements of the structure tree. The Typst compiler writes them for the headings,
+# lists, tables, block quotes, and contents entries of its source, so the library can compute
+# them from the checked document.
+_COMPARED_TAGS = frozenset(
+    {
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+        "H5",
+        "H6",
+        "L",
+        "LI",
+        "Lbl",
+        "LBody",
+        "Table",
+        "THead",
+        "TBody",
+        "TFoot",
+        "TR",
+        "TH",
+        "TD",
+        "BlockQuote",
+        "TOC",
+        "TOCI",
+    }
+)
+# The elements the compiler writes in a way the document does not predict. An empty header
+# cell has no Strong, and a paragraph inside a block quote is a Span, so these may stand
+# anywhere and are not compared.
+_PASSED_TAGS = frozenset(
+    {"Document", "Div", "P", "Span", "Em", "Strong", "Code", "Link", "Reference"}
+)
+# The kids of a structure element that point at content of a page and are no element.
+_CONTENT_REFERENCES = frozenset({"/MCR", "/OBJR"})
+# How many tags a structure problem shows on each side of the first difference.
+_TAGS_SHOWN = 4
+
 
 def epub_problems(path: Path) -> list[OutputProblem]:
     """List what a written EPUB holds that the library's EPUBs do not.
@@ -274,7 +326,9 @@ def epub_problems(path: Path) -> list[OutputProblem]:
     return list(dict.fromkeys(problems))
 
 
-def pdf_problems(path: Path, *, outline: Sequence[str]) -> list[OutputProblem]:
+def pdf_problems(
+    path: Path, *, outline: Sequence[str], structure: Sequence[str]
+) -> list[OutputProblem]:
     """List what a written PDF holds that the library's PDFs do not.
 
     The document catalog and its name dictionary hold only the entries the Typst compiler
@@ -285,10 +339,21 @@ def pdf_problems(path: Path, *, outline: Sequence[str]) -> list[OutputProblem]:
     reading order, are the ones the library computed from the headings of the document it
     checked. Text that the Typst source reads as a heading therefore shows up here.
 
+    The structure tree is read from its root in reading order. The types of its block elements,
+    which are the headings, lists, list items, labels, tables, rows, cells, block quotes, and
+    contents entries, must be the ones the library computed from the same document, in the same
+    order. Text that the Typst source reads as a list, a term list, or a table therefore shows
+    up here. The order is compared and the nesting is not, because the compiler writes a nested
+    list inside its item in some cases and beside it in others. A paragraph or an inline
+    element may stand anywhere and is not compared, and an element of any other type is a
+    problem. A file with no structure tree has no block elements.
+
     Args:
         path: The PDF file.
         outline: The titles the outline must hold, in reading order, as
             ``kb.export.pdf_outline`` computes them.
+        structure: The types of the block elements the structure tree must hold, in reading
+            order, as ``kb.export.pdf_structure`` computes them.
 
     Returns:
         One problem per finding, in the order found. The list is empty for a file that holds
@@ -311,6 +376,16 @@ def pdf_problems(path: Path, *, outline: Sequence[str]) -> list[OutputProblem]:
             else:
                 problems.extend(_outline_problems(outlines, titles))
         problems.extend(_title_problems(titles, outline))
+        tags: list[str] = []
+        if "/StructTreeRoot" in catalog:
+            tree = _dictionary(catalog["/StructTreeRoot"])
+            if tree is None:
+                problems.append(
+                    OutputProblem(ProblemKind.STRUCTURE, "the structure tree is no map")
+                )
+            else:
+                problems.extend(_structure_problems(tree, tags))
+        problems.extend(_tag_problems(tags, structure))
     # pypdf raises many kinds of error on a damaged file. Any of them means the file is not one
     # the export wrote, so the check fails closed.
     except Exception as error:
@@ -589,5 +664,72 @@ def _title_problems(titles: Sequence[str], outline: Sequence[str]) -> list[Outpu
         OutputProblem(
             ProblemKind.OUTLINE,
             f"the outline lacks {wanted[len(found) :]!r}, which the library wrote",
+        )
+    ]
+
+
+def _structure_problems(tree: DictionaryObject, tags: list[str]) -> list[OutputProblem]:
+    """List the problems of the structure tree's shape, and add its block tags to ``tags``."""
+    problems: list[OutputProblem] = []
+    seen: set[tuple[int, int]] = set()
+    pending: list[PdfObject] = [tree.raw_get("/K")] if "/K" in tree else []
+    while pending:
+        kid: PdfObject | None = pending.pop()
+        if isinstance(kid, IndirectObject):
+            if (kid.idnum, kid.generation) in seen:
+                problems.append(
+                    OutputProblem(ProblemKind.STRUCTURE, "the structure tree has a loop")
+                )
+                continue
+            seen.add((kid.idnum, kid.generation))
+            kid = kid.get_object()
+        if isinstance(kid, ArrayObject):
+            # The first kid goes on the stack last, so it comes out first and the tags are
+            # read in reading order. Iterating the list gives each kid as the file wrote it,
+            # which keeps a reference a reference for the loop guard.
+            pending += reversed(list(kid))
+        elif isinstance(kid, DictionaryObject):
+            if str(kid.get("/Type")) in _CONTENT_REFERENCES:
+                continue
+            kind = kid.get("/S")
+            tag = str(kind)[1:] if isinstance(kind, NameObject) else None
+            if tag in _COMPARED_TAGS:
+                tags.append(tag)
+            elif tag not in _PASSED_TAGS:
+                problems.append(
+                    OutputProblem(
+                        ProblemKind.STRUCTURE,
+                        f"the structure tree holds an element of type {kind!s}",
+                    )
+                )
+            if "/K" in kid:
+                pending.append(kid.raw_get("/K"))
+        # A number is the id of marked content on a page. A reference to no object gives
+        # ``None``, which is a problem like any other kind.
+        elif not isinstance(kid, NumberObject):
+            problems.append(
+                OutputProblem(
+                    ProblemKind.STRUCTURE,
+                    f"the structure tree holds a kid of kind {type(kid).__name__}",
+                )
+            )
+    return problems
+
+
+def _tag_problems(tags: Sequence[str], structure: Sequence[str]) -> list[OutputProblem]:
+    """Compare the block tags of the structure tree with the ones the library computed."""
+    found, wanted = list(tags), list(structure)
+    if found == wanted:
+        return []
+    shared = min(len(found), len(wanted))
+    index = next((at for at in range(shared) if found[at] != wanted[at]), shared)
+    start = max(index - _TAGS_SHOWN, 0)
+    stop = index + _TAGS_SHOWN + 1
+    return [
+        OutputProblem(
+            ProblemKind.STRUCTURE,
+            f"block element {index + 1} of {len(found)} differs from the {len(wanted)} the "
+            f"library computed: the file holds {' '.join(found[start:stop]) or 'nothing'} "
+            f"there, and the library computed {' '.join(wanted[start:stop]) or 'nothing'}",
         )
     ]

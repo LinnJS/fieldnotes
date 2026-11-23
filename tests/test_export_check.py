@@ -14,6 +14,7 @@ from kb.export import (
     checked_document,
     find_pandoc,
     pdf_outline,
+    pdf_structure,
     write_epub,
     write_pdf,
 )
@@ -64,13 +65,29 @@ class Written:
     epub: Path
     pdf: Path
     outline: list[str]
+    structure: list[str]
 
 
-def copy_library(source: Path, target: Path, added: str = "") -> tuple[Library, Resource]:
-    """Copy the fixture library, add text to its first chapter, and load the copy."""
+def copy_library(
+    source: Path, target: Path, added: str = "", record: tuple[str, str] | None = None
+) -> tuple[Library, Resource]:
+    """Copy the fixture library, change the mirrored book, and load the copy.
+
+    Args:
+        source: The fixture library.
+        target: Where to copy it.
+        added: Text to add to the end of the book's first chapter.
+        record: Text of the book's record and the text to put in its place.
+    """
     shutil.copytree(source, target, ignore=shutil.ignore_patterns("build", "dist"))
     chapter = target / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
     chapter.write_text(chapter.read_text(encoding="utf-8") + added, encoding="utf-8")
+    if record is not None:
+        old, new = record
+        metadata = target / "books" / MIRRORED / "metadata.yaml"
+        text = metadata.read_text(encoding="utf-8")
+        assert old in text
+        metadata.write_text(text.replace(old, new), encoding="utf-8")
     library = load_library(target)
     return library, library.resource(MIRRORED)
 
@@ -84,6 +101,7 @@ def written(fixture_library_root: Path, tmp_path_factory: pytest.TempPathFactory
         epub=write_epub(library, resource, directory / "out", pandoc),
         pdf=write_pdf(library, resource, directory / "out", pandoc),
         outline=library_outline(library, resource),
+        structure=library_structure(library, resource),
     )
 
 
@@ -104,6 +122,11 @@ def outline_titles(pdf: Path) -> list[str]:
 def library_outline(library: Library, resource: Resource) -> list[str]:
     """Return the outline the export computes for a book's PDF."""
     return pdf_outline(checked_document(library, resource, find_pandoc()))
+
+
+def library_structure(library: Library, resource: Resource) -> list[str]:
+    """Return the block elements the export computes for a book's PDF."""
+    return pdf_structure(checked_document(library, resource, find_pandoc()))
 
 
 def has(problems: list[OutputProblem], kind: ProblemKind, *parts: str) -> bool:
@@ -133,7 +156,7 @@ def changed_epub(
 
 def test_the_export_of_the_fixture_library_passes_both_checks(written: Written) -> None:
     assert epub_problems(written.epub) == []
-    assert pdf_problems(written.pdf, outline=written.outline) == []
+    assert pdf_problems(written.pdf, outline=written.outline, structure=written.structure) == []
 
 
 def test_an_epub_member_the_export_does_not_write_is_a_problem(
@@ -273,7 +296,14 @@ def test_a_chapter_with_every_admitted_feature_exports_and_passes_both_checks(
     pdf = write_pdf(library, resource, tmp_path / "out", pandoc)
 
     assert epub_problems(epub) == []
-    assert pdf_problems(pdf, outline=library_outline(library, resource)) == []
+    assert (
+        pdf_problems(
+            pdf,
+            outline=library_outline(library, resource),
+            structure=library_structure(library, resource),
+        )
+        == []
+    )
     with zipfile.ZipFile(epub) as archive:
         page = archive.read("EPUB/text/ch002.xhtml").decode()
     for markup in (
@@ -401,7 +431,7 @@ def test_a_pdf_with_a_web_link_and_an_internal_jump_passes(tmp_path: Path) -> No
         jump=True,
     )
 
-    assert pdf_problems(pdf, outline=()) == []
+    assert pdf_problems(pdf, outline=(), structure=()) == []
 
 
 @pytest.mark.parametrize(
@@ -458,7 +488,7 @@ def test_a_pdf_link_other_than_a_web_link_or_a_jump_is_a_problem(
 ) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", annotations=annotations)
 
-    assert has(pdf_problems(pdf, outline=()), kind, "page 1", shown)
+    assert has(pdf_problems(pdf, outline=(), structure=()), kind, "page 1", shown)
 
 
 @pytest.mark.parametrize(
@@ -475,13 +505,13 @@ def test_a_pdf_catalog_entry_the_export_does_not_write_is_a_problem(
 ) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", catalog={entry: value})
 
-    assert has(pdf_problems(pdf, outline=()), ProblemKind.CATALOG, entry)
+    assert has(pdf_problems(pdf, outline=(), structure=()), ProblemKind.CATALOG, entry)
 
 
 def test_a_pdf_with_an_embedded_file_is_a_problem(tmp_path: Path) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", attachment=True)
 
-    assert has(pdf_problems(pdf, outline=()), ProblemKind.CATALOG, "/EmbeddedFiles")
+    assert has(pdf_problems(pdf, outline=(), structure=()), ProblemKind.CATALOG, "/EmbeddedFiles")
 
 
 def test_a_pdf_with_a_script_in_its_name_tree_is_a_problem(tmp_path: Path) -> None:
@@ -497,7 +527,7 @@ def test_a_pdf_with_a_script_in_its_name_tree_is_a_problem(tmp_path: Path) -> No
         catalog={"/Names": DictionaryObject({NameObject("/JavaScript"): scripts})},
     )
 
-    assert has(pdf_problems(pdf, outline=()), ProblemKind.CATALOG, "/JavaScript")
+    assert has(pdf_problems(pdf, outline=(), structure=()), ProblemKind.CATALOG, "/JavaScript")
 
 
 def test_a_pdf_page_with_additional_actions_is_a_problem(tmp_path: Path) -> None:
@@ -506,20 +536,20 @@ def test_a_pdf_page_with_additional_actions_is_a_problem(tmp_path: Path) -> None
         page={"/AA": DictionaryObject({NameObject("/O"): action("/JavaScript", JS=SCRIPT)})},
     )
 
-    assert has(pdf_problems(pdf, outline=()), ProblemKind.PAGE, "page 1", "/AA")
+    assert has(pdf_problems(pdf, outline=(), structure=()), ProblemKind.PAGE, "page 1", "/AA")
 
 
 def test_a_pdf_outline_item_with_an_action_is_a_problem(tmp_path: Path) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", outline_action=action("/JavaScript", JS=SCRIPT))
 
-    assert has(pdf_problems(pdf, outline=["Chapter"]), ProblemKind.OUTLINE, "/A")
+    assert has(pdf_problems(pdf, outline=["Chapter"], structure=()), ProblemKind.OUTLINE, "/A")
 
 
 def test_a_file_that_is_not_a_pdf_is_a_problem(tmp_path: Path) -> None:
     pdf = tmp_path / "a.pdf"
     pdf.write_bytes(b"not a pdf")
 
-    assert has(pdf_problems(pdf, outline=()), ProblemKind.FILE)
+    assert has(pdf_problems(pdf, outline=(), structure=()), ProblemKind.FILE)
 
 
 def unchanged_chapters(
@@ -576,7 +606,9 @@ def test_the_outline_of_the_fixture_pdf_is_the_one_the_library_computes(written:
 
 
 def test_an_outline_title_the_library_did_not_compute_is_a_problem(written: Written) -> None:
-    problems = pdf_problems(written.pdf, outline=[*written.outline, "Injected heading"])
+    problems = pdf_problems(
+        written.pdf, outline=[*written.outline, "Injected heading"], structure=written.structure
+    )
 
     assert has(problems, ProblemKind.OUTLINE, "Injected heading")
 
@@ -597,6 +629,356 @@ def test_with_the_document_pass_switched_off_the_outline_check_stops_a_line_star
     assert "holds what the export does not write" in raised.value.message
     assert "Injected heading" in raised.value.message
     assert list(out.iterdir()) == []
+
+
+# Text that starts with a line-start mark where Pandoc's Typst writer does not escape one: a
+# table cell, the body of a list item, and the text of a link.
+STRUCTURE_ROUTES = {
+    "list mark in a cell": "\n| Step | Note |\n|---|---|\n| one | - Keep it dry |\n",
+    "term mark in a cell": "\n| Step | Note |\n|---|---|\n| one | / Note: no fourth fold |\n",
+    "list number in a cell": "\n| Step | Note |\n|---|---|\n| one | 1. Fold the sheet |\n",
+    "plus mark in a cell": "\n| Step | Note |\n|---|---|\n| one | + plus |\n",
+    "list number in a list item": "\n- 2\\. Launch\n",
+    "list mark in a list item": "\n- \\- a dash\n",
+    "term mark in an ordered item": "\n1. / Term: body\n",
+    "term mark in a quoted item": "\n> - / Term: body\n",
+    "list number in a link": "\nSee [1. Setup](https://example.invalid/a) first.\n",
+    "list mark in a link": "\nSee [- dash](https://example.invalid/b) first.\n",
+}
+NOTICE_LINE = "  - Test fixture. This book and its text are invented for automated tests.\n"
+
+
+@pytest.mark.parametrize("added", list(STRUCTURE_ROUTES.values()), ids=list(STRUCTURE_ROUTES))
+def test_a_chapter_cannot_add_a_list_to_the_pdf(
+    fixture_library_root: Path, tmp_path: Path, added: str
+) -> None:
+    library, resource = copy_library(fixture_library_root, tmp_path / "library", added)
+    out = tmp_path / "out"
+
+    with pytest.raises(ExportError) as raised:
+        write_pdf(library, resource, out, find_pandoc())
+
+    assert "holds what the export does not write" in raised.value.message
+    assert "Structure:" in raised.value.message
+    assert "report" in raised.value.fix
+    assert list(out.iterdir()) == []
+
+
+def test_a_notice_that_validation_did_not_see_cannot_add_a_term_list_to_the_pdf(
+    fixture_library_root: Path, tmp_path: Path
+) -> None:
+    notice = '  - "/ Reprint: the second printing moves the pond table."\n'
+    library, resource = copy_library(
+        fixture_library_root, tmp_path / "library", record=(NOTICE_LINE, notice)
+    )
+    out = tmp_path / "out"
+
+    with pytest.raises(ExportError) as raised:
+        write_pdf(library, resource, out, find_pandoc())
+
+    assert "Structure:" in raised.value.message
+    assert list(out.iterdir()) == []
+
+
+@pytest.mark.parametrize("added", list(STRUCTURE_ROUTES.values()), ids=list(STRUCTURE_ROUTES))
+def test_a_line_start_mark_in_a_cell_an_item_or_a_link_is_text_in_the_epub(
+    fixture_library_root: Path, tmp_path: Path, added: str
+) -> None:
+    library, resource = copy_library(fixture_library_root, tmp_path / "library", added)
+
+    epub = write_epub(library, resource, tmp_path / "out", find_pandoc())
+
+    assert epub_problems(epub) == []
+
+
+def test_a_title_that_validation_did_not_see_cannot_add_a_term_list_to_the_title_page(
+    fixture_library_root: Path, tmp_path: Path
+) -> None:
+    title = "english: Paper Boat Engineering (Test Fixture)"
+    library, resource = copy_library(
+        fixture_library_root,
+        tmp_path / "library",
+        record=(title, 'english: "/ Paper: Boat Engineering (Test Fixture)"'),
+    )
+    out = tmp_path / "out"
+
+    with pytest.raises(ExportError) as raised:
+        write_pdf(library, resource, out, find_pandoc())
+
+    assert "Structure: block element 1 " in raised.value.message
+    assert list(out.iterdir()) == []
+
+
+def test_a_cell_that_starts_like_a_typst_heading_writes_no_pdf(
+    fixture_library_root: Path, tmp_path: Path
+) -> None:
+    added = "\n| Step | Note |\n|---|---|\n| one | = Heading try |\n"
+    library, resource = copy_library(fixture_library_root, tmp_path / "library", added)
+    out = tmp_path / "out"
+
+    # The template breaks the page before a heading of the first level, which the compiler
+    # refuses inside a cell, so the compiler stops this one before the read-back does.
+    with pytest.raises(ExportError):
+        write_pdf(library, resource, out, find_pandoc())
+
+    assert list(out.iterdir()) == []
+
+
+# Every nesting of the block features a chapter may hold, written the way a faithful chapter
+# writes them.
+FAITHFUL_NESTINGS = (
+    "\n- one\n  - two\n    - three\n- back\n"
+    "\n- bullet\n  1. ordered inside\n  2. second\n"
+    "\n1. ordered\n   - bullet inside\n2. next\n"
+    "\n- first paragraph\n\n  second paragraph\n"
+    "\n- item\n\n  > a quote inside an item\n"
+    "\n- item\n\n  ```text\n  code inside an item\n  ```\n"
+    "\n> - a list\n> - inside a quote\n"
+    "\n> outer\n>\n> > inner\n"
+    "\n### Level three\n\n#### Level four\n\n##### Level five\n\n###### Level six\n\nText.\n"
+    "\n| a | | c |\n|:--|--:|:-:|\n| `code` | | 3 |\n|  | 2 |  |\n"
+)
+# Marks that stand where Pandoc escapes them or where the compiler reads no line start.
+HARMLESS_MARKS = (
+    "\nfirst line\\\n1\\. after a hard break\n"
+    "\nsecond line  \n\\- after a two-space break\n"
+    "\nthird line\n\\+ after a soft break\n"
+    "\n> 1\\. a quoted paragraph that starts with a number\n"
+    "\n*\\- emphasis* and **1\\. strong** and `- code`.\n"
+    "\n### 1\\. A heading that starts with a number\n\n### \\- A heading that starts with a dash\n"
+)
+PAGE_CROSSING = (
+    "\n| n | note |\n|---|---|\n"
+    + "".join(f"| {row} | a row of the long table |\n" for row in range(90))
+    + "\n"
+    + "".join(f"- item {item} of the long list\n" for item in range(70))
+)
+
+
+@pytest.mark.parametrize(
+    "added",
+    [FAITHFUL_NESTINGS, HARMLESS_MARKS, PAGE_CROSSING],
+    ids=["every nesting", "marks that open no block", "a table and a list that cross pages"],
+)
+def test_a_faithful_chapter_exports_with_the_structure_the_library_computes(
+    fixture_library_root: Path, tmp_path: Path, added: str
+) -> None:
+    library, resource = copy_library(fixture_library_root, tmp_path / "library", added)
+    pandoc = find_pandoc()
+
+    epub = write_epub(library, resource, tmp_path / "out", pandoc)
+    pdf = write_pdf(library, resource, tmp_path / "out", pandoc)
+
+    assert epub_problems(epub) == []
+    assert pdf.is_file()
+
+
+def test_the_structure_of_the_fixture_pdf_is_the_one_the_library_computes(
+    written: Written,
+) -> None:
+    assert written.structure[:3] == ["H1", "TOC", "TOCI"]
+    for tag in ("Lbl", "H1", "H2", "L", "LI", "LBody", "Table", "THead", "TH", "TBody", "TR", "TD"):
+        assert tag in written.structure
+    assert pdf_problems(written.pdf, outline=written.outline, structure=written.structure) == []
+
+
+@pytest.mark.parametrize("change", ["added", "removed", "swapped"])
+def test_a_structure_the_library_did_not_compute_is_one_problem_that_names_the_place(
+    written: Written, change: str
+) -> None:
+    at = written.structure.index("Table")
+    wanted = list(written.structure)
+    if change == "added":
+        wanted.insert(at, "L")
+    elif change == "removed":
+        del wanted[at]
+    else:
+        wanted[at], wanted[at + 1] = wanted[at + 1], wanted[at]
+
+    problems = pdf_problems(written.pdf, outline=written.outline, structure=wanted)
+
+    assert [problem.kind for problem in problems] == [ProblemKind.STRUCTURE]
+    assert f"block element {at + 1} of {len(written.structure)}" in problems[0].detail
+    assert "Table" in problems[0].detail
+
+
+def test_a_structure_that_ends_early_or_late_is_a_problem(written: Written) -> None:
+    short, long = written.structure[:-1], [*written.structure, "L"]
+
+    for wanted in (short, long):
+        problems = pdf_problems(written.pdf, outline=written.outline, structure=wanted)
+
+        assert [problem.kind for problem in problems] == [ProblemKind.STRUCTURE]
+        assert f"block element {len(written.structure) + (wanted is long)}" in problems[0].detail
+
+
+def changed_structure(
+    pdf: Path, target: Path, change: Callable[[DictionaryObject, DictionaryObject], None]
+) -> Path:
+    """Copy a PDF after a change to its catalog or to the first table of its structure tree."""
+    writer = PdfWriter(clone_from=pdf)
+    catalog = writer.root_object
+    tree = catalog["/StructTreeRoot"]
+    assert isinstance(tree, DictionaryObject)
+    pending: list[PdfObject] = [tree["/K"]]
+    table = None
+    while pending and table is None:
+        kid = pending.pop().get_object()
+        if isinstance(kid, ArrayObject):
+            pending += reversed(list(kid))
+        elif isinstance(kid, DictionaryObject) and "/S" in kid:
+            if kid["/S"] == "/Table":
+                table = kid
+            elif "/K" in kid:
+                pending.append(kid["/K"])
+    assert table is not None
+    change(catalog, table)
+    writer.write(target)
+    return target
+
+
+def test_a_copy_of_the_fixture_pdf_still_passes(written: Written, tmp_path: Path) -> None:
+    pdf = changed_structure(written.pdf, tmp_path / "a.pdf", lambda catalog, table: None)
+
+    assert pdf_problems(pdf, outline=written.outline, structure=written.structure) == []
+
+
+def test_a_pdf_with_no_structure_tree_is_a_problem(written: Written, tmp_path: Path) -> None:
+    def remove(catalog: DictionaryObject, table: DictionaryObject) -> None:
+        del catalog["/StructTreeRoot"]
+
+    pdf = changed_structure(written.pdf, tmp_path / "a.pdf", remove)
+
+    problems = pdf_problems(pdf, outline=written.outline, structure=written.structure)
+
+    assert has(problems, ProblemKind.STRUCTURE, "block element 1 of 0", "the file holds nothing")
+
+
+def test_a_structure_element_of_another_type_is_a_problem(written: Written, tmp_path: Path) -> None:
+    def retype(catalog: DictionaryObject, table: DictionaryObject) -> None:
+        table[NameObject("/S")] = NameObject("/Form")
+
+    pdf = changed_structure(written.pdf, tmp_path / "a.pdf", retype)
+
+    problems = pdf_problems(pdf, outline=written.outline, structure=written.structure)
+
+    assert has(problems, ProblemKind.STRUCTURE, "an element of type /Form")
+
+
+def test_a_structure_tree_with_a_loop_is_a_problem(written: Written, tmp_path: Path) -> None:
+    def loop(catalog: DictionaryObject, table: DictionaryObject) -> None:
+        kids = table["/K"]
+        assert isinstance(kids, ArrayObject)
+        kids.append(table.indirect_reference)
+
+    pdf = changed_structure(written.pdf, tmp_path / "a.pdf", loop)
+
+    problems = pdf_problems(pdf, outline=written.outline, structure=written.structure)
+
+    assert has(problems, ProblemKind.STRUCTURE, "a loop")
+
+
+def node(kind: str, content: Json = None) -> Json:
+    """Return one node of Pandoc's JSON document."""
+    return {"t": kind, "c": content} if content is not None else {"t": kind}
+
+
+def heading(level: int, word: str, *classes: str) -> Json:
+    return node("Header", [level, [word.lower(), list(classes), []], [node("Str", word)]])
+
+
+def cell(*blocks: Json) -> Json:
+    return [["", [], []], node("AlignDefault"), 1, 1, list(blocks)]
+
+
+def table(head: list[list[Json]], body: list[list[Json]]) -> Json:
+    empty: Json = ["", [], []]
+    return node(
+        "Table",
+        [
+            empty,
+            [None, []],
+            [],
+            [empty, [[empty, row] for row in head]],
+            [[empty, 0, [], [[empty, row] for row in body]]],
+            [empty, []],
+        ],
+    )
+
+
+WORD = node("Plain", [node("Str", "word")])
+
+
+@pytest.mark.parametrize(
+    ("blocks", "structure"),
+    [
+        ([node("Para", [node("Str", "word")])], ["H1", "TOC"]),
+        (
+            [heading(1, "Notice", "unnumbered"), heading(1, "One"), heading(2, "Two")],
+            ["H1", "TOC", "TOCI", "TOCI", "Lbl", "TOC", "TOCI", "Lbl", "H1", "H1", "H2"],
+        ),
+        (
+            [heading(1, "One"), heading(2, "Two"), heading(3, "Three"), heading(1, "Four")],
+            [
+                "H1",
+                "TOC",
+                "TOCI",
+                "Lbl",
+                "TOC",
+                "TOCI",
+                "Lbl",
+                "TOCI",
+                "Lbl",
+                "H1",
+                "H2",
+                "H3",
+                "H1",
+            ],
+        ),
+        (
+            [node("BlockQuote", [node("BulletList", [[WORD], [WORD]])])],
+            ["H1", "TOC", "BlockQuote", "L", "LI", "Lbl", "LBody", "LI", "Lbl", "LBody"],
+        ),
+        (
+            [node("OrderedList", [[1, node("Decimal"), node("Period")], [[WORD]]])],
+            ["H1", "TOC", "L", "LI", "Lbl", "LBody"],
+        ),
+        (
+            [table([[cell(WORD), cell()]], [[cell(node("BulletList", [[WORD]])), cell(WORD)]])],
+            [
+                "H1",
+                "TOC",
+                "Table",
+                "THead",
+                "TR",
+                "TH",
+                "TH",
+                "TBody",
+                "TR",
+                "TD",
+                "L",
+                "LI",
+                "Lbl",
+                "LBody",
+                "TD",
+            ],
+        ),
+        ([table([], [[cell(WORD)]])], ["H1", "TOC", "Table", "TBody", "TR", "TD"]),
+    ],
+    ids=[
+        "no block element",
+        "a numbered and an unnumbered heading in the contents",
+        "a heading below the depth of the contents",
+        "a list inside a quote",
+        "an ordered list",
+        "a list inside a cell",
+        "a table with no head row",
+    ],
+)
+def test_the_structure_the_library_computes_from_a_document(
+    blocks: list[Json], structure: list[str]
+) -> None:
+    assert pdf_structure({"blocks": blocks}) == structure
 
 
 def test_a_chapter_link_with_a_title_exports_and_passes_both_checks(
