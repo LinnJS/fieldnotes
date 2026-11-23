@@ -331,6 +331,19 @@ def test_a_site_whose_canonical_files_cannot_be_copied_is_removed(
     assert not (library_copy / SITE_DIR).exists()
 
 
+def test_a_site_whose_strict_build_fails_is_removed(library_copy: Path) -> None:
+    # MkDocs writes every page before the strict build stops on a warning, so the pages it
+    # wrote have not been checked.
+    write_root_files(library_copy)
+    append(library_copy, CHAPTER, "A link to [a missing anchor](#no-such-heading).")
+
+    with pytest.raises(SiteError) as raised:
+        build_site(load_library(library_copy))
+
+    assert raised.value.step == "MkDocs build"
+    assert not (library_copy / SITE_DIR).exists()
+
+
 MARKED = [
     (CHAPTER, None),
     (TOPIC, None),

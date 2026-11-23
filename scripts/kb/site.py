@@ -393,8 +393,8 @@ def build_site(library: Library) -> Path:
     those files as downloads, write the configuration, run the strict MkDocs build, copy the
     canonical files in, and check every file the site serves. The bundle is written before
     the books because it checks the library's own files, so a missing one stops the run before
-    the slower exports start. A site that fails the check, or whose canonical files cannot be
-    copied, is removed.
+    the slower exports start. A site that fails the strict build or the check, or whose
+    canonical files cannot be copied, is removed.
 
     Args:
         library: The loaded library.
@@ -436,7 +436,12 @@ def build_site(library: Library) -> Path:
     except BuildError as error:
         raise SiteError("staging", str(error)) from error
     write_config(library, navigation, config_file, docs_dir=staging_dir, site_dir=site_dir)
-    run_mkdocs(config_file)
+    try:
+        run_mkdocs(config_file)
+    except SiteError:
+        # MkDocs writes every page before the strict build stops, so the site is unchecked.
+        shutil.rmtree(site_dir, ignore_errors=True)
+        raise
     try:
         publish_canonical_files(library, site_dir)
     except ExportError as error:
