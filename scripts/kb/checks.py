@@ -637,6 +637,10 @@ def _check_fidelity(library: Library) -> list[Finding]:
     source file that is not recorded, is missing, or has another SHA-256 than the metadata is
     one finding, and no chapter of that book is compared.
 
+    The frontmatter of a chapter is compared too, because the indexes and every citation are
+    written from it. A chapter with a field that is not what the pinned source and the
+    extracted section give is one finding, which names every such field.
+
     Text of the source that fits no role rule is in no section, so every chapter can match its
     section while part of the book is left out. That is one finding for the book.
     """
@@ -670,6 +674,24 @@ def _check_fidelity(library: Library) -> list[Finding]:
             )
             for chapter_file, result in zip(chapters, report.results, strict=True)
             if not result.passed
+        )
+        findings.extend(
+            Finding(
+                rule="fidelity-frontmatter",
+                file=chapter_file.path.as_posix(),
+                message=(
+                    f"The frontmatter of the chapter {result.chapter} does not describe its "
+                    f"source. In it, {'; '.join(result.frontmatter)}."
+                ),
+                fix=(
+                    "Restore the value the pinned source gives. `uv run python "
+                    f"scripts/ingest.py --book {resource.id}` writes each chapter with the "
+                    f"right frontmatter to build/ingest/{resource.id}/. If the book moved to "
+                    "a new edition, ingest that edition and do not edit the field alone."
+                ),
+            )
+            for chapter_file, result in zip(chapters, report.results, strict=True)
+            if result.frontmatter
         )
         findings.extend(
             Finding(

@@ -151,6 +151,14 @@ def _check(root: Path, resource: Resource) -> int:
             "right and the extraction is wrong, list the words under accepted_differences in "
             f"{BOOKS_DIR}/{resource.id}/{METADATA_FILE} with the chapter id and a reason.",
         )
+    mislabeled = sum(bool(result.frontmatter) for result in report.results)
+    if mislabeled:
+        return _fail(
+            f"The frontmatter of {mislabeled} of {len(report.results)} chapters does not "
+            "describe the source file.",
+            "Restore each field named above to the value the pinned source gives. The drafts "
+            f"in build/ingest/{resource.id}/ hold the right frontmatter.",
+        )
     if report.missing:
         return _fail(
             f"{len(report.missing)} of the source file's sections have no chapter.",

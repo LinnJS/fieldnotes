@@ -26,12 +26,13 @@ import re
 import unicodedata
 from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from kb.blocks import section_text
+from kb.blocks import Section, section_text
 from kb.catalog import AcceptedDifference, ChapterFile, Resource
+from kb.frontmatter import Chapter
 from kb.ingest import IngestError, extract_book
 from kb.pdf_spans import Span
 from kb.readpath import CODE_FENCE, opening_fence
@@ -108,6 +109,10 @@ class FidelityResult:
             differences, in reading order.
         message: What is wrong, on one line, naming the chapter and the first words that
             differ. It is empty when the chapter passed.
+        frontmatter: One line for each frontmatter field that is not what the pinned source
+            and the extracted section give. The indexes, the citation, and the edition notice
+            are all written from the frontmatter, so a wrong field misleads a reader even when
+            every word of the body matches.
     """
 
     chapter: str
@@ -116,6 +121,7 @@ class FidelityResult:
     words_removed: tuple[str, ...]
     words_added: tuple[str, ...]
     message: str
+    frontmatter: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -323,7 +329,9 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
     assignments = () if profile is None else profile.sections
     accepted = () if profile is None else profile.accepted_differences
     titles = {assignment.slug: assignment.title for assignment in assignments}
+    parts = {assignment.slug: assignment.part for assignment in assignments}
     sections = {section.title: section for section in book.sections}
+    orders = {section.title: order for order, section in enumerate(book.sections, start=1)}
 
     results: list[FidelityResult] = []
     for chapter_file in chapters:
@@ -331,7 +339,11 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
         title = titles.get(chapter.slug)
         section = None if title is None else sections.get(title)
         if section is not None:
-            results.append(compare(chapter.id, section_text(section), chapter_file.body, accepted))
+            result = compare(chapter.id, section_text(section), chapter_file.body, accepted)
+            differing = _frontmatter_differences(
+                chapter, resource, section, orders[section.title], parts[chapter.slug]
+            )
+            results.append(replace(result, frontmatter=differing))
             continue
         reason = (
             f"The book's extraction_profile assigns the slug {chapter.slug} to no section."
@@ -359,6 +371,45 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
     )
 
 
+def _frontmatter_differences(
+    chapter: Chapter, resource: Resource, section: Section, order: int, part: str
+) -> tuple[str, ...]:
+    """Name each frontmatter field of a chapter that is not what its source gives.
+
+    The expected values are the ones ``kb.markdown.draft_chapters`` writes for the section. The
+    extraction status and the errata are set by a person and are not compared.
+
+    Args:
+        chapter: The frontmatter of the chapter.
+        resource: The book, whose pinned source names the edition and the file.
+        section: The extracted section the chapter holds.
+        order: Position of the section in the source, counted from 1.
+        part: The part the extraction profile assigns to the section.
+    """
+    expected: list[tuple[str, object, object]] = [
+        ("title", chapter.title, section.title),
+        ("part", chapter.part, part),
+        ("order", chapter.order, order),
+        ("section_label", chapter.section_label, section.label),
+        ("source.pages.first", chapter.source.pages.first, section.first_page),
+        ("source.pages.last", chapter.source.pages.last, section.last_page),
+    ]
+    pinned = resource.pinned_source
+    if pinned is not None:
+        expected += [
+            ("language", chapter.language, pinned.language),
+            ("edition", chapter.edition, pinned.edition),
+            ("source.repository", chapter.source.repository, pinned.repository),
+            ("source.revision", chapter.source.revision, pinned.commit),
+            ("source.path", chapter.source.path, pinned.path),
+        ]
+    return tuple(
+        f"{field} is {found!r}, and the pinned source gives {wanted!r}"
+        for field, found, wanted in expected
+        if found != wanted
+    )
+
+
 def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
     """Describe a comparison for a person.
 
@@ -368,15 +419,17 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
 
     Returns:
         The lines to print: the source file, one line per chapter with the message of each
-        failure below it, one line per section that no chapter holds, one line per span that
-        is in no section, every accepted difference of the book with its reason, and a count.
+        failure and each differing frontmatter field below it, one line per section that no
+        chapter holds, one line per span that is in no section, every accepted difference of
+        the book with its reason, and a count.
     """
     lines = [] if report.source is None else [f"Source: {report.source.as_posix()}"]
     for result in report.results:
-        verdict = "pass" if result.passed else "FAIL"
+        verdict = "pass" if result.passed and not result.frontmatter else "FAIL"
         lines.append(f"  {verdict}  {result.chapter}  similarity {result.similarity:.3f}")
         if not result.passed:
             lines.append(f"        {result.message}")
+        lines.extend(f"        {difference}" for difference in result.frontmatter)
     lines.extend(f'  MISSING  no chapter holds the section "{title}"' for title in report.missing)
     lines.extend(
         f"  UNMATCHED  page {span.page}: {span.text.strip()!r}" for span in report.unmatched
@@ -389,7 +442,7 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
         f"added: {', '.join(difference.words_added) or 'none'}  reason: {difference.reason}"
         for difference in accepted
     )
-    failed = sum(not result.passed for result in report.results)
+    failed = sum(not result.passed or bool(result.frontmatter) for result in report.results)
     count = f"Chapters checked: {len(report.results)}. Failed: {failed}."
     if report.missing:
         count += f" Sections with no chapter: {len(report.missing)}."

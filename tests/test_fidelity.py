@@ -356,6 +356,53 @@ def test_the_report_for_a_person_names_a_section_that_no_chapter_holds(library_c
     assert lines[-1] == "Chapters checked: 2. Failed: 0. Sections with no chapter: 1."
 
 
+BENT_FRONTMATTER = [
+    ("title: Choosing a Pond", "title: Choosing a Lake", "title"),
+    ('part: "Part One: Paper"', 'part: "Part Two: Water"', "part"),
+    ("order: 2", "order: 9", "order"),
+    ('section_label: "§02"', 'section_label: "§09"', "section_label"),
+    ("language: en", "language: zh", "language"),
+    ("edition: v1.0.0", "edition: v9.9.9", "edition"),
+    (
+        "repository: fixture-author/fixture-mirrored-book",
+        "repository: someone-else/unrelated-fork",
+        "source.repository",
+    ),
+    (f"revision: {'a' * 40}", f"revision: {'c' * 40}", "source.revision"),
+    ("path: Paper-Boat-Engineering-v1.0.0.pdf", "path: Other.pdf", "source.path"),
+    ("first: 4", "first: 3", "source.pages.first"),
+    ("last: 5", "last: 6", "source.pages.last"),
+]
+
+
+@pytest.mark.parametrize(("old", "new", "field"), BENT_FRONTMATTER)
+def test_chapter_frontmatter_that_differs_from_the_pinned_source_is_a_finding(
+    old: str, new: str, field: str, library_copy: Path
+) -> None:
+    replace_in(library_copy / POND, old, new)
+
+    findings = fidelity_findings(library_copy)
+
+    assert located(findings) == [("fidelity-frontmatter", POND.as_posix())]
+    assert f" {field} is " in findings[0].message
+
+
+def test_the_report_for_a_person_names_frontmatter_that_differs(library_copy: Path) -> None:
+    replace_in(library_copy / POND, "edition: v1.0.0", "edition: v9.9.9")
+    resource = load_resource(library_copy, MIRRORED)
+
+    report = check_book(library_copy, resource, load_chapters(library_copy, MIRRORED))
+
+    assert [result.frontmatter for result in report.results] == [
+        (),
+        ("edition is 'v9.9.9', and the pinned source gives 'v1.0.0'",),
+        (),
+    ]
+    lines = report_lines(resource, report)
+    assert "        edition is 'v9.9.9', and the pinned source gives 'v1.0.0'" in lines
+    assert lines[-1] == "Chapters checked: 3. Failed: 1."
+
+
 def test_source_text_that_fits_no_role_rule_is_a_finding(library_copy: Path) -> None:
     # Page 7 is the back cover. Once it is not excluded, its text fits no rule and is in no
     # section, and every chapter still matches its own section.

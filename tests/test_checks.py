@@ -276,8 +276,8 @@ def test_two_chapters_with_one_id_are_a_finding_that_names_both_files(library_co
 
     findings = run_checks(library_copy)
 
-    # The second file holds invented text under the id of a real section, so it also fails the
-    # comparison with the source.
+    # The second file holds invented text and invented frontmatter under the id of a real
+    # section, so it also fails both comparisons with the source.
     assert located(findings) == [
         (
             "chapter-duplicate-id",
@@ -285,6 +285,11 @@ def test_two_chapters_with_one_id_are_a_finding_that_names_both_files(library_co
             None,
         ),
         ("fidelity-chapter", "books/fixture-mirrored-book/chapters/04-folding-the-hull.md", None),
+        (
+            "fidelity-frontmatter",
+            "books/fixture-mirrored-book/chapters/04-folding-the-hull.md",
+            None,
+        ),
         ("index-stale", "index/catalog.json", None),
         ("index-stale", "index/chapters.jsonl", None),
         ("index-stale", "llms.txt", None),
@@ -300,9 +305,15 @@ def test_order_values_with_a_gap_are_a_finding(library_copy: Path) -> None:
 
     findings = run_checks(library_copy)
 
-    # The fixture topic links the renamed chapter file under its old name.
+    # The fixture topic links the renamed chapter file under its old name, and the section is
+    # still the third of the source.
     assert located(findings) == [
         ("chapter-order", "books/fixture-mirrored-book/chapters", None),
+        (
+            "fidelity-frontmatter",
+            "books/fixture-mirrored-book/chapters/04-recovering-a-sunk-boat.md",
+            None,
+        ),
         ("index-stale", "index/chapters.jsonl", None),
         ("index-stale", "llms.txt", None),
         ("link-missing-target", "topics/paper-craft.md", 26),
