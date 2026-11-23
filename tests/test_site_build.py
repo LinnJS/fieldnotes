@@ -9,6 +9,7 @@ import pytest
 import yaml
 from conftest import write_root_files
 from kb.catalog import load_library
+from kb.export import ExportError
 from kb.readpath import source_label
 from kb.site import (
     CONFIG_FILE,
@@ -280,6 +281,39 @@ def test_a_failed_check_prints_ten_problems_of_a_kind_and_counts_the_rest(
     assert re.search(r"^head, 12:$", message, re.M)
     assert len(re.findall(r"^- .*: the element <hr>$", message, re.M)) == 10
     assert "\n- and 2 more of this kind" in message
+
+
+def test_another_theme_version_fails_the_build_with_its_own_fix_line(
+    library_copy: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_root_files(library_copy)
+    monkeypatch.setattr("kb.site_check._installed_theme_version", lambda: "9.9.0")
+
+    with pytest.raises(SiteError) as raised:
+        build_site(load_library(library_copy))
+
+    message = raised.value.message
+    assert re.search(r"^theme version, 1:$", message, re.M)
+    assert "- mkdocs-material 9.9.0 is installed" in message
+    assert "The theme version differs: install Material for MkDocs 9.8.2" in message
+    assert not (library_copy / SITE_DIR).exists()
+
+
+def test_a_site_whose_canonical_files_cannot_be_copied_is_removed(
+    library_copy: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_root_files(library_copy)
+
+    def refuse(library: object, site_dir: Path) -> list[Path]:
+        raise ExportError("A file is missing.", "Restore it.")
+
+    monkeypatch.setattr("kb.site.publish_canonical_files", refuse)
+
+    with pytest.raises(SiteError) as raised:
+        build_site(load_library(library_copy))
+
+    assert raised.value.step == "canonical files"
+    assert not (library_copy / SITE_DIR).exists()
 
 
 MARKED = [
