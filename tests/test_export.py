@@ -16,8 +16,10 @@ from xml.etree import ElementTree
 import export
 import pytest
 import typst
-from kb.catalog import load_library
-from kb.export import assemble_markdown
+from kb import export as kb_export
+from kb.catalog import Library, Resource, load_library
+from kb.export import ExportError, checked_document, find_pandoc
+from kb.export_document import Json
 from pypdf import PdfReader
 
 MIRRORED = "fixture-mirrored-book"
@@ -190,6 +192,24 @@ def content_text(archive: zipfile.ZipFile, name: str) -> str:
     return normalized("".join(ElementTree.fromstring(archive.read(name)).itertext()))
 
 
+def mirrored_book(root: Path) -> tuple[Library, Resource]:
+    library = load_library(root)
+    return library, library.resource(MIRRORED)
+
+
+def words(tree: Json) -> str:
+    """Return the text of a Pandoc tree, with one space for each space or line break."""
+    if isinstance(tree, list):
+        return "".join(words(value) for value in tree)
+    if not isinstance(tree, dict):
+        return ""
+    if tree.get("t") == "Str":
+        return str(tree["c"])
+    if tree.get("t") in ("Space", "SoftBreak", "LineBreak"):
+        return " "
+    return "".join(words(value) for key, value in tree.items() if key != "t")
+
+
 @pytest.fixture(scope="module")
 def exported(
     repo_root: Path, fixture_library_root: Path, tmp_path_factory: pytest.TempPathFactory
@@ -359,10 +379,9 @@ def test_the_notice_names_a_newer_edition_in_the_language_of_this_copy(
         text.replace("newest_editions:\n  en: v1.0.0\n", "newest_editions:\n  en: v1.2.0\n"),
         encoding="utf-8",
     )
-    library = load_library(library_copy)
-    [resource] = [resource for resource in library.resources if resource.id == MIRRORED]
+    library, resource = mirrored_book(library_copy)
 
-    notice = assemble_markdown(library, resource)
+    notice = words(checked_document(library, resource, find_pandoc())["blocks"])
 
     assert "The en edition v1.2.0 is newer than this copy" in notice
     assert "The zh edition v1.1.0 is newer than this copy" in notice
@@ -650,30 +669,180 @@ def test_pdf_build_succeeds_with_a_warning_when_no_cjk_font_is_installed(
         assert family in warning
 
 
-def test_a_chapter_cannot_set_attributes_or_markup_in_an_export(library_copy: Path) -> None:
-    chapter = library_copy / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
-    with chapter.open("a", encoding="utf-8") as file:
-        file.write(
-            '\n## Config { onclick="alert(1)" }\n\n'
-            'A [link](https://example.invalid/a){ onclick="x" } and `code`{ onclick="y" }.\n\n'
-            "<script>alert(1)</script>\n\n"
-            # A fence that never closes is a code block to Pandoc, and its line sets attributes.
-            "~~~ {.c onmouseover=x}\n"
-        )
-    library = load_library(library_copy)
-    [resource] = [resource for resource in library.resources if resource.id == MIRRORED]
+# A link to a script address, written in three ways a renderer reads as a live link.
+SCRIPT_LINKS = (
+    "\n## Hostile links\n\n"
+    "A [script link](javascript\\:alert(1)) here.\n\n"
+    "A [brace link](https://h/\\(c){onmouseover=x}d) here.\n\n"
+    "- [x]: javascript:alert(1)\n\n"
+    "> [y]: javascript:alert(2)\n\n"
+    "Then [x] and [y].\n"
+)
 
-    stream = assemble_markdown(library, resource)
+
+def append_to_chapter(root: Path, text: str, name: str = "01-folding-the-hull.md") -> None:
+    with (root / "books" / MIRRORED / "chapters" / name).open("a", encoding="utf-8") as file:
+        file.write(text)
+
+
+def epub_markup(epub: Path) -> list[tuple[str, str, str]]:
+    """Return the tag, attribute name, and value of every attribute in the EPUB's XHTML files."""
+    found: list[tuple[str, str, str]] = []
+    with zipfile.ZipFile(epub) as archive:
+        for name in archive.namelist():
+            if name.endswith(".xhtml"):
+                for element in ElementTree.fromstring(archive.read(name)).iter():
+                    found.extend((element.tag, key, value) for key, value in element.attrib.items())
+    return found
+
+
+def epub_text(epub: Path) -> str:
+    with zipfile.ZipFile(epub) as archive:
+        return " ".join(
+            content_text(archive, name) for name in archive.namelist() if name.endswith(".xhtml")
+        )
+
+
+def export_epub(repo_root: Path, root: Path, out: Path) -> Path:
+    result = run_command(repo_root, "--root", str(root), "--format", "epub", "--out", str(out))
+    assert result.returncode == 0, result.stderr
+    return out / f"{MIRRORED}-{EDITION}.epub"
+
+
+def test_a_chapter_cannot_put_a_script_address_or_an_event_attribute_in_the_epub(
+    repo_root: Path, library_copy: Path, tmp_path: Path
+) -> None:
+    append_to_chapter(library_copy, SCRIPT_LINKS)
+
+    epub = export_epub(repo_root, library_copy, tmp_path)
+
+    markup = epub_markup(epub)
+    events = [found for found in markup if found[1].lower().startswith("on")]
+    addresses = [
+        found
+        for found in markup
+        if found[1] in ("href", "src") and "javascript" in found[2].lower()
+    ]
+    assert events == []
+    assert addresses == []
+    assert "{onmouseover=x}d) here." in epub_text(epub)
+
+
+def test_a_chapter_cannot_set_attributes_or_markup_in_an_export(library_copy: Path) -> None:
+    append_to_chapter(
+        library_copy,
+        '\n## Config { onclick="alert(1)" }\n\n'
+        'A [link](https://example.invalid/a){ onclick="x" } and `code`{ onclick="y" }.\n\n'
+        "<script>alert(1)</script>\n\n"
+        # A fence that never closes is a code block to the end of its chapter.
+        "~~~ {.c onmouseover=x}\n",
+    )
+    library, resource = mirrored_book(library_copy)
+
+    document = checked_document(library, resource, find_pandoc())
     built = subprocess.run(
-        [str(export.find_pandoc()), "--from=gfm+attributes+yaml_metadata_block", "--to=html"],
-        input=stream,
+        [str(find_pandoc()), "--from=json", "--to=html"],
+        input=json.dumps(document),
         capture_output=True,
         text=True,
         check=True,
     ).stdout
 
     assert re.search(r"<[^<>]*\son(?:click|mouseover)=", built) is None
-    assert "~~~ {.c onmouseover=x}" in built
     assert "<script" not in built
     assert 'Config { onclick="alert(1)" }</h2>' in built
+    assert '</a>{ onclick="x" } and <code>code</code>{ onclick="y" }.' in normalized(built)
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in built
+    assert '<pre><code></code></pre>\n<h1 id="chapter-02-choosing-a-pond">' in built
+
+
+def test_a_yaml_block_in_a_chapter_changes_no_metadata(
+    repo_root: Path, library_copy: Path, tmp_path: Path
+) -> None:
+    chapter = library_copy / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    title = "# Folding the Hull\n"
+    chapter.write_text(
+        chapter.read_text(encoding="utf-8").replace(
+            title, f"{title}\n---\ntitle: Hijacked\ndescription: Hijacked\n---\n"
+        ),
+        encoding="utf-8",
+    )
+    library, resource = mirrored_book(library_copy)
+
+    document = checked_document(library, resource, find_pandoc())
+    epub = export_epub(repo_root, library_copy, tmp_path)
+
+    assert "Hijacked" not in words(document["meta"])
+    with zipfile.ZipFile(epub) as archive:
+        assert b"Hijacked" not in archive.read(str(package_path(archive)))
+        assert metadata_values(archive, "title")[0] == TITLE
+
+
+def test_an_image_in_a_chapter_becomes_its_text_and_its_file_is_never_read(
+    repo_root: Path, library_copy: Path, tmp_path: Path
+) -> None:
+    secret = tmp_path / "secret.png"
+    secret.write_bytes(b"\x89PNG secret bytes")
+    append_to_chapter(library_copy, f"\nSee ![the secret picture]({secret}) here.\n")
+
+    epub = export_epub(repo_root, library_copy, tmp_path / "out")
+
+    assert "See the secret picture here." in epub_text(epub)
+    with zipfile.ZipFile(epub) as archive:
+        media = [
+            item.attrib["media-type"]
+            for item in package(archive).iter(f"{OPF}item")
+            if not item.attrib["media-type"].startswith(("application/", "text/"))
+        ]
+        assert media == []
+        assert all(b"secret bytes" not in archive.read(name) for name in archive.namelist())
+
+
+def test_two_chapters_with_the_same_heading_get_different_ids_and_both_stay_in_the_navigation(
+    repo_root: Path, library_copy: Path, tmp_path: Path
+) -> None:
+    append_to_chapter(library_copy, "\n## Shared heading\n\nFirst.\n")
+    append_to_chapter(
+        library_copy, "\n## Shared heading\n\nThird.\n", "03-recovering-a-sunk-boat.md"
+    )
+    library, resource = mirrored_book(library_copy)
+
+    headings = [
+        block["c"][1][0]
+        for block in checked_document(library, resource, find_pandoc())["blocks"]
+        if block["t"] == "Header" and words(block["c"][2]) == "Shared heading"
+    ]
+    epub = export_epub(repo_root, library_copy, tmp_path)
+
+    assert headings == ["shared-heading", "shared-heading-1"]
+    with zipfile.ZipFile(epub) as archive:
+        opf = package(archive)
+        item = next(
+            item for item in opf.iter(f"{OPF}item") if "nav" in item.attrib.get("properties", "")
+        )
+        nav = ElementTree.fromstring(
+            archive.read(str(package_path(archive).parent / item.attrib["href"]))
+        )
+    targets = [
+        link.attrib["href"]
+        for link in nav.iter(f"{XHTML}a")
+        if "Shared heading" in "".join(link.itertext())
+    ]
+    assert [target.partition("#")[2] for target in targets] == headings
+
+
+def test_a_node_type_the_check_does_not_know_stops_the_export(
+    library_copy: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Footnotes are off in the chapter reader. With them on, a chapter parses to a note, which
+    # the pass does not know.
+    monkeypatch.setattr(kb_export, "CHAPTER_FORMAT", "gfm")
+    append_to_chapter(library_copy, "\nA mark[^1].\n\n[^1]: The note.\n")
+    library, resource = mirrored_book(library_copy)
+
+    with pytest.raises(ExportError) as raised:
+        checked_document(library, resource, find_pandoc())
+
+    assert "Note" in raised.value.message
+    assert "Pandoc 3." in raised.value.message
+    assert "report" in raised.value.fix
