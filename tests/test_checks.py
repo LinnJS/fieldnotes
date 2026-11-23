@@ -1,8 +1,12 @@
 """The validation checks report what is wrong with a library as findings."""
 
+import json
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import pytest
+from kb import checks
 from kb.catalog import Library
 from kb.checks import CHECKS, Finding, run_checks
 
@@ -825,3 +829,198 @@ def test_a_line_that_opens_with_inline_code_in_three_backticks_hides_no_topic_te
         ("link-missing-target", "topics/tea-service.md", 21),
         ("topic-uncited-paragraph", "topics/tea-service.md", 21),
     ]
+
+
+SCRIPT_TITLE = "x</title><script>alert(1)</script>"
+CHAPTER_ONE = f"books/{MIRRORED}/chapters/01-folding-the-hull.md"
+
+
+def markup_findings(root: Path) -> list[Finding]:
+    return [finding for finding in run_checks(root) if finding.rule == "record-markup"]
+
+
+def says_stop_and_report(fix: str) -> bool:
+    return "stop" in fix and "report" in fix and "owner" in fix
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        SCRIPT_TITLE,
+        "&lt;script&gt;alert(1)&lt;/script&gt;",
+        "x&lt/title&gt&ltscript&gtalert(1)&lt/script&gt",
+    ],
+)
+def test_a_chapter_title_that_holds_markup_is_a_finding_that_says_to_stop_and_report(
+    title: str, library_copy: Path
+) -> None:
+    replace_in(
+        library_copy / CHAPTER_ONE, "title: Folding the Hull\n", f"title: {json.dumps(title)}\n"
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", CHAPTER_ONE, None)]
+    assert "title" in findings[0].message
+    assert says_stop_and_report(findings[0].fix)
+
+
+@pytest.mark.parametrize(
+    ("file", "old"),
+    [
+        (f"books/{MIRRORED}/metadata.yaml", "english: Paper Boat Engineering (Test Fixture)"),
+        ("topics/tea-service.md", "title: Tea Service"),
+    ],
+)
+def test_a_book_title_or_a_topic_title_that_holds_markup_is_a_finding(
+    file: str, old: str, library_copy: Path
+) -> None:
+    key = old.partition(":")[0]
+    replace_in(library_copy / file, old, f"{key}: {json.dumps(SCRIPT_TITLE)}")
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", file, None)]
+    assert "title" in findings[0].message
+
+
+def test_a_quotation_mark_is_refused_in_the_library_description_and_allowed_in_a_title(
+    library_copy: Path,
+) -> None:
+    replace_in(library_copy / "catalog.yaml", "A synthetic library", 'A "synthetic" library')
+    replace_in(
+        library_copy / CHAPTER_ONE, "title: Folding the Hull\n", "title: 'Folding the \"Hull\"'\n"
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", "catalog.yaml", None)]
+    assert "library.description" in findings[0].message
+    assert "quotation mark" in findings[0].message
+
+
+def test_a_chapter_source_path_that_holds_an_element_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / CHAPTER_ONE,
+        "  path: Paper-Boat-Engineering-v1.0.0.pdf\n",
+        '  path: "a/b.<img src=x onerror=alert(1)>"\n',
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", CHAPTER_ONE, None)]
+    assert "source.path" in findings[0].message
+
+
+@pytest.mark.parametrize("ending", [">", '"', "\\"])
+def test_a_person_url_that_holds_markup_characters_is_a_finding(
+    ending: str, library_copy: Path
+) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "  url: https://example.invalid/fixture-author\n",
+        f"  url: 'https://example.invalid/fixture-author{ending}'\n",
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", f"books/{MIRRORED}/metadata.yaml", None)]
+    assert "author.url" in findings[0].message
+
+
+def test_a_control_character_in_a_notice_is_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "  - Test fixture. This book and its text are invented for automated tests.\n",
+        '  - "Test fixture.\\x1b[2J This book is invented."\n',
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", f"books/{MIRRORED}/metadata.yaml", None)]
+    assert "notices[0]" in findings[0].message
+
+
+def test_plain_punctuation_a_markdown_link_and_chinese_text_in_a_notice_are_not_findings(
+    library_copy: Path,
+) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "  - Test fixture. This book and its text are invented for automated tests.\n",
+        "  - The author's note says paper & glue hold.\n"
+        "  - See [the reader](https://example.invalid/reader) for more.\n"
+        "  - 本作品采用纸船许可证。\n",
+    )
+
+    assert markup_findings(library_copy) == []
+
+
+def test_markup_in_the_quoted_license_statement_is_not_a_finding(library_copy: Path) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "    Permission is hereby granted",
+        "    <Permission> is hereby granted",
+    )
+
+    assert markup_findings(library_copy) == []
+
+
+def test_a_string_under_a_key_no_schema_knows_is_held_to_the_text_rule(
+    library_copy: Path,
+) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "site_slug: paper-boat\n",
+        "site_slug: paper-boat\nsubtitle: '<b>Bold</b>'\n",
+    )
+
+    findings = markup_findings(library_copy)
+
+    assert located(findings) == [("record-markup", f"books/{MIRRORED}/metadata.yaml", None)]
+    assert "subtitle" in findings[0].message
+
+
+def schema_nodes(schema: dict[str, Any], node: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return a schema node with every node it refers to or applies conditionally."""
+    nodes = [node]
+    reference = node.get("$ref")
+    if isinstance(reference, str):
+        nodes += schema_nodes(schema, schema["$defs"][reference.rpartition("/")[2]])
+    for branch in node.get("allOf", []):
+        nodes += schema_nodes(schema, branch.get("then", {}))
+    return nodes
+
+
+def schema_defines(schema: dict[str, Any], field: str) -> bool:
+    nodes = [schema]
+    for part in field.split("."):
+        name = part.replace("[]", "")
+        nodes = [
+            expanded["properties"][name]
+            for node in nodes
+            for expanded in schema_nodes(schema, node)
+            if name in expanded.get("properties", {})
+        ]
+        for _ in range(part.count("[]")):
+            nodes = [
+                expanded["items"]
+                for node in nodes
+                for expanded in schema_nodes(schema, node)
+                if "items" in expanded
+            ]
+    return bool(nodes)
+
+
+@pytest.mark.parametrize(
+    "table", ["RECORD_URL_FIELDS", "RECORD_ATTRIBUTE_FIELDS", "RECORD_UNRENDERED_FIELDS"]
+)
+def test_every_field_with_its_own_markup_rule_is_one_a_schema_defines(
+    table: str, repo_root: Path
+) -> None:
+    fields_by_schema: Mapping[str, frozenset[str]] = getattr(checks, table)
+    for schema_name, fields in fields_by_schema.items():
+        schema = json.loads(
+            (repo_root / "schemas" / f"{schema_name}.schema.json").read_text(encoding="utf-8")
+        )
+        undefined = [field for field in sorted(fields) if not schema_defines(schema, field)]
+        assert undefined == [], f"{schema_name}: {undefined}"

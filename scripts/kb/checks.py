@@ -12,10 +12,12 @@ whose metadata loaded, while ``Catalog.resources`` still lists every cataloged i
 """
 
 import hashlib
+import html
 import json
 import re
+import unicodedata
 from collections import defaultdict
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
@@ -59,7 +61,17 @@ from kb.readpath import (
 )
 from kb.schema import LoadError, SchemaName, parse_yaml, read_text
 
-__all__ = ["CHECKS", "NO_COVERAGE_SENTENCE", "SCOPE_LABEL", "Check", "Finding", "run_checks"]
+__all__ = [
+    "CHECKS",
+    "NO_COVERAGE_SENTENCE",
+    "RECORD_ATTRIBUTE_FIELDS",
+    "RECORD_UNRENDERED_FIELDS",
+    "RECORD_URL_FIELDS",
+    "SCOPE_LABEL",
+    "Check",
+    "Finding",
+    "run_checks",
+]
 
 SCOPE_LABEL = "**Scope (editorial).**"
 """What the first paragraph of a topic body starts with. It marks the library's own words."""
@@ -1355,6 +1367,238 @@ def _skill_file_problem(path: Path, name: str) -> str | None:
     return None
 
 
+RECORD_URL_FIELDS: Mapping[SchemaName, frozenset[str]] = {
+    # MkDocs writes these two into the theme as the site URL and the repository link, and the
+    # site pages link the repository.
+    "catalog": frozenset({"library.base_url", "library.repository"}),
+    # The site and the exports write each of these as the address of a link, except
+    # upstream.url, which no page shows today. It is an address all the same, so it is held to
+    # the rule for one.
+    "resource": frozenset(
+        {
+            "author.url",
+            "translator.url",
+            "official_urls.site",
+            "official_urls.repository",
+            "official_urls.hosted_editions[].url",
+            "upstream.url",
+            "license.permalink",
+        }
+    ),
+    # The site and the exports print an erratum with a link to where the author states it.
+    "chapter": frozenset({"errata[].source_url"}),
+}
+"""The record fields that reach a page as a link address, by the schema that defines them.
+
+A field is named by its keys from the top of the document joined by dots, and ``[]`` stands for
+any item of a list. A string of one of these fields may not hold a character that ends or
+breaks out of an address.
+"""
+
+RECORD_ATTRIBUTE_FIELDS: Mapping[SchemaName, frozenset[str]] = {
+    # MkDocs writes the site name and the site description into the page head without escaping
+    # them, and the description lands inside an attribute value.
+    "catalog": frozenset({"library.title", "library.description"}),
+}
+"""The record fields that the theme writes into an attribute of the page head unescaped.
+
+A string of one of these fields is held to the rule for text and may not hold a straight double
+quotation mark either.
+"""
+
+RECORD_UNRENDERED_FIELDS: Mapping[SchemaName, frozenset[str]] = {
+    "resource": frozenset(
+        {
+            # The quoted terms stay in the record, which only the Markdown bundle carries, as
+            # a raw file. The pages and the exports print the book's LICENSE file and link the
+            # permalink instead.
+            "license.statement",
+            # A list of the places that were searched, kept only for the person who reviews
+            # the record.
+            "license.locations_checked",
+            # Regular expressions that the upstream sync matches file names with.
+            "edition_patterns",
+            # A regular expression and a list of words that only the extraction and the
+            # fidelity check read.
+            "extraction_profile.section_start",
+            "extraction_profile.accepted_differences",
+        }
+    ),
+}
+"""The record fields that no page and no export shows, and every field below one of them.
+
+Their strings are not checked for markup characters. Every field that is in none of the three
+tables, including a field that a schema gains later, is held to the rule for text.
+"""
+
+_TEXT_REFUSED = {
+    "<": "a less-than sign",
+    ">": "a greater-than sign",
+    "{": "an opening brace",
+    "}": "a closing brace",
+    "`": "a backtick",
+}
+_ATTRIBUTE_REFUSED = {**_TEXT_REFUSED, '"': "a straight double quotation mark"}
+_URL_REFUSED = {
+    **_TEXT_REFUSED,
+    '"': "a straight double quotation mark",
+    "\\": "a backslash",
+    "^": "a caret",
+    "|": "a vertical bar",
+}
+# A line end and a tab are part of ordinary text, such as a folded YAML scalar.
+_TEXT_CONTROLS_ALLOWED = frozenset("\t\n\r")
+
+type _FieldClass = Literal["text", "attribute", "url"]
+
+_RECORD_MARKUP_SINK: dict[_FieldClass, str] = {
+    "text": "a record field that the site and the exports show as text",
+    "attribute": "a field that the theme writes into the page head unescaped",
+    "url": "a record field that the site and the exports write as a link address",
+}
+_STOP_AND_REPORT = (
+    "If it was copied from the book or its upstream, stop, leave the book and its record as "
+    "they are, and report the finding to the owner."
+)
+_RECORD_MARKUP_FIX: dict[_FieldClass, str] = {
+    "text": f"If the library wrote this text, reword it without the character. {_STOP_AND_REPORT}",
+    "attribute": (
+        "Reword the library's title or description without the character. Both are the "
+        "library's own text."
+    ),
+    "url": (
+        "If the library chose this address, write the character in its percent-encoded form. "
+        f"{_STOP_AND_REPORT}"
+    ),
+}
+
+
+def _check_record_markup(library: Library) -> list[Finding]:
+    """Report each record string that holds a character its sink could read as markup.
+
+    The check reads every string of ``catalog.yaml``, of each cataloged ``metadata.yaml``, and
+    of the frontmatter of each chapter and topic file, straight from the files. It does not
+    depend on which fields the loader knows, so a field added later is checked as text with no
+    change here. A file that cannot be parsed is a finding of the loader and is skipped.
+
+    A text field may not hold ``<``, ``>``, a brace, a backtick, an HTML character reference,
+    or a control character other than a tab or a line end. A character reference is any text
+    that ``html.unescape`` changes, so a legacy reference with no semicolon is one and a bare
+    ``&`` is not. The other two classes are in ``RECORD_ATTRIBUTE_FIELDS`` and
+    ``RECORD_URL_FIELDS``, and ``RECORD_UNRENDERED_FIELDS`` lists what is never checked.
+    """
+    findings: list[Finding] = []
+    for file, schema, document in _raw_records(library):
+        for field, shown, value in _record_strings(document, "", ""):
+            field_class = _field_class(schema, field)
+            if field_class is None:
+                continue
+            refused = _refused_character(value, field_class)
+            if refused is None:
+                continue
+            findings.append(
+                Finding(
+                    rule="record-markup",
+                    file=file,
+                    message=(
+                        f"The field {shown} holds {refused}, and "
+                        f"{_RECORD_MARKUP_SINK[field_class]} may not hold one."
+                    ),
+                    fix=_RECORD_MARKUP_FIX[field_class],
+                )
+            )
+    return findings
+
+
+def _raw_records(library: Library) -> Iterator[tuple[str, SchemaName, object]]:
+    """Yield the path, the schema, and the parsed YAML of every record of a library."""
+    root = library.root
+    documents: list[tuple[Path, SchemaName, bool]] = [(root / CATALOG_FILE, "catalog", False)]
+    for resource_id in library.catalog.resources:
+        book = root / BOOKS_DIR / resource_id
+        documents.append((book / METADATA_FILE, "resource", False))
+        documents.extend(
+            (path, "chapter", True) for path in sorted((book / CHAPTERS_DIR).glob("*.md"))
+        )
+    documents.extend(
+        (path, "topic", True)
+        for path in sorted((root / TOPICS_DIR).glob("*.md"))
+        if path.name != TOPIC_INDEX_FILE
+    )
+    for path, schema, has_frontmatter in documents:
+        if not path.is_file():
+            continue
+        try:
+            text = read_text(path)
+            if has_frontmatter:
+                text, _ = split_frontmatter(text)
+            document = parse_yaml(text, path)
+        except (LoadError, ValueError):
+            continue
+        yield path.relative_to(root).as_posix(), schema, document
+
+
+def _record_strings(value: object, field: str, shown: str) -> Iterator[tuple[str, str, str]]:
+    """Yield each string below a parsed YAML value with the name of its field.
+
+    Args:
+        value: The parsed value.
+        field: The name of the value's field, with ``[]`` for each list item.
+        shown: The same name with the index of each list item, for a finding.
+
+    Yields:
+        The field name, the name with indexes, and the string.
+    """
+    if isinstance(value, str):
+        yield field, shown, value
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            name = str(key)
+            yield from _record_strings(
+                item, f"{field}.{name}" if field else name, f"{shown}.{name}" if shown else name
+            )
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from _record_strings(item, f"{field}[]", f"{shown}[{index}]")
+
+
+def _field_class(schema: SchemaName, field: str) -> _FieldClass | None:
+    """Say which rule a field's strings are held to, or ``None`` for a field never rendered."""
+
+    def listed(table: Mapping[SchemaName, frozenset[str]]) -> bool:
+        return any(
+            field == name or field.startswith((f"{name}.", f"{name}["))
+            for name in table.get(schema, frozenset())
+        )
+
+    if listed(RECORD_UNRENDERED_FIELDS):
+        return None
+    if listed(RECORD_URL_FIELDS):
+        return "url"
+    if listed(RECORD_ATTRIBUTE_FIELDS):
+        return "attribute"
+    return "text"
+
+
+def _refused_character(value: str, field_class: _FieldClass) -> str | None:
+    """Name the first character of a string that its field may not hold, or return ``None``."""
+    refused = {"text": _TEXT_REFUSED, "attribute": _ATTRIBUTE_REFUSED, "url": _URL_REFUSED}[
+        field_class
+    ]
+    for character in value:
+        if character in refused:
+            return refused[character]
+        if unicodedata.category(character) == "Cc" and (
+            field_class == "url" or character not in _TEXT_CONTROLS_ALLOWED
+        ):
+            return f"the control character U+{ord(character):04X}"
+        if field_class == "url" and character.isspace():
+            return f"the white-space character U+{ord(character):04X}"
+    if field_class != "url" and html.unescape(value) != value:
+        return "an HTML character reference"
+    return None
+
+
 CHECKS: list[Check] = [
     _check_gate_status,
     _check_gate_content,
@@ -1373,5 +1617,6 @@ CHECKS: list[Check] = [
     _check_skill_exposure,
     _check_mirrored_book_files,
     _check_license_evidence,
+    _check_record_markup,
 ]
 """Every check, in the order it runs. A new check is one more entry at the end."""
