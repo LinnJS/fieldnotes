@@ -30,6 +30,8 @@ __all__ = [
 ]
 
 LICENSE_FILE_NAMES = frozenset({"license", "license.md", "license.txt", "copying"})
+README_PATH = "README.md"
+"""The file a recorded README statement is quoted from, from the root of the repository."""
 README_SUFFIXES = frozenset({"", ".md", ".markdown", ".txt", ".rst"})
 EDITION_SUFFIXES = frozenset({".pdf", ".epub", ".html"})
 

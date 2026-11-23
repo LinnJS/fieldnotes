@@ -527,15 +527,31 @@ def test_a_license_permalink_that_leaves_the_recorded_file_is_a_finding(
     assert permalink in findings[0].message
 
 
-@pytest.mark.parametrize(
-    "permalink", [LICENSE_LINK, LICENSE_LINK.replace("LICENSE", "docs/LICENSE.txt")]
-)
-def test_a_license_permalink_to_a_file_of_the_recorded_repository_and_commit_passes(
-    permalink: str, library_copy: Path
+@pytest.mark.parametrize("file_name", ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"])
+def test_a_license_permalink_to_a_root_license_file_of_the_recorded_repository_and_commit_passes(
+    file_name: str, library_copy: Path
 ) -> None:
+    permalink = LICENSE_LINK.removesuffix("LICENSE") + file_name
     replace_in(library_copy / "books" / MIRRORED / "metadata.yaml", LICENSE_LINK, permalink)
 
     assert evidence_findings(library_copy) == []
+
+
+@pytest.mark.parametrize("path", ["docs/LICENSE.txt", "NOTICE", "docs/README.md"])
+def test_license_file_evidence_that_is_not_a_root_license_file_is_a_finding_to_report(
+    path: str, library_copy: Path
+) -> None:
+    permalink = LICENSE_LINK.removesuffix("LICENSE") + path
+    replace_in(library_copy / "books" / MIRRORED / "metadata.yaml", LICENSE_LINK, permalink)
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
+    ]
+    assert path in findings[0].message
+    assert "stop" in findings[0].fix.lower()
+    assert "owner" in findings[0].fix
 
 
 def test_a_license_file_whose_permalink_names_an_encoded_readme_is_a_finding(
@@ -553,6 +569,37 @@ def test_a_license_file_whose_permalink_names_an_encoded_readme_is_a_finding(
         ("gate-evidence", "books/fixture-mirrored-book/metadata.yaml", None)
     ]
     assert "README" in findings[0].message
+
+
+README_EVIDENCE = (
+    "  evidence: readme-statement\n  statement: All rights reserved.\n"
+    f"  permalink: https://github.com/someone/somewhere/blob/{'d' * 40}/README.md?plain=1#L3\n"
+    f"  blob_sha: {'e' * 40}\n  commit: {'d' * 40}\n"
+)
+NO_EVIDENCE = (
+    "  evidence: none\n  statement: null\n  permalink: null\n  blob_sha: null\n  commit: null\n"
+)
+
+
+def test_readme_statement_evidence_at_the_root_readme_passes(library_copy: Path) -> None:
+    replace_in(library_copy / "books" / REFERENCE / "metadata.yaml", NO_EVIDENCE, README_EVIDENCE)
+
+    assert evidence_findings(library_copy) == []
+
+
+@pytest.mark.parametrize("path", ["docs/README.md", "LICENSE"])
+def test_readme_statement_evidence_that_is_not_the_root_readme_is_a_finding(
+    path: str, library_copy: Path
+) -> None:
+    metadata = library_copy / "books" / REFERENCE / "metadata.yaml"
+    replace_in(metadata, NO_EVIDENCE, README_EVIDENCE.replace("README.md?plain=1#L3", path))
+
+    findings = evidence_findings(library_copy)
+
+    assert located(findings) == [
+        ("gate-evidence", "books/fixture-reference-book/metadata.yaml", None)
+    ]
+    assert "stop" in findings[0].fix.lower()
 
 
 GIT_UPSTREAM = (

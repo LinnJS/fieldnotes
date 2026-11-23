@@ -32,7 +32,7 @@ from kb.catalog import (
     load_resource,
     version_key,
 )
-from kb.evidence import EDITION_SUFFIXES, LICENSE_FILE_NAMES
+from kb.evidence import EDITION_SUFFIXES, LICENSE_FILE_NAMES, README_PATH
 from kb.upstream import (
     TOKEN_VARIABLES,
     GitHubClient,
@@ -78,9 +78,6 @@ and a space. The sync workflow finds license findings by matching that start of 
 name upstream can hold this string, and then it appears inside a code span later in a line, which
 the workflow does not count.
 """
-
-README_PATH = "README.md"
-"""The file a recorded README statement is quoted from."""
 
 _RATE_LIMITED = (
     "The GitHub rate limit was used up. Run the check again after the limit resets, or set "

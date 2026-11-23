@@ -43,6 +43,7 @@ from kb.catalog import (
     load_resource,
     load_topics,
 )
+from kb.evidence import LICENSE_FILE_NAMES, README_PATH
 from kb.fidelity import check_book
 from kb.frontmatter import split_frontmatter
 from kb.gate import evaluate
@@ -385,12 +386,13 @@ class _BlobLink:
     Attributes:
         repository: The repository as ``owner/name``.
         commit: The ref the link reads the file at.
-        file_name: The last segment of the file's path, percent-decoded.
+        path: The file's path from the root of the repository, each segment percent-decoded.
+            No segment holds a slash, so a file at the root is one with no slash in its path.
     """
 
     repository: str
     commit: str
-    file_name: str
+    path: str
 
 
 def _blob_link(permalink: str) -> _BlobLink | None:
@@ -405,7 +407,7 @@ def _blob_link(permalink: str) -> _BlobLink | None:
         permalink: The recorded link.
 
     Returns:
-        The repository, the ref, and the file name, or ``None`` when the link is anything but
+        The repository, the ref, and the file's path, or ``None`` when the link is anything but
         ``https://github.com/<owner>/<name>/blob/<ref>/<path>`` with no query but ``plain=1``
         and no fragment but a line or a range of lines.
     """
@@ -428,7 +430,9 @@ def _blob_link(permalink: str) -> _BlobLink | None:
     if len(segments) < 5 or segments[2] != "blob":
         return None
     return _BlobLink(
-        repository=f"{segments[0]}/{segments[1]}", commit=segments[3], file_name=segments[-1]
+        repository=f"{segments[0]}/{segments[1]}",
+        commit=segments[3],
+        path="/".join(segments[4:]),
     )
 
 
@@ -447,6 +451,11 @@ def _check_license_evidence(library: Library) -> list[Finding]:
     repository cannot stand for a book pinned in another. With no pinned source either, the
     permalink must still be a plain link to a file at the recorded commit.
 
+    The file must be the one its kind of evidence names: a license file at the root of the
+    repository, or the root ``README_PATH`` that the upstream sync watches for the statement. A
+    file below the root is not accepted, because a nested file can say anything about the
+    repository it sits in.
+
     A record with no evidence holds none of these fields to compare.
     """
     findings: list[Finding] = []
@@ -462,55 +471,101 @@ def _check_license_evidence(library: Library) -> list[Finding]:
             field, repository = "pinned_source.repository", pinned.repository
         else:
             field, repository = "", None
-        problems: list[str] = []
+        problems: list[tuple[str, str]] = []
         if terms.permalink is not None and terms.commit is not None:
             link = _blob_link(terms.permalink)
             if link is None:
                 problems.append(
-                    f"license.permalink is {terms.permalink}, and that is not a plain link to "
-                    "one file of a GitHub repository at a commit, which reads "
-                    "https://github.com/<owner>/<name>/blob/<commit>/<path>"
+                    (
+                        f"license.permalink is {terms.permalink}, and that is not a plain link "
+                        "to one file of a GitHub repository at a commit, which reads "
+                        "https://github.com/<owner>/<name>/blob/<commit>/<path>",
+                        _RECAPTURE_FIX,
+                    )
                 )
             elif repository is not None and link.repository != repository:
                 problems.append(
-                    f"license.permalink is {terms.permalink}, and it names a file of "
-                    f"{link.repository}, while {field} is {repository}"
+                    (
+                        f"license.permalink is {terms.permalink}, and it names a file of "
+                        f"{link.repository}, while {field} is {repository}",
+                        _RECAPTURE_FIX,
+                    )
                 )
             elif link.commit != terms.commit:
                 problems.append(
-                    f"license.permalink is {terms.permalink}, and it names a file at "
-                    f"{link.commit}, while license.commit is {terms.commit}"
+                    (
+                        f"license.permalink is {terms.permalink}, and it names a file at "
+                        f"{link.commit}, while license.commit is {terms.commit}",
+                        _RECAPTURE_FIX,
+                    )
                 )
-            elif terms.evidence is EvidenceKind.LICENSE_FILE and link.file_name.lower().startswith(
-                "readme"
-            ):
-                problems.append(
-                    "license.evidence is license-file, and license.permalink names a README: "
-                    f"{terms.permalink}"
-                )
+            else:
+                problem = _evidence_file_problem(terms.evidence, link.path, terms.permalink)
+                if problem is not None:
+                    problems.append((problem, _EVIDENCE_FILE_FIX))
         if (
             isinstance(upstream, GitSource)
             and pinned is not None
             and pinned.repository != upstream.repository
         ):
             problems.append(
-                f"pinned_source.repository is {pinned.repository}, and upstream.repository is "
-                f"{upstream.repository}"
+                (
+                    f"pinned_source.repository is {pinned.repository}, and upstream.repository "
+                    f"is {upstream.repository}",
+                    _RECAPTURE_FIX,
+                )
             )
         findings.extend(
             Finding(
                 rule="gate-evidence",
                 file=_metadata_path(resource.id),
                 message=f"The license evidence of {resource.id} contradicts itself. {problem}.",
-                fix=(
-                    "Capture the evidence again with scripts/evidence.py at the pinned commit, "
-                    "copy the permalink, the commit, and the blob id from its output, and have "
-                    "the owner review the record."
-                ),
+                fix=fix,
             )
-            for problem in problems
+            for problem, fix in problems
         )
     return findings
+
+
+_RECAPTURE_FIX = (
+    "Capture the evidence again with scripts/evidence.py at the pinned commit, copy the "
+    "permalink, the commit, and the blob id from its output, and have the owner review the record."
+)
+# scripts/evidence.py lists license files at any depth, so this fix does not send anyone back
+# to copy a permalink from its output.
+_EVIDENCE_FILE_FIX = (
+    "A file below the root of the repository, or a file of another name, is not accepted "
+    "evidence. Stop, leave the record as it is, and report the finding to the owner, who alone "
+    "changes license evidence."
+)
+
+
+def _evidence_file_problem(evidence: EvidenceKind, path: str, permalink: str) -> str | None:
+    """Say why a permalink's file cannot hold its kind of evidence, or return ``None``.
+
+    Args:
+        evidence: The kind of evidence the record claims.
+        path: The decoded path of the permalink's file from the root of the repository.
+        permalink: The recorded link, for the message.
+
+    Returns:
+        The problem as a clause for a finding, or ``None`` when a license file is a root file
+        whose lower-case name is in ``LICENSE_FILE_NAMES`` and a README statement is quoted
+        from the root ``README_PATH``.
+    """
+    if evidence is EvidenceKind.LICENSE_FILE and path.lower() not in LICENSE_FILE_NAMES:
+        names = ", ".join(sorted(LICENSE_FILE_NAMES))
+        return (
+            f"license.evidence is license-file, and license.permalink names the file {path}, "
+            "which is not a file at the root of the repository whose lower-case name is one of "
+            f"{names}: {permalink}"
+        )
+    if evidence is EvidenceKind.README_STATEMENT and path != README_PATH:
+        return (
+            "license.evidence is readme-statement, and license.permalink names the file "
+            f"{path}, which is not {README_PATH} at the root of the repository: {permalink}"
+        )
+    return None
 
 
 def _check_catalog_consistency(library: Library) -> list[Finding]:
