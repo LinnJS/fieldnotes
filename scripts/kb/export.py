@@ -10,7 +10,9 @@ chapters then go through ``kb.export_document``, which turns what the export mus
 text and checks the whole document, so a chapter is shown and never run. Pandoc writes the
 checked document as Typst markup, which the Typst compiler makes into the PDF, and as the EPUB.
 A URL of a record reaches the library's text only through ``kb.prose.link_address``, so a
-character of it that Markdown reads as markup is written in its percent-encoded form.
+character of it that Markdown reads as markup is written in its percent-encoded form. Each
+written PDF and EPUB is then read back by ``kb.export_check``, and a file that holds anything
+the library's exports do not write is removed.
 
 The bundle is a zip archive of the library's own files, with the chapters and the license file
 of mirrored books only.
@@ -51,6 +53,7 @@ from kb.catalog import (
     Resource,
 )
 from kb.evidence import blob_permalink
+from kb.export_check import OutputProblem, ProblemKind, epub_problems, pdf_problems
 from kb.export_document import ChapterBlocks, DocumentError, Json, check_document, clean_chapters
 from kb.frontmatter import ExtractionStatus
 from kb.gate import evaluate
@@ -326,8 +329,9 @@ def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path)
         The file written, ``<out_dir>/<resource-id>-<edition>.pdf``.
 
     Raises:
-        ExportError: The book may not be exported, its license file is missing, or Pandoc or
-            the Typst compiler fails.
+        ExportError: The book may not be exported, its license file is missing, Pandoc or the
+            Typst compiler fails, or ``kb.export_check.pdf_problems`` finds a problem in the
+            written file, which is then removed.
     """
     document = checked_document(library, resource, pandoc)
     target = _book_file(library, resource, out_dir, "pdf")
@@ -353,7 +357,7 @@ def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path)
                 "Correct templates/book.typ, or the chapter the message points at, and run "
                 "the command again.",
             ) from error
-    return target
+    return _checked_file(target, pdf_problems(target), resource, "PDF")
 
 
 def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path) -> Path:
@@ -372,8 +376,9 @@ def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path
         The file written, ``<out_dir>/<resource-id>-<edition>.epub``.
 
     Raises:
-        ExportError: The book may not be exported, its license file is missing, or Pandoc
-            fails.
+        ExportError: The book may not be exported, its license file is missing, Pandoc fails,
+            or ``kb.export_check.epub_problems`` finds a problem in the written file, which is
+            then removed.
     """
     document = checked_document(library, resource, pandoc)
     target = _book_file(library, resource, out_dir, "epub")
@@ -384,9 +389,12 @@ def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path
         f"--css={TEMPLATES_DIR / 'epub.css'}",
         "--split-level=1",
         "--number-sections",
+        # Highlighting writes style rules into the page and ids and link anchors into each
+        # code line. A code block is shown as plain text instead.
+        "--syntax-highlighting=none",
         f"--output={target}",
     )
-    return target
+    return _checked_file(target, epub_problems(target), resource, "EPUB")
 
 
 def bundle_files(library: Library) -> tuple[Path, ...]:
@@ -517,6 +525,27 @@ def _read_license(root: Path, resource: Resource) -> str:
             f"The mirrored book {resource.id} has no license file at {path.as_posix()}.",
             "Copy the upstream license text into that file. Every export must carry it.",
         ) from None
+
+
+def _checked_file(
+    target: Path, problems: Sequence[OutputProblem], resource: Resource, kind: str
+) -> Path:
+    """Return a written file that passed its read-back check, and remove one that did not."""
+    if not problems:
+        return target
+    target.unlink(missing_ok=True)
+    groups: dict[ProblemKind, list[str]] = {}
+    for problem in problems:
+        groups.setdefault(problem.kind, []).append(problem.detail)
+    found = " ".join(
+        f"{kind.value.capitalize()}: {' | '.join(details)}." for kind, details in groups.items()
+    )
+    raise ExportError(
+        f"The {kind} of {resource.id} holds what the export does not write, so it was removed. "
+        f"{found}",
+        "Stop and report this message to the owner of the library. Do not change the chapter, "
+        "the record, or the lists of the check to get past it.",
+    )
 
 
 def _book_file(library: Library, resource: Resource, out_dir: Path, suffix: str) -> Path:
