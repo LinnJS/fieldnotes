@@ -440,7 +440,6 @@ def build_site(library: Library) -> Path:
     try:
         publish_canonical_files(library, site_dir)
     except ExportError as error:
-        # The site is not checked yet, so it is not left behind.
         shutil.rmtree(site_dir)
         raise SiteError("canonical files", f"{error.message} {error.fix}") from error
     info = library.catalog.library
