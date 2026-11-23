@@ -1,4 +1,4 @@
-# Orange Books Knowledge Base
+# Fieldnotes
 
 An independent community library of AI engineering resources, built so that a
 coding agent or a person can find what a book says on a topic, read that section,
@@ -60,7 +60,7 @@ v260615, which is older than the Chinese edition v261020.
   `books/<id>/chapters/`.
 - **On the site.** `uv run python scripts/build.py --site` builds a searchable site
   into `dist/site/`, with a page per chapter, a page per topic, and a catalog card
-  for every book. The site is planned for <https://linnjs.github.io/orange-books/>
+  for every book. The site is planned for <https://linnjs.github.io/fieldnotes/>
   and is not published yet.
 - **As files.** `uv run python scripts/export.py` writes a PDF and an EPUB of each
   mirrored book, and a zip bundle of the whole library, into `dist/exports/`.

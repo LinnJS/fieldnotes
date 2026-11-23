@@ -6,11 +6,11 @@
     }
   ],
   "library": {
-    "base_url": "https://linnjs.github.io/orange-books/",
+    "base_url": "https://linnjs.github.io/fieldnotes/",
     "description": "An independent community library of AI engineering resources whose first collection is HuaShu's AI Orange Books.",
-    "name": "orange-books",
-    "repository": "https://github.com/LinnJS/orange-books",
-    "title": "Orange Books Knowledge Base"
+    "name": "fieldnotes",
+    "repository": "https://github.com/LinnJS/fieldnotes",
+    "title": "Fieldnotes"
   },
   "license_allowlist": [
     "MIT"

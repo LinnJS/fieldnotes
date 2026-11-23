@@ -1,11 +1,11 @@
 library:
-  name: orange-books
-  title: Orange Books Knowledge Base
+  name: fieldnotes
+  title: Fieldnotes
   description: >-
     An independent community library of AI engineering resources whose first collection is
     HuaShu's AI Orange Books.
-  base_url: https://linnjs.github.io/orange-books/
-  repository: https://github.com/LinnJS/orange-books
+  base_url: https://linnjs.github.io/fieldnotes/
+  repository: https://github.com/LinnJS/fieldnotes
 
 license_allowlist:
   - MIT

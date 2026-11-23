@@ -142,9 +142,9 @@ The name, title, description, site URL, and repository URL live in the `library`
 block of `catalog.yaml`. The site, `llms.txt`, the exports, and the bundle file
 name all read them from there. Change the block, run
 `uv run python scripts/build.py`, and update the headings of `README.md` and
-`AGENTS.md` by hand. `orange-books` and "Orange Books Knowledge Base" are working
-names. The catalog already separates the library from its first collection, so a
-broader name needs no structural change.
+`AGENTS.md` by hand. The library is named Fieldnotes, and `orange-books` is the id
+of its first collection, which stays as it is. The catalog separates the library
+from its collections, so a rename needs no structural change.
 
 ## Toolchain notes
 
@@ -162,10 +162,8 @@ These steps are yours. None of them has been done.
 
 - [ ] Read the two MIT license records against their permalinks, and confirm you
       accept the adapted MIT text as MIT for this library's purposes.
-- [ ] Decide the repository and library name, and update `catalog.yaml` if it
-      changes.
-- [ ] Create the GitHub repository and push. Decide how `main` is seeded, since
-      the work sits on the branch `feat/resource-library-mvp`.
+- [ ] Create the GitHub repository as `fieldnotes` and push. Decide how `main` is
+      seeded, since the work sits on the branch `feat/resource-library-mvp`.
 - [ ] Set `library.base_url` and `library.repository` in `catalog.yaml` to the
       real values, and rebuild.
 - [ ] Enable GitHub Pages with "GitHub Actions" as the source.

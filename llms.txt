@@ -1,4 +1,4 @@
-# Orange Books Knowledge Base
+# Fieldnotes
 
 > An independent community library of AI engineering resources whose first collection is HuaShu's AI Orange Books.
 
