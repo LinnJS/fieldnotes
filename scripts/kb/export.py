@@ -46,11 +46,11 @@ from kb.catalog import (
     Person,
     PinnedSource,
     Resource,
-    version_key,
 )
 from kb.evidence import blob_permalink
 from kb.frontmatter import ExtractionStatus
 from kb.gate import evaluate
+from kb.indexes import newer_editions
 from kb.markdown import backtick_fence
 from kb.readpath import BUILD_COMMAND, CATALOG_INDEX, CHAPTERS_INDEX, LLMS_FILE, TOPICS_INDEX
 
@@ -569,11 +569,10 @@ def _notice_section(
         facts.append(_person_line("Translator", resource.translator))
     facts.append(f"- **Edition:** {_plain(pinned.edition)}, language {_plain(pinned.language)}")
     facts.extend(
-        f"- **Newer edition:** The {_plain(newest.language)} edition {_plain(newest.version)} "
-        "is newer than this copy. This copy does not hold its changes."
-        for newest in resource.newest_editions
-        if newest.language != pinned.language
-        and version_key(newest.version) > version_key(pinned.edition)
+        f"- **Newer edition:** The {_plain(newest['language'])} edition "
+        f"{_plain(newest['version'])} is newer than this copy. This copy does not hold its "
+        "changes."
+        for newest in newer_editions(resource, pinned.edition)
     )
     facts.append(
         f"- **Source:** the file [{_plain(pinned.path)}]({permalink}) in the repository "

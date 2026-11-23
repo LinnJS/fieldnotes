@@ -15,6 +15,8 @@ from xml.etree import ElementTree
 import export
 import pytest
 import typst
+from kb.catalog import load_library
+from kb.export import assemble_markdown
 from pypdf import PdfReader
 
 MIRRORED = "fixture-mirrored-book"
@@ -343,6 +345,25 @@ def test_epub_notice_says_that_another_language_has_a_newer_edition(exported: Ex
     with zipfile.ZipFile(exported.epub) as archive:
         notice = content_text(archive, navigation(archive)[0][1])
 
+    assert "The zh edition v1.1.0 is newer than this copy" in notice
+
+
+def test_the_notice_names_a_newer_edition_in_the_language_of_this_copy(
+    library_copy: Path,
+) -> None:
+    metadata = library_copy / "books" / MIRRORED / "metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    assert "newest_editions:\n  en: v1.0.0\n" in text
+    metadata.write_text(
+        text.replace("newest_editions:\n  en: v1.0.0\n", "newest_editions:\n  en: v1.2.0\n"),
+        encoding="utf-8",
+    )
+    library = load_library(library_copy)
+    [resource] = [resource for resource in library.resources if resource.id == MIRRORED]
+
+    notice = assemble_markdown(library, resource)
+
+    assert "The en edition v1.2.0 is newer than this copy" in notice
     assert "The zh edition v1.1.0 is newer than this copy" in notice
 
 
