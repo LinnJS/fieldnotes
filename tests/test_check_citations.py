@@ -603,3 +603,32 @@ def test_an_exact_block_quote_inside_a_list_item_passes(
     text = layout.format(quote="A boat that dries flat will fold again.", token=f"[cite:{SUNK}]")
 
     assert check_text(index, text) == []
+
+
+def test_the_quotes_of_two_list_items_next_to_each_other_are_two_quotes(
+    fixture_library_root: Path,
+) -> None:
+    index = load_index(fixture_library_root)
+    first = "A boat that dries flat will fold again."
+    second = "A boat that dries crumpled is a paper ball."
+    token = f"[cite:{SUNK}]"
+
+    assert check_text(index, f"- > {first} {token}\n- > {second} {token}\n") == []
+
+    problems = check_text(index, f"- > {first} {token}\n- > A boat is a paper ball. {token}\n")
+
+    assert [problem.message for problem in problems] == [
+        f'The quote is not in {SUNK} word for word: "A boat is a paper ball."'
+    ]
+
+
+def test_the_lines_of_one_quote_in_a_list_item_are_still_one_quote(
+    fixture_library_root: Path,
+) -> None:
+    index = load_index(fixture_library_root)
+    text = (
+        "- > A boat that dries flat will fold again.\n"
+        f"  > A boat that dries crumpled is a paper ball. [cite:{SUNK}]\n"
+    )
+
+    assert check_text(index, text) == []
