@@ -485,10 +485,10 @@ def _catalog_problems(catalog: DictionaryObject) -> list[OutputProblem]:
 def _page_problems(number: int, page: DictionaryObject) -> list[OutputProblem]:
     where = f"page {number}"
     problems = _extra_keys(page, _PAGE_KEYS, ProblemKind.PAGE, where)
-    annotations = page.get("/Annots")
-    if annotations is None:
+    listed = page.get("/Annots")
+    if listed is None:
         return problems
-    annotations = annotations.get_object()
+    annotations = listed.get_object()
     if not isinstance(annotations, ArrayObject):
         return [*problems, OutputProblem(ProblemKind.ANNOTATION, f"{where} has no annotation list")]
     for entry in annotations:

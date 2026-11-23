@@ -528,7 +528,7 @@ def _read_license(root: Path, resource: Resource) -> str:
 
 
 def _checked_file(
-    target: Path, problems: Sequence[OutputProblem], resource: Resource, kind: str
+    target: Path, problems: Sequence[OutputProblem], resource: Resource, label: str
 ) -> Path:
     """Return a written file that passed its read-back check, and remove one that did not."""
     if not problems:
@@ -541,7 +541,7 @@ def _checked_file(
         f"{kind.value.capitalize()}: {' | '.join(details)}." for kind, details in groups.items()
     )
     raise ExportError(
-        f"The {kind} of {resource.id} holds what the export does not write, so it was removed. "
+        f"The {label} of {resource.id} holds what the export does not write, so it was removed. "
         f"{found}",
         "Stop and report this message to the owner of the library. Do not change the chapter, "
         "the record, or the lists of the check to get past it.",
