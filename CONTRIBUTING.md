@@ -115,13 +115,20 @@ uv run python scripts/build.py --site
 
 The `validate` workflow runs the same commands.
 
-The site build ends with a check of the pages it wrote. A chapter is another
-person's text, so `scripts/kb/prose.py` writes it for the renderer to show and
-never run, and `scripts/kb/site_check.py` then reads the content area of every
-built page. The build fails and removes `dist/site/` when a page holds an element,
-an attribute, or a link scheme that the library's Markdown does not write, such as
-an image or a script link. When that happens, fix the staging step. Do not edit
-the chapter, and do not widen the list in `site_check.py` to let a page through.
+A chapter, a topic, a license text, and a record field are text that the library
+did not write. The site and the exports render that text with raw HTML, images,
+attributes, and reference definitions turned off, and a link keeps its address
+only when it is a relative path or uses `http`, `https`, or `mailto`. The site
+does this in the MkDocs hook `scripts/site_hooks/outside_text.py`, and the exports
+do it in `scripts/kb/export_document.py`, on the document Pandoc parsed.
+Validation also refuses markup characters in record fields and titles.
+
+Each build then reads every file it wrote. `scripts/kb/site_check.py` reads every
+served file of the site whole, the page head and the theme's markup included.
+`scripts/kb/export_check.py` reads each EPUB and PDF back. When a file holds
+anything that the library and the pinned theme do not write, the build fails and
+deletes its output. When that happens, do not edit the chapter or the record, and
+do not widen a list in either check. Report the failure to the owner.
 
 ## Conventions
 

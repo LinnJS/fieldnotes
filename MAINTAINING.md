@@ -153,6 +153,10 @@ from its collections, so a rename needs no structural change.
 - Material for MkDocs prints a notice on every build that it reaches end of life
   on 2027-05-05. The build does not hide it. Plan a move to its successor before
   that date.
+- The lists in `scripts/kb/site_check.py` hold what Material for MkDocs 9.8.2
+  writes. A change of the theme pin means reading those lists again from a build of
+  the new version. A change of the Pandoc minimum means running the export tests,
+  which stop on a node type the export check does not know.
 - The EPUB carries its build time, so two builds differ by a timestamp. The PDF
   and the bundle are reproducible.
 
