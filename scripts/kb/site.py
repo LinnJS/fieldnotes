@@ -157,6 +157,13 @@ _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 # attribute list, with the backslashes in front of it.
 _LIVE_MARK = re.compile(r"(?P<slashes>\\*)(?P<mark>[<{}])")
 _AUTOLINK = re.compile(r"<https?://[^<>\s]*>")
+# A whole inline link whose opening bracket is not escaped. Group ``destination`` is the one
+# part of it that is an address and not prose.
+_INLINE_LINK = re.compile(
+    r"(?<!\\)\[(?:\\.|[^\]\\\n])*\]"
+    r"\((?P<destination><[^<>\n]*>|[^\s()<>]*(?:\([^\s()<>]*\)[^\s()<>]*)*)"
+    r"(?:[ \t]+\"[^\"\n]*\")?\)"
+)
 _HEADING = "# "
 
 
@@ -614,7 +621,8 @@ def _shown_as_written(text: str) -> str:
     at the end of a heading or after a link would set attributes on it, because the site turns
     on ``attr_list``. Outside code, an angle bracket becomes an entity and a brace gets a
     backslash, which Python-Markdown does honor. An ``http`` or ``https`` autolink and the
-    inside of a link's parentheses are left as written, so links keep working.
+    destination of an inline link are left as written, so links keep working. Parentheses that
+    only look like a link's are prose, and nothing in them is left alone.
 
     Args:
         text: The Markdown body of a chapter.
@@ -622,7 +630,7 @@ def _shown_as_written(text: str) -> str:
     Returns:
         The body for the staged page. The canonical chapter file is not changed.
     """
-    links = [link.span() for link in _LINK.finditer(mask_code(text))]
+    links = [link.span("destination") for link in _INLINE_LINK.finditer(mask_code(text))]
 
     def show(match: re.Match[str]) -> str:
         slashes, mark = match["slashes"], match["mark"]

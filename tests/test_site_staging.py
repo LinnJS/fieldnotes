@@ -217,6 +217,32 @@ def test_a_bare_tag_in_a_chapter_is_shown_and_links_keep_working(
     assert '<a href="https://example.invalid/a b">bracketed link</a>' in built
 
 
+NOT_A_LINK = [
+    # What the ingest writer emits for source prose that only looks like a link.
+    "see \\[1\\](\\<img src=x onerror=alert(1)>) here",
+    # A tag in parentheses after a bracket, with no destination a link could have.
+    "see [1](x <img src=x onerror=alert(1)>) here",
+    "see 1](<img src=x onerror=alert(1)>) here",
+    'see [1](https://example.invalid/a "t") <img src=x onerror=alert(1)> here',
+]
+
+
+@pytest.mark.parametrize("prose", NOT_A_LINK)
+def test_a_tag_in_parentheses_that_are_not_a_link_destination_is_shown(
+    prose: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    built = markdown.markdown(read(staging_dir, CHAPTER_PAGES[0]), extensions=SITE_EXTENSIONS)
+
+    assert "<img" not in built
+    assert "&lt;img src=x onerror=alert(1)&gt;" in built
+
+
 def test_reviewed_chapter_carries_no_machine_extraction_notice(staged: Path) -> None:
     page = read(staged, CHAPTER_PAGES[2])
 
