@@ -48,9 +48,11 @@ extra_css:
 # scripts/site_hooks/outside_text.py, which the generated file names, turns off what
 # Python-Markdown itself reads: raw HTML, images, reference definitions, and links that are not
 # web or mail addresses. It also writes the library's own boxes, and it lists these same
-# extensions for its tests. The options of a fenced code block, such as an id, are the one
-# feature left on, because pymdownx.superfences has no setting for them. The check of the built
-# pages refuses what they write. An empty marker keeps a [TOC] line in a chapter as text.
+# extensions for its tests. The options of a fenced code block, such as an id or a class, are
+# the one feature left on, because pymdownx.superfences has no setting for them. It writes them
+# into the page unescaped, so they can write any element, and the check of the built pages is
+# the only layer that refuses what they write. An empty marker keeps a [TOC] line in a chapter
+# as text.
 markdown_extensions:
   - tables
   - pymdownx.highlight

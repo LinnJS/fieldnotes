@@ -13,6 +13,10 @@ pairing of characters can reach them:
 - A heading id is made without the leading underscores of its slug, so a heading cannot take
   an id from the theme's ``__`` namespace.
 
+One feature stays on: the options of a fenced code block, which pymdownx.superfences reads and
+writes into the page unescaped. This hook does not reach them, and the check of the built site
+is the only layer that refuses what they write.
+
 The library's own boxes, such as the facts box and the notices, come from one block that only
 staging writes. It opens on a line that starts with ``MARKER`` and closes on ``CLOSE``.
 Staging refuses outside text that holds the marker, so outside text cannot open a box.
