@@ -416,7 +416,11 @@ def test_links_inside_a_fenced_code_block_are_ignored(library_copy: Path) -> Non
             "~~~\n"
         )
 
-    assert run_checks(library_copy) == []
+    # No link is a finding. Each fenced block cites nothing, which is a finding of its own.
+    assert located(run_checks(library_copy)) == [
+        ("topic-uncited-paragraph", "topics/tea-service.md", 19),
+        ("topic-uncited-paragraph", "topics/tea-service.md", 23),
+    ]
 
 
 def test_malformed_yaml_is_a_finding(library_copy: Path) -> None:

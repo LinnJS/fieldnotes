@@ -225,6 +225,98 @@ def test_a_block_quote_may_carry_its_token_on_the_next_line_with_text(library_co
     assert topic_findings(library_copy) == []
 
 
+def test_a_fenced_block_with_no_token_is_a_finding(library_copy: Path) -> None:
+    # The fixture topic has 27 lines, so the blank line is line 28 and the fence opens on 29.
+    append_to(
+        library_copy / PAPER,
+        "\n```text\nWind the kettle key nine turns before the leaves go in.\n```\n",
+    )
+
+    findings = topic_findings(library_copy)
+
+    assert located(findings) == [("topic-uncited-paragraph", PAPER, 29)]
+    assert "Wind the kettle key" in findings[0].message
+
+
+def test_a_fenced_block_that_never_closes_is_a_finding(library_copy: Path) -> None:
+    append_to(
+        library_copy / PAPER,
+        "\n~~~\nWind the kettle key nine turns before the leaves go in.\n\nThen pour.\n",
+    )
+
+    assert located(topic_findings(library_copy)) == [("topic-uncited-paragraph", PAPER, 29)]
+
+
+def test_a_fenced_block_may_carry_its_token_on_the_next_line_with_text(
+    library_copy: Path,
+) -> None:
+    append_to(
+        library_copy / PAPER,
+        "\n```text\nfold, fold, fold, stop\n```\n\n"
+        f"The hull chapter gives the count. [cite:{HULL}@v1.0.0]\n",
+    )
+
+    assert topic_findings(library_copy) == []
+
+
+def test_a_heading_that_holds_a_sentence_needs_a_token_and_a_title_does_not(
+    library_copy: Path,
+) -> None:
+    sentence = (
+        "## Wind the kettle key nine turns before the leaves go in, and never wind it once "
+        "the water has boiled"
+    )
+    append_to(library_copy / PAPER, f"\n{sentence}\n\n## Further reading\n")
+
+    findings = topic_findings(library_copy)
+
+    assert located(findings) == [("topic-uncited-paragraph", PAPER, 29)]
+    assert "Wind the kettle key" in findings[0].message
+
+
+def test_a_paragraph_of_the_landing_page_after_its_first_needs_a_token(
+    library_copy: Path,
+) -> None:
+    (library_copy / "topics" / "index.md").write_text(
+        "# Topics\n"
+        "\n"
+        "Each topic is a reading path through the library.\n"
+        "\n"
+        "| Topic | Mirrored chapters |\n"
+        "| --- | --- |\n"
+        "| [Paper Craft](paper-craft.md) | 2 |\n"
+        "\n"
+        "- [Paper Craft](paper-craft.md)\n"
+        "\n"
+        "Wind the kettle key nine turns before the leaves go in.\n"
+        "\n"
+        f"Stop after three folds. [cite:{HULL}]\n",
+        encoding="utf-8",
+    )
+
+    findings = topic_findings(library_copy)
+
+    assert located(findings) == [("topic-uncited-paragraph", "topics/index.md", 11)]
+    assert "landing page" in findings[0].message
+
+
+def test_a_quote_on_the_landing_page_that_cites_a_reference_only_book_is_a_finding(
+    library_copy: Path,
+) -> None:
+    (library_copy / "topics" / "index.md").write_text(
+        "# Topics\n"
+        "\n"
+        'The manual says "Wind the kettle key nine turns" first. '
+        "[cite:fixture-reference-book]\n",
+        encoding="utf-8",
+    )
+
+    findings = topic_findings(library_copy)
+
+    assert located(findings) == [("topic-citation", "topics/index.md", 3)]
+    assert "reference-only" in findings[0].message
+
+
 def test_a_list_item_that_makes_a_claim_needs_a_token_and_a_pointer_does_not(
     library_copy: Path,
 ) -> None:

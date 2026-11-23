@@ -18,6 +18,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Literal
 
 from kb.catalog import (
     BOOKS_DIR,
@@ -510,10 +511,9 @@ def _check_links(library: Library) -> list[Finding]:
     pages = [
         (document.path, document.body, _lines_above(library, document)) for document in documents
     ]
-    landing_page = Path(TOPICS_DIR) / TOPIC_INDEX_FILE
-    if (library.root / landing_page).is_file():
-        # The landing page has no frontmatter, so the whole file is its body.
-        pages.append((landing_page, (library.root / landing_page).read_text(encoding="utf-8"), 0))
+    landing_page = _landing_page(library)
+    if landing_page is not None:
+        pages.append((*landing_page, 0))
     for page, body, lines_above in pages:
         directory = (library.root / page).parent
         for index, target in _link_targets(body):
@@ -534,6 +534,18 @@ def _check_links(library: Library) -> list[Finding]:
                     )
                 )
     return findings
+
+
+def _landing_page(library: Library) -> tuple[Path, str] | None:
+    """Return the path and the text of the topic landing page, or ``None`` when there is none.
+
+    The landing page is not a topic document and has no frontmatter, so the whole file is its
+    body and its first line is line 1.
+    """
+    path = Path(TOPICS_DIR) / TOPIC_INDEX_FILE
+    if not (library.root / path).is_file():
+        return None
+    return path, (library.root / path).read_text(encoding="utf-8")
 
 
 def _lines_above(library: Library, document: ChapterFile | TopicFile) -> int:
@@ -743,7 +755,7 @@ def _chapters_loaded(library: Library, resource_id: str) -> bool:
 
 
 def _check_topic_citations(library: Library) -> list[Finding]:
-    """Run the citation checker over the body of each topic document.
+    """Run the citation checker over the body of each topic document and the landing page.
 
     The checker reads the committed indexes, as ``scripts/check_citations.py`` does. Indexes
     that cannot be read, or that list a chapter file that is gone, are findings of the index
@@ -753,17 +765,23 @@ def _check_topic_citations(library: Library) -> list[Finding]:
         index = load_index(library.root)
     except ReadPathError:
         return []
+    pages = [
+        (topic_file.path, topic_file.body, _lines_above(library, topic_file))
+        for topic_file in library.topics
+    ]
+    landing_page = _landing_page(library)
+    if landing_page is not None:
+        pages.append((*landing_page, 0))
     findings: list[Finding] = []
-    for topic_file in library.topics:
+    for path, body, lines_above in pages:
         try:
-            problems = check_text(index, topic_file.body)
+            problems = check_text(index, body)
         except ReadPathError:
             continue
-        lines_above = _lines_above(library, topic_file)
         findings.extend(
             Finding(
                 rule="topic-citation",
-                file=topic_file.path.as_posix(),
+                file=path.as_posix(),
                 line=lines_above + problem.line,
                 message=problem.message,
                 fix=(
@@ -776,54 +794,85 @@ def _check_topic_citations(library: Library) -> list[Finding]:
     return findings
 
 
+_ParagraphKind = Literal["prose", "quote", "table", "code", "heading"]
+
+
 @dataclass(frozen=True)
 class _Paragraph:
-    """One paragraph or list item of a topic body.
+    """One paragraph, list item, fenced block, or long heading of a topic page.
 
     Attributes:
         first: Index of its first line in the body, counted from 0.
         last: Index of its last line.
         text: Its lines joined by single spaces.
-        quote: Whether every line of it is a line of a Markdown block quote.
+        kind: What it is. A ``quote`` is a run of lines that are all lines of a Markdown block
+            quote, and a ``table`` is a run of lines that all open with a pipe. A ``code``
+            paragraph is one fenced block with its fences. A ``heading`` is one heading line.
     """
 
     first: int
     last: int
     text: str
-    quote: bool
+    kind: _ParagraphKind
+
+
+def _paragraph(first: int, lines: list[str], kind: _ParagraphKind | None = None) -> _Paragraph:
+    """Build a paragraph from its lines, and tell a quote and a table from prose by them."""
+    if kind is None:
+        kind = "prose"
+        if all(QUOTE_LINE.match(line) for line in lines):
+            kind = "quote"
+        elif all(line.lstrip().startswith("|") for line in lines):
+            kind = "table"
+    return _Paragraph(
+        first=first,
+        last=first + len(lines) - 1,
+        text=" ".join(" ".join(lines).split()),
+        kind=kind,
+    )
 
 
 def _paragraphs(body: str) -> Iterator[_Paragraph]:
-    """Split a topic body into paragraphs, where each list item is a paragraph of its own.
+    """Split a topic page into paragraphs, where each list item is a paragraph of its own.
 
-    Blank lines, headings, and fenced code blocks separate paragraphs and belong to none.
+    A fenced block is one paragraph, and one that never closes runs to the end of the page. A
+    heading is a paragraph only when it is longer than ``_EXCERPT_LENGTH`` characters, which is
+    longer than a title and long enough to hold a statement. Text in either place is published
+    like any other, so it is held to the same rule. Blank lines and shorter headings separate
+    paragraphs and belong to none.
     """
     open_fence: str | None = None
     first = 0
     lines: list[str] = []
-    # The empty last line closes a paragraph that runs to the end of the body.
-    for index, line in enumerate([*body.split("\n"), ""]):
-        fence = CODE_FENCE.match(line)
-        in_code = open_fence is not None
-        if open_fence is None:
-            open_fence = opening_fence(line)
-            in_code = open_fence is not None
-        # A block closes on a bare fence of the same character that is at least as long.
-        elif fence and fence[1].startswith(open_fence) and not line[fence.end() :].strip():
-            open_fence = None
-        separator = in_code or not line.strip() or _HEADING.match(line) is not None
+    for index, line in enumerate(body.split("\n")):
+        if open_fence is not None:
+            lines.append(line)
+            fence = CODE_FENCE.match(line)
+            # A block closes on a bare fence of the same character that is at least as long.
+            if fence and fence[1].startswith(open_fence) and not line[fence.end() :].strip():
+                yield _paragraph(first, lines, "code")
+                open_fence = None
+                lines = []
+            continue
+        opened = opening_fence(line)
+        heading = _HEADING.match(line) is not None
+        separator = opened is not None or heading or not line.strip()
         if lines and (separator or _LIST_ITEM.match(line)):
-            yield _Paragraph(
-                first=first,
-                last=index - 1,
-                text=" ".join(" ".join(lines).split()),
-                quote=all(QUOTE_LINE.match(quoted) for quoted in lines),
-            )
+            yield _paragraph(first, lines)
             lines = []
-        if not separator:
+        if opened is not None:
+            open_fence = opened
+            first = index
+            lines = [line]
+        elif heading:
+            if len(line.strip()) > _EXCERPT_LENGTH:
+                yield _paragraph(index, [line], "heading")
+        elif line.strip():
             if not lines:
                 first = index
             lines.append(line)
+    if lines:
+        yield _paragraph(first, lines, "code" if open_fence is not None else None)
 
 
 def _is_pointer(paragraph: _Paragraph) -> bool:
@@ -846,21 +895,72 @@ def _names_mirrored_chapter(cited_id: str, mirrored_chapters: set[str], unknown:
     return cited_id in mirrored_chapters or (bool(slash) and resource_id in unknown)
 
 
-def _check_topic_bodies(library: Library) -> list[Finding]:
-    """Report each topic body that breaks the rule on what a topic may say in its own words.
+def _uncited(
+    paragraphs: list[_Paragraph], cited: set[int], exempt: Callable[[_Paragraph], bool]
+) -> Iterator[_Paragraph]:
+    """Yield each paragraph that holds no counted citation token and is not exempt.
 
-    The first paragraph is the scope statement and starts with ``SCOPE_LABEL``. Every paragraph
-    and list item after it holds a citation token that names a chapter of a book whose text may
-    be quoted, with two exceptions. A list item that is only a link, or only the instruction to
-    resolve a book id, points somewhere and claims nothing. ``NO_COVERAGE_SENTENCE`` may stand
-    alone in a topic that references no mirrored chapter.
+    The token of a block quote may also sit on the first line of the next paragraph, which is
+    where the citation checker accepts it. A fenced block takes its token there as well,
+    because a token inside the block is an example and not a citation.
+
+    Args:
+        paragraphs: The paragraphs of one page, in order.
+        cited: The lines of the page that hold a counted token, counted from 1.
+        exempt: Says whether a paragraph may stand without a token.
+    """
+    for number, paragraph in enumerate(paragraphs):
+        last = paragraph.last
+        if paragraph.kind in ("quote", "code") and number + 1 < len(paragraphs):
+            last = paragraphs[number + 1].first
+        if cited.intersection(range(paragraph.first + 1, last + 2)):
+            continue
+        if not exempt(paragraph):
+            yield paragraph
+
+
+def _uncited_finding(
+    file: str, line: int, where: str, paragraph: _Paragraph, may_stand: str
+) -> Finding:
+    """Build the finding for one paragraph that names no mirrored chapter."""
+    excerpt = paragraph.text
+    if len(excerpt) > _EXCERPT_LENGTH:
+        excerpt = f"{excerpt[:_EXCERPT_LENGTH]}..."
+    return Finding(
+        rule="topic-uncited-paragraph",
+        file=file,
+        line=line,
+        message=(
+            f"A paragraph of {where} holds no citation token that names a mirrored chapter: "
+            f"{excerpt}"
+        ),
+        fix=(
+            "End the paragraph with a [cite:<chapter-id>] token for the mirrored chapter it "
+            "draws on, or remove it. A token that names a book alone, or a book that is not "
+            "mirrored, does not count. A fenced block takes its token on the next line that "
+            f"has text, and a heading longer than {_EXCERPT_LENGTH} characters is read as a "
+            f"paragraph, so shorten it. {may_stand}"
+        ),
+    )
+
+
+def _check_topic_bodies(library: Library) -> list[Finding]:
+    """Report each topic page that breaks the rule on what a topic may say in its own words.
+
+    The first paragraph of a topic body is the scope statement and starts with ``SCOPE_LABEL``.
+    Every other paragraph and list item holds a citation token that names a chapter of a book
+    whose text may be quoted, with two exceptions. A list item that is only a link, or only the
+    instruction to resolve a book id, points somewhere and claims nothing.
+    ``NO_COVERAGE_SENTENCE`` may stand alone in a topic that references no mirrored chapter.
+
+    A fenced block and a heading longer than ``_EXCERPT_LENGTH`` characters are paragraphs under
+    this rule. The landing page ``topics/index.md`` is held to it too. Its first paragraph is
+    the library's own introduction, and its table rows and pointer list items stand without a
+    token.
 
     A token that names a book alone does not count, and neither does a token for a book that is
     not mirrored, because a paragraph could then report what a book says with no chapter in the
     library to hold it to.
-
-    The token of a block quote may also sit on the first line of the next paragraph, which is
-    where the citation checker accepts it.
     """
     allowlist = library.catalog.license_allowlist
     quotable = {
@@ -877,6 +977,16 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
     unknown = {
         resource_id for resource_id in quotable if not _chapters_loaded(library, resource_id)
     }
+
+    def cited_lines(body: str) -> set[int]:
+        return {
+            line
+            for line, ids in cited_ids(body).items()
+            if any(
+                _names_mirrored_chapter(cited_id, mirrored_chapters, unknown) for cited_id in ids
+            )
+        }
+
     findings: list[Finding] = []
     for topic_file in library.topics:
         topic = topic_file.topic
@@ -885,20 +995,15 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
         covered = any(
             reference.chapter and reference.resource in quotable for reference in topic.references
         )
-        cited = {
-            line
-            for line, ids in cited_ids(topic_file.body).items()
-            if any(
-                _names_mirrored_chapter(cited_id, mirrored_chapters, unknown) for cited_id in ids
-            )
-        }
         paragraphs = list(_paragraphs(topic_file.body))
-        if not paragraphs or not paragraphs[0].text.startswith(SCOPE_LABEL):
+        # A long heading above the scope statement is a paragraph, and it is not the statement.
+        scope = next((paragraph for paragraph in paragraphs if paragraph.kind != "heading"), None)
+        if scope is None or not scope.text.startswith(SCOPE_LABEL):
             findings.append(
                 Finding(
                     rule="topic-scope",
                     file=file,
-                    line=lines_above + paragraphs[0].first + 1 if paragraphs else None,
+                    line=lines_above + scope.first + 1 if scope else None,
                     message=(
                         f"The body of the topic {topic.id} does not open with its scope "
                         f"statement, which is a paragraph that starts with {SCOPE_LABEL}"
@@ -910,35 +1015,47 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
                     ),
                 )
             )
-        for number, paragraph in enumerate(paragraphs[1:], start=1):
-            last = paragraph.last
-            if paragraph.quote and number + 1 < len(paragraphs):
-                last = paragraphs[number + 1].first
-            if cited.intersection(range(paragraph.first + 1, last + 2)):
-                continue
-            if _is_pointer(paragraph) or (paragraph.text == NO_COVERAGE_SENTENCE and not covered):
-                continue
-            excerpt = paragraph.text
-            if len(excerpt) > _EXCERPT_LENGTH:
-                excerpt = f"{excerpt[:_EXCERPT_LENGTH]}..."
-            findings.append(
-                Finding(
-                    rule="topic-uncited-paragraph",
-                    file=file,
-                    line=lines_above + paragraph.first + 1,
-                    message=(
-                        f"A paragraph of the topic {topic.id} after its scope statement holds "
-                        f"no citation token that names a mirrored chapter: {excerpt}"
-                    ),
-                    fix=(
-                        "End the paragraph with a [cite:<chapter-id>] token for the mirrored "
-                        "chapter it draws on, or remove it. A token that names a book alone, or "
-                        "a book that is not mirrored, does not count. A list item may stand "
-                        "without a token only as a link alone or as the resolve instruction for "
-                        "a book id."
-                    ),
-                )
+
+        def stands(
+            paragraph: _Paragraph, scope: _Paragraph | None = scope, covered: bool = covered
+        ) -> bool:
+            if paragraph is scope or _is_pointer(paragraph):
+                return True
+            return paragraph.text == NO_COVERAGE_SENTENCE and not covered
+
+        findings.extend(
+            _uncited_finding(
+                file,
+                lines_above + paragraph.first + 1,
+                f"the topic {topic.id} after its scope statement",
+                paragraph,
+                "A list item may stand without a token only as a link alone or as the resolve "
+                "instruction for a book id.",
             )
+            for paragraph in _uncited(paragraphs, cited_lines(topic_file.body), stands)
+        )
+    landing_page = _landing_page(library)
+    if landing_page is not None:
+        path, body = landing_page
+        paragraphs = list(_paragraphs(body))
+        first = next((paragraph for paragraph in paragraphs if paragraph.kind == "prose"), None)
+        findings.extend(
+            _uncited_finding(
+                path.as_posix(),
+                paragraph.first + 1,
+                "the topic landing page after its first",
+                paragraph,
+                "On the landing page a table row may stand without a token, and so may a list "
+                "item that is a link alone or the resolve instruction for a book id.",
+            )
+            for paragraph in _uncited(
+                paragraphs,
+                cited_lines(body),
+                lambda paragraph: (
+                    paragraph is first or paragraph.kind == "table" or _is_pointer(paragraph)
+                ),
+            )
+        )
     return findings
 
 
