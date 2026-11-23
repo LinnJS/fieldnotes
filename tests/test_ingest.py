@@ -464,6 +464,20 @@ def test_check_fails_when_source_text_fits_no_role_rule(
     assert "excluded_pages" in output.err + output.out
 
 
+def test_check_fails_when_the_frontmatter_of_a_chapter_does_not_describe_the_source(
+    library_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    replace_in(library_copy / CHAPTERS / POND, "edition: v1.0.0\n", "edition: v9.9.9\n")
+
+    code = run(library_copy, "--check")
+
+    output = capsys.readouterr()
+    assert code == 1
+    assert "edition is 'v9.9.9'" in output.out
+    assert "Chapters checked: 3. Failed: 1." in output.out
+    assert "does not describe the source file" in output.err + output.out
+
+
 def test_check_prints_the_accepted_differences(
     library_copy: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
