@@ -9,12 +9,20 @@ from pathlib import Path
 import pytest
 from kb import export as kb_export
 from kb.catalog import Library, Resource, load_library
-from kb.export import ExportError, find_pandoc, write_epub, write_pdf
+from kb.export import (
+    ExportError,
+    checked_document,
+    find_pandoc,
+    pdf_outline,
+    write_epub,
+    write_pdf,
+)
 from kb.export_check import OutputProblem, ProblemKind, epub_problems, pdf_problems
 from kb.export_document import ChapterBlocks, CleanBook, CleanChapter, Json
-from pypdf import PdfWriter
+from pypdf import PdfReader, PdfWriter
 from pypdf.generic import (
     ArrayObject,
+    Destination,
     DictionaryObject,
     FloatObject,
     NameObject,
@@ -41,12 +49,21 @@ SCRIPT_LINKS = (
 )
 
 
+# Text that would start a line of the Typst source in the middle of a paragraph: a raw block
+# that spans lines, and prose that holds a line separator.
+LINE_STARTS = {
+    "raw block": "\n<div>\n= Injected heading\n- injected item\n</div>\n",
+    "line separator": "\nFirst line\u2028= Injected heading and more.\n",
+}
+
+
 @dataclass(frozen=True)
 class Written:
     """The EPUB and the PDF the export wrote for the fixture library."""
 
     epub: Path
     pdf: Path
+    outline: list[str]
 
 
 def copy_library(source: Path, target: Path, added: str = "") -> tuple[Library, Resource]:
@@ -66,7 +83,27 @@ def written(fixture_library_root: Path, tmp_path_factory: pytest.TempPathFactory
     return Written(
         epub=write_epub(library, resource, directory / "out", pandoc),
         pdf=write_pdf(library, resource, directory / "out", pandoc),
+        outline=library_outline(library, resource),
     )
+
+
+def outline_titles(pdf: Path) -> list[str]:
+    """Return the titles of a PDF's outline, in reading order."""
+    titles: list[str] = []
+    pending: list[object] = list(reversed(PdfReader(pdf).outline))
+    while pending:
+        item = pending.pop()
+        if isinstance(item, list):
+            pending += reversed(item)
+        else:
+            assert isinstance(item, Destination)
+            titles.append(str(item.title))
+    return titles
+
+
+def library_outline(library: Library, resource: Resource) -> list[str]:
+    """Return the outline the export computes for a book's PDF."""
+    return pdf_outline(checked_document(library, resource, find_pandoc()))
 
 
 def has(problems: list[OutputProblem], kind: ProblemKind, *parts: str) -> bool:
@@ -96,7 +133,7 @@ def changed_epub(
 
 def test_the_export_of_the_fixture_library_passes_both_checks(written: Written) -> None:
     assert epub_problems(written.epub) == []
-    assert pdf_problems(written.pdf) == []
+    assert pdf_problems(written.pdf, outline=written.outline) == []
 
 
 def test_an_epub_member_the_export_does_not_write_is_a_problem(
@@ -236,7 +273,7 @@ def test_a_chapter_with_every_admitted_feature_exports_and_passes_both_checks(
     pdf = write_pdf(library, resource, tmp_path / "out", pandoc)
 
     assert epub_problems(epub) == []
-    assert pdf_problems(pdf) == []
+    assert pdf_problems(pdf, outline=library_outline(library, resource)) == []
     with zipfile.ZipFile(epub) as archive:
         page = archive.read("EPUB/text/ch002.xhtml").decode()
     for markup in (
@@ -364,7 +401,7 @@ def test_a_pdf_with_a_web_link_and_an_internal_jump_passes(tmp_path: Path) -> No
         jump=True,
     )
 
-    assert pdf_problems(pdf) == []
+    assert pdf_problems(pdf, outline=()) == []
 
 
 @pytest.mark.parametrize(
@@ -421,7 +458,7 @@ def test_a_pdf_link_other_than_a_web_link_or_a_jump_is_a_problem(
 ) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", annotations=annotations)
 
-    assert has(pdf_problems(pdf), kind, "page 1", shown)
+    assert has(pdf_problems(pdf, outline=()), kind, "page 1", shown)
 
 
 @pytest.mark.parametrize(
@@ -438,13 +475,13 @@ def test_a_pdf_catalog_entry_the_export_does_not_write_is_a_problem(
 ) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", catalog={entry: value})
 
-    assert has(pdf_problems(pdf), ProblemKind.CATALOG, entry)
+    assert has(pdf_problems(pdf, outline=()), ProblemKind.CATALOG, entry)
 
 
 def test_a_pdf_with_an_embedded_file_is_a_problem(tmp_path: Path) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", attachment=True)
 
-    assert has(pdf_problems(pdf), ProblemKind.CATALOG, "/EmbeddedFiles")
+    assert has(pdf_problems(pdf, outline=()), ProblemKind.CATALOG, "/EmbeddedFiles")
 
 
 def test_a_pdf_with_a_script_in_its_name_tree_is_a_problem(tmp_path: Path) -> None:
@@ -460,7 +497,7 @@ def test_a_pdf_with_a_script_in_its_name_tree_is_a_problem(tmp_path: Path) -> No
         catalog={"/Names": DictionaryObject({NameObject("/JavaScript"): scripts})},
     )
 
-    assert has(pdf_problems(pdf), ProblemKind.CATALOG, "/JavaScript")
+    assert has(pdf_problems(pdf, outline=()), ProblemKind.CATALOG, "/JavaScript")
 
 
 def test_a_pdf_page_with_additional_actions_is_a_problem(tmp_path: Path) -> None:
@@ -469,20 +506,20 @@ def test_a_pdf_page_with_additional_actions_is_a_problem(tmp_path: Path) -> None
         page={"/AA": DictionaryObject({NameObject("/O"): action("/JavaScript", JS=SCRIPT)})},
     )
 
-    assert has(pdf_problems(pdf), ProblemKind.PAGE, "page 1", "/AA")
+    assert has(pdf_problems(pdf, outline=()), ProblemKind.PAGE, "page 1", "/AA")
 
 
 def test_a_pdf_outline_item_with_an_action_is_a_problem(tmp_path: Path) -> None:
     pdf = pdf_file(tmp_path / "a.pdf", outline_action=action("/JavaScript", JS=SCRIPT))
 
-    assert has(pdf_problems(pdf), ProblemKind.OUTLINE, "/A")
+    assert has(pdf_problems(pdf, outline=["Chapter"]), ProblemKind.OUTLINE, "/A")
 
 
 def test_a_file_that_is_not_a_pdf_is_a_problem(tmp_path: Path) -> None:
     pdf = tmp_path / "a.pdf"
     pdf.write_bytes(b"not a pdf")
 
-    assert has(pdf_problems(pdf), ProblemKind.FILE)
+    assert has(pdf_problems(pdf, outline=()), ProblemKind.FILE)
 
 
 def unchanged_chapters(
@@ -519,4 +556,44 @@ def test_with_the_document_pass_switched_off_the_output_check_stops_the_chapter_
     assert "holds what the export does not write" in raised.value.message
     assert "javascript:alert(1)" in raised.value.message
     assert "report" in raised.value.fix
+    assert list(out.iterdir()) == []
+
+
+@pytest.mark.parametrize("added", list(LINE_STARTS.values()), ids=list(LINE_STARTS))
+def test_a_chapter_cannot_add_a_heading_to_the_pdf(
+    fixture_library_root: Path, tmp_path: Path, written: Written, added: str
+) -> None:
+    library, resource = copy_library(fixture_library_root, tmp_path / "library", added)
+
+    pdf = write_pdf(library, resource, tmp_path / "out", find_pandoc())
+
+    assert outline_titles(pdf) == outline_titles(written.pdf)
+
+
+def test_the_outline_of_the_fixture_pdf_is_the_one_the_library_computes(written: Written) -> None:
+    assert outline_titles(written.pdf) == written.outline
+    assert "1 Folding the Hull" in written.outline
+
+
+def test_an_outline_title_the_library_did_not_compute_is_a_problem(written: Written) -> None:
+    problems = pdf_problems(written.pdf, outline=[*written.outline, "Injected heading"])
+
+    assert has(problems, ProblemKind.OUTLINE, "Injected heading")
+
+
+def test_with_the_document_pass_switched_off_the_outline_check_stops_a_line_start(
+    fixture_library_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(kb_export, "clean_chapters", unchanged_chapters)
+    monkeypatch.setattr(kb_export, "check_document", no_check)
+    library, resource = copy_library(
+        fixture_library_root, tmp_path / "library", LINE_STARTS["line separator"]
+    )
+    out = tmp_path / "out"
+
+    with pytest.raises(ExportError) as raised:
+        write_pdf(library, resource, out, find_pandoc())
+
+    assert "holds what the export does not write" in raised.value.message
+    assert "Injected heading" in raised.value.message
     assert list(out.iterdir()) == []

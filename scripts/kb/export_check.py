@@ -15,7 +15,7 @@ check runs a program or fetches anything.
 import posixpath
 import re
 import zipfile
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -274,17 +274,21 @@ def epub_problems(path: Path) -> list[OutputProblem]:
     return list(dict.fromkeys(problems))
 
 
-def pdf_problems(path: Path) -> list[OutputProblem]:
+def pdf_problems(path: Path, *, outline: Sequence[str]) -> list[OutputProblem]:
     """List what a written PDF holds that the library's PDFs do not.
 
     The document catalog and its name dictionary hold only the entries the Typst compiler
     writes, which leaves out an open action, additional actions, a form, a script, and an
     embedded file. Every page holds only the entries the compiler writes. Every annotation is
     a link, which jumps inside the file or opens an address of ``LINK_SCHEMES`` and does
-    nothing else. Every outline item jumps inside the file.
+    nothing else. Every outline item jumps inside the file, and the titles of the outline, in
+    reading order, are the ones the library computed from the headings of the document it
+    checked. Text that the Typst source reads as a heading therefore shows up here.
 
     Args:
         path: The PDF file.
+        outline: The titles the outline must hold, in reading order, as
+            ``kb.export.pdf_outline`` computes them.
 
     Returns:
         One problem per finding, in the order found. The list is empty for a file that holds
@@ -299,12 +303,14 @@ def pdf_problems(path: Path) -> list[OutputProblem]:
         problems.extend(_catalog_problems(catalog))
         for number, page in enumerate(reader.pages, start=1):
             problems.extend(_page_problems(number, page))
+        titles: list[str] = []
         if "/Outlines" in catalog:
             outlines = _dictionary(catalog["/Outlines"])
             if outlines is None:
                 problems.append(OutputProblem(ProblemKind.OUTLINE, "the outline is no map"))
             else:
-                problems.extend(_outline_problems(outlines))
+                problems.extend(_outline_problems(outlines, titles))
+        problems.extend(_title_problems(titles, outline))
     # pypdf raises many kinds of error on a damaged file. Any of them means the file is not one
     # the export wrote, so the check fails closed.
     except Exception as error:
@@ -533,7 +539,8 @@ def _action_problems(where: str, value: PdfObject) -> list[OutputProblem]:
     return problems
 
 
-def _outline_problems(outlines: DictionaryObject) -> list[OutputProblem]:
+def _outline_problems(outlines: DictionaryObject, titles: list[str]) -> list[OutputProblem]:
+    """List the problems of the outline's items, and add their titles to ``titles``."""
     problems = _extra_keys(outlines, _OUTLINE_ROOT_KEYS, ProblemKind.OUTLINE, "the outline")
     seen: set[tuple[int, int]] = set()
     pending: list[PdfObject] = [outlines.raw_get("/First")] if "/First" in outlines else []
@@ -549,5 +556,38 @@ def _outline_problems(outlines: DictionaryObject) -> list[OutputProblem]:
             problems.append(OutputProblem(ProblemKind.OUTLINE, "an outline item is no map"))
             continue
         problems += _extra_keys(item, _OUTLINE_ITEM_KEYS, ProblemKind.OUTLINE, "an outline item")
-        pending += [item.raw_get(key) for key in ("/First", "/Next") if key in item]
+        titles.append(str(item.get("/Title", "")))
+        # The next sibling goes on the stack first, so the children come out before it and
+        # the titles are read in reading order.
+        pending += [item.raw_get(key) for key in ("/Next", "/First") if key in item]
     return problems
+
+
+def _title_problems(titles: Sequence[str], outline: Sequence[str]) -> list[OutputProblem]:
+    """Compare the outline's titles with the ones the library computed, word by word."""
+    found = [" ".join(title.split()) for title in titles]
+    wanted = [" ".join(title.split()) for title in outline]
+    if found == wanted:
+        return []
+    for index, (title, expected) in enumerate(zip(found, wanted, strict=False)):
+        if title != expected:
+            return [
+                OutputProblem(
+                    ProblemKind.OUTLINE,
+                    f"outline item {index + 1} is {title!r} where the library wrote {expected!r}",
+                )
+            ]
+    extra = found[len(wanted) :]
+    if extra:
+        return [
+            OutputProblem(
+                ProblemKind.OUTLINE,
+                f"the outline holds {extra!r} after the titles the library wrote",
+            )
+        ]
+    return [
+        OutputProblem(
+            ProblemKind.OUTLINE,
+            f"the outline lacks {wanted[len(found) :]!r}, which the library wrote",
+        )
+    ]

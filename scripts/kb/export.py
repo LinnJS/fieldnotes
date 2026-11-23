@@ -33,7 +33,7 @@ import subprocess
 import tempfile
 import uuid
 import zipfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
 
 import typst
@@ -76,6 +76,7 @@ __all__ = [
     "checked_document",
     "find_cjk_font",
     "find_pandoc",
+    "pdf_outline",
     "select_books",
     "write_bundle",
     "write_epub",
@@ -312,6 +313,69 @@ def checked_document(library: Library, resource: Resource, pandoc: Path) -> dict
     return document
 
 
+def pdf_outline(document: Json) -> list[str]:
+    """Compute the outline titles of the PDF written from a checked document.
+
+    The Typst template numbers every heading except one of class ``unnumbered``, as ``1``,
+    ``1.1``, and so on, and the compiler makes one outline item per heading, in reading order,
+    titled with the number and the heading's words. The titles come from the document alone,
+    so the read-back of the PDF can tell a heading the document holds from one that the Typst
+    source made out of text.
+
+    Args:
+        document: The document ``checked_document`` returned.
+
+    Returns:
+        The titles, in reading order.
+    """
+    titles: list[str] = []
+    counters: list[int] = []
+    blocks = document.get("blocks") if isinstance(document, dict) else None
+    for level, numbered, words in _headings(blocks):
+        if numbered:
+            counters = (counters + [0] * level)[:level]
+            counters[-1] += 1
+            titles.append(f"{'.'.join(map(str, counters))} {words}")
+        else:
+            titles.append(words)
+    return titles
+
+
+def _headings(blocks: Json) -> Iterator[tuple[int, bool, str]]:
+    """Yield the level, whether it is numbered, and the words of each heading in reading order."""
+    if isinstance(blocks, list):
+        for block in blocks:
+            yield from _headings(block)
+    elif isinstance(blocks, dict):
+        content = blocks.get("c")
+        if blocks.get("t") == "Header" and isinstance(content, list) and len(content) == 3:
+            level, attr, inlines = content
+            if isinstance(level, int) and isinstance(attr, list) and len(attr) == 3:
+                yield level, attr[1] != ["unnumbered"], " ".join(_words(inlines).split())
+        else:
+            yield from _headings(content)
+
+
+def _words(inlines: Json) -> str:
+    """Return the text of inline nodes, with a space for each space or line break."""
+    if isinstance(inlines, list):
+        return "".join(_words(inline) for inline in inlines)
+    if not isinstance(inlines, dict):
+        return ""
+    kind, content = inlines.get("t"), inlines.get("c")
+    match kind:
+        case "Str":
+            return str(content)
+        case "Space" | "SoftBreak" | "LineBreak":
+            return " "
+        case "Code":
+            return str(content[1]) if isinstance(content, list) else ""
+        case "Link":
+            return _words(content[1]) if isinstance(content, list) else ""
+        case _:
+            return _words(content)
+
+
 def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path) -> Path:
     """Write a book's PDF.
 
@@ -357,7 +421,9 @@ def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path)
                 "Correct templates/book.typ, or the chapter the message points at, and run "
                 "the command again.",
             ) from error
-    return _checked_file(target, pdf_problems(target), resource, "PDF")
+    return _checked_file(
+        target, pdf_problems(target, outline=pdf_outline(document)), resource, "PDF"
+    )
 
 
 def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path) -> Path:
