@@ -17,6 +17,7 @@ from xml.etree import ElementTree
 import export
 import pytest
 import typst
+from conftest import write_root_files
 from kb import export as kb_export
 from kb.catalog import Library, Resource, load_library
 from kb.export import ExportError, checked_document, find_pandoc
@@ -47,15 +48,6 @@ CJK_FONT_FAMILIES = [
     "Noto Sans CJK SC",
 ]
 
-# The fixture library carries none of these, so each test library gets its own.
-ROOT_FILES = {
-    "AGENTS.md": "# Agent guide\n\nInvented for automated tests.\n",
-    "LICENSES.md": "# Licenses\n\nInvented for automated tests.\n",
-    "llms.txt": "# Fixture Library\n",
-    "index/catalog.json": '{"resources": []}\n',
-    "index/topics.json": '{"topics": []}\n',
-    "index/chapters.jsonl": '{"id": "fixture-mirrored-book/folding-the-hull"}\n',
-}
 
 BUNDLE_ENTRIES = [
     "MANIFEST.json",
@@ -118,12 +110,6 @@ def run_command(
         env=environment,
         check=False,
     )
-
-
-def write_root_files(root: Path) -> None:
-    for name, text in ROOT_FILES.items():
-        (root / name).parent.mkdir(exist_ok=True)
-        (root / name).write_text(text, encoding="utf-8")
 
 
 def give_the_reference_book_content(root: Path) -> None:
