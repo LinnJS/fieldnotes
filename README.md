@@ -18,7 +18,8 @@ and it links to the author's official source for every other book.
 
 **Status.** The library is young. It catalogs 19 books and holds the text of one.
 The tooling, the checks, and the agent instructions are complete enough to use.
-The documentation site is not published yet. See [Limitations](#limitations).
+The documentation site is at <https://linnjs.github.io/fieldnotes/>. See
+[Limitations](#limitations).
 
 ## Quick start
 
@@ -133,10 +134,10 @@ book says carries a citation to a mirrored chapter.
 - **In the repository.** Start at [`llms.txt`](llms.txt) or
   [`topics/index.md`](topics/index.md). Chapters are plain Markdown under
   `books/<id>/chapters/`.
-- **On the site.** `uv run python scripts/build.py --site` builds a searchable site
-  into `dist/site/`, with a page per chapter, a page per topic, and a catalog card
-  for every book. The site is planned for <https://linnjs.github.io/fieldnotes/>
-  and is not published yet.
+- **On the site.** <https://linnjs.github.io/fieldnotes/> is searchable, with a
+  page per chapter, a page per topic, and a catalog card for every book. The
+  `Publish` workflow deploys it from the default branch.
+  `uv run python scripts/build.py --site` builds the same site into `dist/site/`.
 - **As files.** `uv run python scripts/export.py` writes a PDF and an EPUB of each
   mirrored book, and a zip bundle of the whole library, into `dist/exports/`.
 
@@ -295,9 +296,8 @@ separate decision.
   author's note says the newer edition corrects errors in the June text, including
   a quote wrongly attributed to Addy Osmani. The passage has not been identified in
   the English text, so no chapter carries an erratum.
-- The `Validate` workflow runs on every pull request. The `Publish` and
-  `Upstream sync` workflows start only from the default branch and have not run
-  on GitHub yet, and the site is not published.
+- The `Upstream sync` workflow starts only from the default branch on a weekly
+  schedule and has not run on GitHub yet.
 - The check of the built site holds each page to a list of elements, attributes,
   and addresses. It does not compare the structure of a page with its Markdown.
   Text that the site's Markdown reader takes for a list, a table, a heading, or a
