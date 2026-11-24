@@ -263,7 +263,7 @@ Waits on the owner's D2 choice and U2's decision record. Its separate PR isolate
 
 ### U3. Resolve D2
 
-Apply the chosen D2 route to its own policy PR. The upstream-file route preserves `gate.py` and the evidence-location rule when the file uses D2's accepted root filename. Record the scoped evidence, recaptured source pin and known additional-code-license sync finding. The README route needs a precise gate/schema contract, separate grant-evidence and distributed-license digests, permission-provenance rules and regression tests in `tests/test_gate.py`, `tests/test_checks.py`, `tests/test_catalog.py` and `tests/test_catalog_data.py` before coding it. Cover an accepted root content-license file beside Apache LICENSE, rejection of nested or unaccepted evidence names, and README evidence with a correctly hashed standard legal code plus a changed-code-digest failure. Include the repository-wide decision impact report in either route. Retain the record's reference-only status until U4 is ready. Covers R4–R5. Exact implementation awaits the owner's selection.
+Apply the chosen D2 route to its own policy PR. The upstream-file route preserves `gate.py` and the evidence-location rule when the file uses D2's accepted root filename. Record the scoped evidence, recaptured source pin and known additional-code-license sync finding. The README route needs a precise gate/schema contract, separate grant-evidence and distributed-license digests, permission-provenance rules and regression tests in `tests/test_gate.py`, `tests/test_checks.py`, `tests/test_catalog.py` and `tests/test_catalog_data.py` before coding it. For the upstream-file route, cover an accepted root content-license file beside Apache LICENSE under the retained license-file rule, and rejection of nested or unaccepted evidence names. For the README route, cover README evidence with a correctly hashed standard legal code plus a changed-code-digest failure. Include the repository-wide decision impact report in either route. Retain the record's reference-only status until U4 is ready. Covers R4–R5. Exact implementation awaits the owner's selection.
 
 ### PR4. Conditional Markdown mirror
 
@@ -300,7 +300,7 @@ These are implementation checks for the named units. Planning does not run produ
 | `python3 scripts/resolve.py 12-factor-agents` | U1, U4 | AE1 after U1, approved mirrored status and truthful source provenance after U4 |
 | `uv run python scripts/ingest.py --book 12-factor-agents --check` | U4 | Source inventory, chapter bytes and frontmatter match the pin |
 | Full-text, site and PDF/EPUB/bundle builds | U1 exclusion, U4 inclusion | Correct status filtering and all applicable attribution/license notices travel with the text |
-| Milestone #4 eval command | U4 | Both earlier works retain their expected results and guide coverage passes |
+| Milestone #4 eval command | U4 | Both earlier works, Loop Engineering and the Hermes Agent mirror from #3, retain their expected results and guide coverage passes |
 
 Recheck test paths and command names after #4 merges. The current repository has no eval runner, so this plan cannot name #4's future interface as an existing command.
 
