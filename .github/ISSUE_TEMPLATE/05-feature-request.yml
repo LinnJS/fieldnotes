@@ -1,0 +1,37 @@
+name: Feature request
+description: Propose a change to the tools, the site, the exports, the topics, or the agent workflow.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        To add a book, use the resource template. A change to the license policy or the allowlist is the owner's decision. Describe the problem it would solve here, and the owner will weigh it.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The change you suggest. Name any new dependency it needs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to open the pull request myself.

@@ -1,0 +1,47 @@
+name: License or rights concern
+description: Ask for a book to be withdrawn, or report license evidence that is wrong or out of date.
+title: "rights: "
+labels: ["rights"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form if you are an author or a rights holder and want a work withdrawn, or if a book's recorded license evidence is wrong.
+
+        A book's status is frozen at the commit its evidence was read from. When a license changes upstream, a person reviews it and updates the record. A withdrawn book becomes `reference-only`, its text is removed, and the site is rebuilt without it.
+
+        This issue is public. Do not include personal contact details or other private information. To write privately instead, use the contact details on the maintainer's [GitHub profile](https://github.com/LinnJS).
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of concern
+      options:
+        - I am the author or a rights holder and ask for withdrawal
+        - The recorded license evidence is wrong or out of date
+        - Other rights concern
+    validations:
+      required: true
+
+  - type: input
+    id: resource-id
+    attributes:
+      label: Book id or official URL
+      description: The id appears in the README table and in `books/<id>/metadata.yaml`.
+      placeholder: loop-engineering-orange-book
+    validations:
+      required: true
+
+  - type: textarea
+    id: concern
+    attributes:
+      label: The concern
+      description: What is wrong, and what you are asking the library to do.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Links to the license file, the statement, or the commit that supports the concern.

@@ -1,0 +1,15 @@
+# Every issue starts from a template, so each report arrives with the facts a
+# reviewer needs. Each template exists as a form and as a Markdown file. The
+# Markdown files also work from the GitHub CLI and the API, which do not render
+# forms. The Question template takes what a blank issue would.
+blank_issues_enabled: false
+contact_links:
+  - name: Security problem
+    url: https://github.com/LinnJS/fieldnotes/security/policy
+    about: Report a security problem privately. Do not open a public issue for it.
+  - name: Read a book at its source
+    url: https://www.huasheng.ai/orange-books
+    about: This library does not hold the text of most books. The author publishes them here.
+  - name: Read the contributing guide
+    url: https://github.com/LinnJS/fieldnotes/blob/main/CONTRIBUTING.md
+    about: What a correction may and may not change, and the checks a pull request must pass.

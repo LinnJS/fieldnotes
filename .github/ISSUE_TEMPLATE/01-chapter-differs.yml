@@ -1,0 +1,72 @@
+name: Chapter differs from its source
+description: A mirrored chapter differs from its source PDF, or the author has published a correction.
+title: "chapter: "
+labels: ["chapter-text"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A chapter under `books/<id>/chapters/` is a faithful copy of the pinned source edition. A correction may restore what the source says. It may never reword, shorten, modernize, or correct the author's prose. A typo in the source stays in the chapter.
+
+        If the author has published a correction, the library records it as an erratum beside the chapter and keeps the text as the source printed it.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of problem
+      options:
+        - "Extraction error: the chapter differs from the pinned source PDF"
+        - "Erratum: the author has published a correction"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    id: chapter-id
+    attributes:
+      label: Chapter id
+      description: Run `python3 scripts/resolve.py <id>` to confirm it. It prints the nearest valid ids when it does not know one.
+      placeholder: loop-engineering-orange-book/generator-and-evaluator
+    validations:
+      required: true
+
+  - type: input
+    id: source-pages
+    attributes:
+      label: Source pages
+      description: The page numbers in the source PDF. The chapter frontmatter lists the pages it was extracted from.
+      placeholder: "12-13"
+
+  - type: textarea
+    id: chapter-text
+    attributes:
+      label: What the chapter says
+      description: Copy the passage from the chapter file exactly.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: source-text
+    attributes:
+      label: What the source shows
+      description: For an extraction error, describe what the source page shows, such as a heading level, a table, a list, or a lost word. For an erratum, describe the author's correction in your own words.
+    validations:
+      required: true
+
+  - type: input
+    id: author-statement
+    attributes:
+      label: Where the author states the correction
+      description: Required for an erratum. Link to the author's own statement. Without one, describe what you found above and leave this empty.
+      placeholder: https://
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before you submit
+      options:
+        - label: I compared the chapter with the pinned source edition named in its frontmatter, not with a newer edition.
+          required: true
+        - label: I am not asking to reword, shorten, or improve the author's text.
+          required: true

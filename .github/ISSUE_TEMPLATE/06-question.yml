@@ -1,0 +1,22 @@
+name: Question
+description: Ask about using the library, citing it, or contributing to it.
+title: "question: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The README, `AGENTS.md`, and `CONTRIBUTING.md` answer most questions. An issue cannot hold the text of a book that is not mirrored. The README gives the official URL for each one.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What you have tried or read
+      description: The commands you ran, or the sections of the documentation you read.
