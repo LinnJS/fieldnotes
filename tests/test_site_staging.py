@@ -517,6 +517,29 @@ def test_reading_list_item_for_a_book_that_is_not_mirrored_links_its_catalog_car
     assert "scripts/resolve.py" not in page
 
 
+POINTER = f"- `{REFERENCE}`. Run `python3 scripts/resolve.py {REFERENCE}` for its official URL."
+
+
+@pytest.mark.parametrize(
+    ("opening", "inner", "closing"),
+    [("````", "```", "````"), ("```", "~~~", "```"), ("~~~~", "~~~ not a close", "~~~~")],
+)
+def test_a_reading_list_item_shown_inside_a_code_block_stays_as_written(
+    opening: str, inner: str, closing: str, library_root: Path, tmp_path: Path
+) -> None:
+    topic = library_root / "topics" / "paper-craft.md"
+    example = f"\nThe item is written as:\n\n{opening}markdown\n{inner}\n{POINTER}\n{closing}\n"
+    topic.write_text(topic.read_text(encoding="utf-8") + example, encoding="utf-8")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    page = read(staging_dir, "topics/paper-craft.md")
+
+    shown = page[page.index(f"{opening}markdown") :]
+    assert shown.splitlines()[:4] == [f"{opening}markdown", inner, POINTER, closing]
+    assert page.count("is not mirrored. Its catalog card lists the official links.") == 1
+
+
 def test_links_between_canonical_files_point_at_staged_pages(staged: Path) -> None:
     page = read(staged, "topics/paper-craft.md")
 

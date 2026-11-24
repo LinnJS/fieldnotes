@@ -85,6 +85,7 @@ from kb.prose import link_address
 from kb.readpath import (
     CATALOG_INDEX,
     CHAPTERS_INDEX,
+    CODE_FENCE,
     LLMS_FILE,
     RESOLVE_POINTER,
     TOKEN_PATTERN,
@@ -98,6 +99,7 @@ from kb.readpath import (
     language_name,
     load_index,
     mask_code,
+    opening_fence,
     page_label,
     resolve,
     source_label,
@@ -845,11 +847,17 @@ def _with_card_links(body: str) -> str:
     # The pointer is written with inline code, so it is matched in the text as written and
     # only fenced blocks are left alone.
     lines: list[str] = []
-    fenced = False
+    open_fence: str | None = None
     for line in body.split("\n"):
-        if line.lstrip().startswith(("```", "~~~")):
-            fenced = not fenced
-        lines.append(line if fenced else RESOLVE_POINTER.sub(card, line))
+        if open_fence is None:
+            open_fence = opening_fence(line)
+            lines.append(line if open_fence is not None else RESOLVE_POINTER.sub(card, line))
+            continue
+        # A block closes on a bare fence of the same character that is at least as long.
+        fence = CODE_FENCE.match(line)
+        if fence and fence[1].startswith(open_fence) and not line[fence.end() :].strip():
+            open_fence = None
+        lines.append(line)
     return "\n".join(lines)
 
 
