@@ -208,7 +208,7 @@ from its collections, so a rename needs no structural change.
 
 ## Setup checklist
 
-These steps are yours. A ticked step was confirmed against GitHub on 2026-11-23.
+These steps are yours. A ticked step was confirmed against GitHub on 2026-11-24.
 The others have not been done.
 
 - [ ] Read the two MIT license records against their permalinks, and confirm you
@@ -217,12 +217,13 @@ The others have not been done.
       public, and `main` holds the first plan.
 - [x] Set `library.base_url` and `library.repository` in `catalog.yaml` to the
       real values, and rebuild.
-- [ ] Merge the first pull request, which brings the library to `main`. Until
+- [x] Merge the first pull request, which brings the library to `main`. Until
       then the repository's front page shows no README and no license.
-- [ ] Enable GitHub Pages with "GitHub Actions" as the source.
-- [ ] Watch the first runs of the `Publish` and `Upstream sync` workflows. They
-      start only from the default branch and have not run on GitHub. `Validate`
-      has run on pull requests.
+- [x] Enable GitHub Pages with "GitHub Actions" as the source. The `Publish`
+      workflow has deployed the site from `main`.
+- [ ] Watch the first run of the `Upstream sync` workflow. It starts only from
+      the default branch and has not run on GitHub. `Validate` has run on pull
+      requests and on `main`.
 - [ ] Enable private vulnerability reporting under Settings, Security, so the
       route that `SECURITY.md` names first is open.
 - [ ] Give the repository a description, a homepage, and topics, so it can be
