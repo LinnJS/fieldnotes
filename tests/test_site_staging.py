@@ -742,3 +742,85 @@ def test_no_built_page_takes_the_place_of_a_served_file_when_case_is_ignored(
     served = {path.as_posix().lower() for path in bundle_files(load_library(library_root))}
 
     assert page_directories & served == set()
+
+
+NOTICE_YAML = "  - Test fixture. This book and its text are invented for automated tests.\n"
+# Record text that opens a block when Markdown reads it at the start of a line, and record text
+# that only looks like it does. Each must reach the page as the words of one list item.
+LINE_START_NOTICES = {
+    "fullwidth digit": ["\uff11. Fold the sheet before launch."],
+    "arabic-indic digit": ["\u0661) Fold the sheet before launch."],
+    "ascii number": ["1. Fold the sheet before launch."],
+    "ascii number with a parenthesis": ["2) Fold the sheet."],
+    "three table rows": ["Depth | Width", "-|-", "3 | 4"],
+    "two table rows": ["Depth | Width", ": | :"],
+    "two dashes": ["--"],
+    "a dash item": ["- Fold the sheet."],
+    "a plus item": ["+ Fold the sheet."],
+    "a quote": ["> Fold the sheet."],
+    "an equals rule": ["= Fold the sheet.", "==="],
+    "a tilde fence": ["~~~ fold", "Fold the sheet.", "~~~"],
+    "honest text": ["1.5 times the width.", "-5 degrees at night.", "#12 is the pond.", "/usr"],
+}
+_ELEMENT = re.compile(r"<([a-z][a-z0-9]*)[\s>/]")
+_LEAF_ITEM = re.compile(r"<li>([^<]*)</li>")
+
+
+def staged_with_notices(root: Path, tmp_path: Path, notices: list[str]) -> dict[str, str]:
+    """Stage the library with these notices on the mirrored book and render its two pages."""
+    metadata = root / "books" / MIRRORED / "metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    assert NOTICE_YAML in text
+    written = "".join(
+        f"  - {yaml.safe_dump(notice, allow_unicode=True).split(chr(10))[0]}\n"
+        for notice in notices
+    )
+    metadata.write_text(text.replace(NOTICE_YAML, written), encoding="utf-8")
+    assert load_library(root).resource(MIRRORED).notices == tuple(notices)
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(root), staging_dir)
+    return {
+        name: built(read(staging_dir, name))
+        for name in ("catalog.md", f"books/{MIRRORED}/index.md")
+    }
+
+
+@pytest.mark.parametrize("notices", LINE_START_NOTICES.values(), ids=LINE_START_NOTICES)
+def test_a_notice_that_starts_like_a_block_is_one_item_of_text_on_the_site(
+    notices: list[str], library_root: Path, tmp_path: Path
+) -> None:
+    plain_root = tmp_path / "plain"
+    shutil.copytree(library_root, plain_root)
+    plain = [f"Plain notice {number}." for number in range(len(notices))]
+    expected = staged_with_notices(plain_root, tmp_path / "plain-out", plain)
+
+    pages = staged_with_notices(library_root, tmp_path / "out", notices)
+
+    for name, rendered in pages.items():
+        assert sorted(_ELEMENT.findall(rendered)) == sorted(_ELEMENT.findall(expected[name])), name
+        items = [html.unescape(item) for item in _LEAF_ITEM.findall(rendered)]
+        assert [item for item in items if item in notices] == notices, name
+        assert content_problems(rendered) == [], name
+
+
+def test_an_erratum_that_starts_with_a_number_is_text_on_the_chapter_page(
+    library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "02-choosing-a-pond.md"
+    text = chapter.read_text(encoding="utf-8")
+    assert f"description: {ERRATUM}\n" in text
+    staging_dir = tmp_path / "plain"
+    stage(load_library(library_root), staging_dir)
+    expected = built(read(staging_dir, CHAPTER_PAGES[1]))
+    description = "\u0661. The pond table lists depth in hands."
+    chapter.write_text(
+        text.replace(f"description: {ERRATUM}\n", f'description: "{description}"\n'),
+        encoding="utf-8",
+    )
+    staging_dir = tmp_path / "out"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[1]))
+
+    assert sorted(_ELEMENT.findall(rendered)) == sorted(_ELEMENT.findall(expected))
+    assert f"<p>{description} The erratum is recorded here" in html.unescape(rendered)

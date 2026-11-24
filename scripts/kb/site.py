@@ -163,9 +163,16 @@ _STATUS_INTRODUCTIONS = {
     ),
 }
 
-# Python-Markdown honors a backslash only before these characters. The angle bracket and the
-# ampersand are written as HTML entities instead.
-_MARKDOWN_SPECIAL = re.compile(r"[\\`*_{}\[\]#]")
+# Python-Markdown honors a backslash only before these characters, and before the vertical bar
+# because the site reads tables. The angle bracket and the ampersand are written as HTML
+# entities instead.
+_MARKDOWN_SPECIAL = re.compile(r"[\\`*_{}\[\]#|]")
+# What opens a block at the start of a line and is not escaped above: a number before a full
+# stop or a parenthesis, in any script's digits, as Python-Markdown reads them, a list mark, or
+# the mark of a heading rule or a fence. Python-Markdown honors no backslash before an equals
+# sign or a tilde, so those two are written as entities.
+_LINE_START_NUMBER = re.compile(r"(\d+)([.)])")
+_LINE_START_ESCAPES = {"-": "\\-", "+": "\\+", "=": "&#61;", "~": "&#126;"}
 _LINK = re.compile(r"\]\((?P<target>[^)\s#]+)(?P<rest>[^)]*)\)")
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 _HEADING = "# "
@@ -575,9 +582,18 @@ def _nav_label(text: str) -> str:
 
 
 def _plain(text: str) -> str:
-    """Escape text from a record so that Markdown shows it as written, on one line."""
-    escaped = html.escape(" ".join(text.split()), quote=False)
-    return _MARKDOWN_SPECIAL.sub(r"\\\g<0>", escaped)
+    """Escape text from a record so that Markdown shows it as written, on one line.
+
+    The start of the text is escaped as well, because the text may start a line or a list item,
+    where a mark such as ``1.``, ``-``, or ``--`` would open a list or draw a rule.
+    """
+    escaped = _MARKDOWN_SPECIAL.sub(r"\\\g<0>", html.escape(" ".join(text.split()), quote=False))
+    number = _LINE_START_NUMBER.match(escaped)
+    if number is not None:
+        return f"{number[1]}\\{number[2]}{escaped[number.end() :]}"
+    if escaped[:1] in _LINE_START_ESCAPES:
+        return _LINE_START_ESCAPES[escaped[0]] + escaped[1:]
+    return escaped
 
 
 def _document(*blocks: str) -> str:

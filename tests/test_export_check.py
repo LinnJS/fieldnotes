@@ -1026,3 +1026,87 @@ def test_a_chapter_link_with_a_title_exports_and_passes_both_checks(
     epub = write_epub(library, resource, tmp_path / "out", find_pandoc())
 
     assert epub_problems(epub) == []
+
+
+# Record text that opens a block when Markdown reads it at the start of a line, and record text
+# that only looks like it does. Each must reach the export as the words of one notice item.
+LINE_START_NOTICES = {
+    "fullwidth digit": ["\uff11. Fold the sheet before launch."],
+    "arabic-indic digit": ["\u0661) Fold the sheet before launch."],
+    "ascii number": ["1. Fold the sheet before launch."],
+    "ascii number with a parenthesis": ["2) Fold the sheet."],
+    "three table rows": ["Depth | Width", "-|-", "3 | 4"],
+    "two dashes": ["--"],
+    "a dash item": ["- Fold the sheet."],
+    "a plus item": ["+ Fold the sheet."],
+    "a quote": ["> Fold the sheet."],
+    "an equals heading": ["= Fold the sheet.", "==="],
+    "a tilde fence": ["~~~ fold", "Fold the sheet.", "~~~"],
+    "honest text": ["1.5 times the width.", "-5 degrees at night.", "#12 is the pond.", "/usr"],
+}
+# Pandoc's Typst writer escapes none of these marks at the start of a list item, so Typst reads
+# them as a list, an enumeration, or a heading inside the notice item. The structure comparison
+# then refuses the PDF. Validation refuses every one of them in a record first.
+TYPST_LINE_STARTS = {"ascii number", "a dash item", "a plus item", "an equals heading"}
+
+
+def inline_text(inlines: Json) -> str:
+    """Return the text a reader sees in a list of Pandoc inlines."""
+    assert isinstance(inlines, list)
+    parts: list[str] = []
+    for inline in inlines:
+        assert isinstance(inline, dict)
+        kind, content = inline["t"], inline.get("c")
+        if kind == "Str":
+            assert isinstance(content, str)
+            parts.append(content)
+        elif kind in ("Space", "SoftBreak"):
+            parts.append(" ")
+        else:
+            parts.append(f"<{kind}>")
+    return "".join(parts)
+
+
+def notice_items(document: Mapping[str, Json]) -> list[Json]:
+    """Return the blocks of each item of the notice list of an export document."""
+    blocks = document["blocks"]
+    assert isinstance(blocks, list)
+    for number, block in enumerate(blocks):
+        assert isinstance(block, dict)
+        content = block.get("c")
+        if block["t"] == "Header" and isinstance(content, list):
+            attributes = content[1]
+            if isinstance(attributes, list) and attributes[0] == "copy-notice-notices":
+                following = blocks[number + 1]
+                assert isinstance(following, dict)
+                assert following["t"] == "BulletList"
+                items = following["c"]
+                assert isinstance(items, list)
+                return items
+    raise AssertionError("the document has no notice list")
+
+
+@pytest.mark.parametrize(("case", "notices"), LINE_START_NOTICES.items(), ids=LINE_START_NOTICES)
+def test_a_notice_that_starts_like_a_block_is_one_item_of_text_in_the_export(
+    case: str, notices: list[str], fixture_library_root: Path, tmp_path: Path
+) -> None:
+    written = "".join(f"  - '{notice}'\n" for notice in notices)
+    library, resource = copy_library(
+        fixture_library_root, tmp_path / "library", record=(NOTICE_LINE, written)
+    )
+    assert resource.notices == tuple(notices)
+    pandoc = find_pandoc()
+
+    items = notice_items(checked_document(library, resource, pandoc))
+
+    assert [[block["t"] for block in item] for item in items] == [["Plain"]] * len(notices)
+    assert [inline_text(item[0]["c"]) for item in items] == notices
+    out = tmp_path / "out"
+    epub = write_epub(library, resource, out, pandoc)
+    assert epub_problems(epub) == []
+    if case not in TYPST_LINE_STARTS:
+        assert write_pdf(library, resource, out, pandoc).is_file()
+        return
+    with pytest.raises(ExportError):
+        write_pdf(library, resource, out, pandoc)
+    assert list(out.iterdir()) == [epub]
