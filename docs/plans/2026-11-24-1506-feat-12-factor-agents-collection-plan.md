@@ -144,6 +144,8 @@ flowchart TB
 
 `scripts/kb/indexes.py` already emits license-bearing per-work full-text segments. `scripts/kb/export.py` already supplies author/source/license notices to PDF and EPUB. Its bundle explicitly selects chapters and LICENSE and excludes source files. New attribution files need explicit bundle inclusion. Generic CC legal code alone lacks the creator-specific information that export metadata currently extracts from LICENSE. `scripts/kb/site.py` also needs wording that distinguishes upstream evidence from a local standard-license copy.
 
+License acceptance also depends on `scripts/kb/checks.py`, beyond the pure gate. `_evidence_file_problem` accepts only root `license`, `license.md`, `license.txt` or `copying` names, case-insensitively. The broader scanner in `scripts/kb/evidence.py` can capture other filenames without making them accepted evidence. For mirrored records, `_check_license_file` currently requires the local LICENSE Git blob id to equal `license.blob_sha`.
+
 The static dependency graph finds CLI callers but omits some `kb` imports. The affected consumers were also traced through catalog, frontmatter, fidelity, indexes, readpath, site and export code. Recheck those consumers against #4's final branch before implementation.
 
 ---
@@ -167,8 +169,8 @@ The packaging design below keeps work boundaries explicit. Whether a particular 
 
 The owner chooses a route separately from D1. Approval is its own policy PR under U3. Until that PR is merged, the current license-file rule governs.
 
-- **Require an upstream content-license file.** Keep the existing gate rule. The owner can ask HumanLayer to add a file that applies CC BY-SA to the content. Sending that request needs the owner's separate authorization. If upstream supplies it, capture evidence at the new commit and pin sources to that same commit. Recheck file selection and license scope. The policy PR records retaining the rule, the scoped license finding and how the supplied full grant supports the permission fields. Timing depends on upstream.
-- **Accept qualified README evidence.** The owner may approve a general, testable rule for an explicit content/image grant linked to the canonical URL of its named license and version, pinned README blob/permalink, recorded scope and matching source commit. For Creative Commons, accept either the canonical deed URL or legal-code URL and require the library to read and retain the official legal code. The pinned HumanLayer statement uses the deed URL. Its policy PR must define those fields and their validation, distinguish content from repository code, and permit permission assignments from the incorporated full terms. Missing scope, informal wording, an absent link, conflicting terms or an unverified pin keep a record reference-only. The record keeps `evidence: readme-statement`. This is a policy change to `gate.py`, its tests and workflow documentation, subject to owner review.
+- **Require an upstream content-license file.** Keep the existing gate and evidence-location rules. Recommend root `LICENSE.md` with CC BY-SA terms expressly scoped to content and images, alongside the existing Apache `LICENSE`. Root `LICENSE.txt` or `COPYING` would also satisfy the filename rule. A nested `content/LICENSE` or root `LICENSE-CONTENT` would be captured but rejected by current validation. Any external request must name an accepted root filename. The owner can ask HumanLayer for this file. Sending that request needs the owner's separate authorization. If upstream supplies it, capture evidence at the new commit and pin sources to that same commit. Recheck file selection and license scope. The policy PR records retaining the rule, the scoped license finding and how the supplied full grant supports the permission fields. Timing depends on upstream. When sync examines both root licenses, it will report the Apache file as an additional license. Record that known scope distinction for owner review, while continuing to review actual changes to either file.
+- **Accept qualified README evidence.** The owner may approve a general, testable rule for an explicit content/image grant linked to the canonical URL of its named license and version, pinned README blob/permalink, recorded scope and matching source commit. For Creative Commons, accept either the canonical deed URL or legal-code URL and require the library to read and retain the official legal code. The pinned HumanLayer statement uses the deed URL. Its policy PR must define those fields and their validation, distinguish content from repository code, and permit permission assignments from the incorporated full terms. Missing scope, informal wording, an absent link, conflicting terms or an unverified pin keep a record reference-only. The record keeps `evidence: readme-statement`. This route also changes `scripts/kb/checks.py::_check_license_file`. Today it compares local LICENSE bytes with `license.blob_sha`, which would be the README blob. The policy PR must define a separately hashed standard legal-code record and make validation check that digest while retaining the README blob as grant evidence. Copying the README into LICENSE would defeat the source-copy restriction. Include the schema/loader representation, `tests/test_checks.py`, gate tests and workflow documentation in that owner-reviewed policy PR.
 - **Defer the decision.** Retain the current evidence rule and the reference-only record. Step 3 waits.
 
 Prefer requesting an upstream file because it preserves the current rule. That preference is a planning recommendation for the owner. The alternative remains available in the brief.
@@ -200,7 +202,7 @@ Waits on #4 closing before work starts. This PR is independent of D1 and D2, as 
 
 **Goal.** Deliver AE1 through the existing catalog, resolve and generated-index paths. Covers R1–R3 and R8. Follow KTD1–KTD4.
 
-**Files.** `books/12-factor-agents/metadata.yaml`, `catalog.yaml`, `schemas/resource.schema.json`, `scripts/kb/catalog.py`, `.agents/skills/add-resource/SKILL.md`, `LICENSES.md`, `tests/test_catalog.py`, `tests/test_indexes.py`, and `tests/test_gate.py`. Rebuild `index/catalog.json`, `index/chapters.jsonl`, `index/topics.json` and `llms.txt` with the builder. Adjust `scripts/kb/readpath.py` only where the record's displayed type needs to say guide.
+**Files.** `books/12-factor-agents/metadata.yaml`, `catalog.yaml`, `schemas/resource.schema.json`, `scripts/kb/catalog.py`, `.agents/skills/add-resource/SKILL.md`, `LICENSES.md`, `tests/test_catalog.py`, `tests/test_catalog_data.py`, `tests/test_indexes.py`, `tests/test_site_staging.py`, `tests/test_gate.py`, `README.md`, `scripts/kb/indexes.py` and `scripts/kb/site.py`. Rebuild `index/catalog.json`, `index/chapters.jsonl`, `index/topics.json` and `llms.txt` with the builder. Adjust `scripts/kb/readpath.py` only where the record's displayed type needs to say guide.
 
 **Approach.**
 
@@ -208,7 +210,9 @@ Waits on #4 closing before work starts. This PR is independent of D1 and D2, as 
 2. Expand the resource `type` enum to `book` and `guide`, and add `ResourceType.GUIDE`. Keep collection validation and existing book loading. Rename the unsupported-type test to reflect that it still rejects `article`.
 3. Add the `humanlayer` collection and append the resource id in `catalog.yaml`. Narrowly amend add-resource's catalog-edit instruction to allow a required collection declaration. Its prohibition on changing `license_allowlist` remains in force.
 4. Populate the metadata using the field decisions below. Capture again at the same pin if the original capture is unavailable. Copy license statement, blob ids, paths and permalinks from that output.
-5. Add HumanLayer attribution to `LICENSES.md` for catalog context, distinguishing the reference record from a mirrored work. Rebuild generated files through `scripts/build.py` and run validation. Report the gate result in the catalog PR for the owner.
+5. Add HumanLayer attribution to `LICENSES.md` for catalog context, distinguishing the reference record from a mirrored work. Update catalog-wide counts and terminology in `README.md` against #4's merged records. Update `tests/test_catalog_data.py`'s expected ordered ids, total/unique counts and evidence-bearing-record count. Its current values are 19, 19 and 12. After adding this one record they become 20, 20 and 13 unless predecessor work changes that baseline.
+6. Use type-neutral resource counts and headings in the site and `llms.txt`. Show the declared collection title on the guide's catalog card and machine-readable map entry. Reuse the existing status groups and card layout. Rebuild generated files through `scripts/build.py` and run validation. Report the gate result in the catalog PR for the owner.
+7. Explain in the record's notices and catalog PR that sync may label the already-recorded root Apache code license as an added license when it next examines the tree. This is a known limitation of the current single-evidence comparison. Review future byte/scope changes without treating that pre-existing file as newly granted content rights.
 
 **Record fields.**
 
@@ -230,7 +234,7 @@ Waits on #4 closing before work starts. This PR is independent of D1 and D2, as 
 | `permissions` | KTD4's three `unclear` grants, attribution/share-alike true. Review third-party scope and set its flag from findings, with a notice for unresolved rights |
 | `mirror_status` | `reference-only` |
 | `pinned_source`, `extraction_profile` | Omitted in Step 1 |
-| `notices` | Unversioned Markdown source, content/code distinction, permission-recording limitation and independent-library attribution |
+| `notices` | Unversioned Markdown source, content/code distinction, permission-recording limitation, known sync alert and independent-library attribution |
 
 No upstream prose besides the license statement belongs in that record or its fixtures. Use invented fixture prose for type/index tests.
 
@@ -238,6 +242,8 @@ No upstream prose besides the license statement belongs in that record or its fi
 
 - `tests/test_catalog.py` loads both a legacy book and a guide, preserving their types and declared collections. Unknown `article` and an undeclared collection fail. This tests schema/loader compatibility, while artifact output is covered below.
 - `tests/test_indexes.py` builds a two-collection catalog and resolves the guide with the fields in AE1. The guide contributes no chapter rows or full-text segment. This tests generated records and exclusion, while rendered PDF/EPUB inspection belongs to U4.
+- `tests/test_catalog_data.py` accepts the new ordered catalog and evidence count, retains the MIT-only policy assertion in U1, and still rejects statuses above the gate. This checks the real catalog beyond invented schema fixtures.
+- `tests/test_site_staging.py` and `tests/test_indexes.py` show a reference-only guide with the HumanLayer collection and resource counts/headings. The catalog card and map entry contain official links and no source text.
 - `tests/test_gate.py` keeps the MIT-only refusal and README-only refusal as independent checks. This tests policy preservation, while the new real record is checked by validation and resolve.
 - Ingestion of the reference-only id refuses before reading a source or creating drafts. Full-text, site and export builds show only its catalog facts and official link. Retain existing non-mirrored exclusion coverage in `tests/test_ingest.py` and `tests/test_export.py` when these paths need changed assertions.
 
@@ -249,7 +255,7 @@ Waits on U1 merging and the owner's D1 choice before a policy diff is prepared. 
 
 ### U2. Resolve D1
 
-The owner reviews the D1 alternatives and output obligations. If approved, a PR changes `catalog.yaml`'s allowlist and documents the licensing boundary in `LICENSES.md` and `MAINTAINING.md`. Retain gate tests for an allowlisted CC license blocked by README evidence and for CC BY-NC-SA still blocked by the allowlist in `tests/test_gate.py`. Keep the record reference-only. If declined, record the decision and finish with the catalog entry. Covers R4–R6. This unit is a decision brief, pending owner direction.
+The owner reviews the D1 alternatives and output obligations. If approved, a PR changes `catalog.yaml`'s allowlist and documents the licensing boundary in `LICENSES.md` and `MAINTAINING.md`. Retain gate tests for an allowlisted CC license blocked by README evidence and for CC BY-NC-SA still blocked by the allowlist in `tests/test_gate.py`. Update the explicit allowlist expectation in `tests/test_catalog_data.py` to the owner-approved list, while retaining the expected gate-allowed resource set until evidence and permissions actually change. Keep the record reference-only. If declined, record the decision and finish with the catalog entry. Covers R4–R6. This unit is a decision brief, pending owner direction.
 
 ### PR3. Record the owner's evidence decision
 
@@ -257,7 +263,7 @@ Waits on the owner's D2 choice and U2's decision record. Its separate PR isolate
 
 ### U3. Resolve D2
 
-Apply the chosen D2 route to its own policy PR. The upstream-file route can keep `gate.py` as written and record that policy and the recaptured evidence. The README route needs a precise gate/schema contract, permission-provenance rules and regression tests in `tests/test_gate.py` before coding it. Include the repository-wide decision impact report in either route. Retain the record's reference-only status until U4 is ready. Covers R4–R5. Exact implementation awaits the owner's selection.
+Apply the chosen D2 route to its own policy PR. The upstream-file route preserves `gate.py` and the evidence-location rule when the file uses D2's accepted root filename. Record the scoped evidence, recaptured source pin and known additional-code-license sync finding. The README route needs a precise gate/schema contract, separate grant-evidence and distributed-license digests, permission-provenance rules and regression tests in `tests/test_gate.py`, `tests/test_checks.py`, `tests/test_catalog.py` and `tests/test_catalog_data.py` before coding it. Cover an accepted root content-license file beside Apache LICENSE, rejection of nested or unaccepted evidence names, and README evidence with a correctly hashed standard legal code plus a changed-code-digest failure. Include the repository-wide decision impact report in either route. Retain the record's reference-only status until U4 is ready. Covers R4–R5. Exact implementation awaits the owner's selection.
 
 ### PR4. Conditional Markdown mirror
 
