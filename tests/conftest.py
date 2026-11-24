@@ -53,6 +53,8 @@ class PandocReads:
         def counted(command: list[str], **options: object) -> object:
             if "--to=json" in command:
                 self.count += 1
+            # The options are the export's own, passed on unchanged, and mypy cannot match
+            # a mapping of objects to one overload of subprocess.run.
             return run(command, **options)  # type: ignore[call-overload]
 
         monkeypatch.setattr(kb_export.subprocess, "run", counted)
