@@ -17,7 +17,7 @@ from xml.etree import ElementTree
 import export
 import pytest
 import typst
-from conftest import write_root_files
+from conftest import PandocReads, write_root_files
 from kb import export as kb_export
 from kb.catalog import Library, Resource, load_library
 from kb.export import ExportError, checked_document, find_pandoc
@@ -946,3 +946,20 @@ def test_a_notice_with_colons_and_a_bare_address_exports_as_its_text(library_cop
     document = checked_document(library, resource, find_pandoc())
 
     assert "Options a:b:c and ok:ok: values, see ftp://example.invalid/x now." in words(document)
+
+
+def test_the_export_command_builds_the_document_of_a_book_once_for_both_files(
+    library_copy: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_root_files(library_copy)
+    library = load_library(library_copy)
+    reads = PandocReads(monkeypatch)
+    checked_document(library, library.resource(MIRRORED), find_pandoc())
+    one_document = reads.count
+    reads.count = 0
+
+    code = export.main(["--root", str(library_copy), "--out", str(tmp_path / "out")])
+
+    assert code == 0
+    assert one_document > 0
+    assert reads.count == one_document

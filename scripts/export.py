@@ -32,6 +32,7 @@ from kb.export import (
     CJK_FONT_FAMILIES,
     EXPORTS_DIR,
     ExportError,
+    checked_document,
     find_cjk_font,
     find_pandoc,
     select_books,
@@ -108,10 +109,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                 file=sys.stderr,
             )
         for book in books:
+            if not (wants_pdf or wants_epub):
+                continue
+            # Both files of a book are written from one document, which is slow to build.
+            document = checked_document(library, book, pandoc)
             if wants_pdf:
-                print(f"Wrote {write_pdf(library, book, out_dir, pandoc)}")
+                print(f"Wrote {write_pdf(library, book, out_dir, pandoc, document)}")
             if wants_epub:
-                print(f"Wrote {write_epub(library, book, out_dir, pandoc)}")
+                print(f"Wrote {write_epub(library, book, out_dir, pandoc, document)}")
     except LoadError as error:
         return _fail(
             str(error),

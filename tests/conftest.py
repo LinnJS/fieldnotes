@@ -1,10 +1,12 @@
 """Shared pytest fixtures."""
 
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 import typst
+from kb import export as kb_export
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_LIBRARY_ROOT = REPO_ROOT / "tests" / "fixtures" / "library"
@@ -39,6 +41,21 @@ def compile_sample_book(directory: Path, edition: str) -> Path:
         sys_inputs={"edition": edition},
     )
     return path
+
+
+class PandocReads:
+    """Counts the runs of Pandoc that read Markdown into a document, as the export makes them."""
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self.count = 0
+        run = subprocess.run
+
+        def counted(command: list[str], **options: object) -> object:
+            if "--to=json" in command:
+                self.count += 1
+            return run(command, **options)  # type: ignore[call-overload]
+
+        monkeypatch.setattr(kb_export.subprocess, "run", counted)
 
 
 @pytest.fixture(scope="session")

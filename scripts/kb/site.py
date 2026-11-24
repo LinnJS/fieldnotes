@@ -63,6 +63,7 @@ from kb.export import (
     TEMPLATES_DIR,
     ExportError,
     bundle_files,
+    checked_document,
     find_pandoc,
     select_books,
     write_bundle,
@@ -246,7 +247,10 @@ class _Book:
 
 
 def stage(
-    library: Library, staging_dir: Path, downloads: Downloads | None = None
+    library: Library,
+    staging_dir: Path,
+    downloads: Downloads | None = None,
+    full_text: Mapping[str, str] | None = None,
 ) -> list[NavEntry]:
     """Write the site's whole ``docs_dir`` from the canonical files of a library.
 
@@ -263,6 +267,8 @@ def stage(
         staging_dir: Directory to write into. It is deleted and created again.
         downloads: The export files to serve, or ``None`` for a site without downloads. Files
             of a book whose text may not be carried are never copied.
+        full_text: The files ``kb.indexes.build_full_text`` writes for this library, for a
+            caller that has built them already. They are built here when omitted.
 
     Returns:
         The navigation of the staged pages, for ``write_config``.
@@ -280,7 +286,9 @@ def stage(
     staging_dir.mkdir(parents=True)
 
     machine_files = dict(build_indexes(library))
-    for name, text in build_full_text(library).items():
+    if full_text is None:
+        full_text = build_full_text(library)
+    for name, text in full_text.items():
         machine_files[PurePosixPath(*PurePosixPath(name).parts[1:]).as_posix()] = text
     write_files(staging_dir, machine_files)
     # The staged index files are read back, so a citation resolves on the site exactly as it
@@ -417,7 +425,8 @@ def build_site(library: Library) -> Path:
     root = library.root
     exports = root / EXPORTS_DIR
     try:
-        write_files(root, build_full_text(library))
+        full_text = build_full_text(library)
+        write_files(root, full_text)
     except BuildError as error:
         raise SiteError("full-text", str(error)) from error
     try:
@@ -430,9 +439,10 @@ def build_site(library: Library) -> Path:
         if books:
             pandoc = find_pandoc()
             for book in books:
+                document = checked_document(library, book, pandoc)
                 book_files[book.id] = (
-                    write_pdf(library, book, exports, pandoc),
-                    write_epub(library, book, exports, pandoc),
+                    write_pdf(library, book, exports, pandoc, document),
+                    write_epub(library, book, exports, pandoc, document),
                 )
     except ExportError as error:
         raise SiteError("book export", f"{error.message} {error.fix}") from error
@@ -441,7 +451,9 @@ def build_site(library: Library) -> Path:
     config_file = root / CONFIG_FILE
     site_dir = root / SITE_DIR
     try:
-        navigation = stage(library, staging_dir, Downloads(books=book_files, bundle=bundle))
+        navigation = stage(
+            library, staging_dir, Downloads(books=book_files, bundle=bundle), full_text
+        )
     except BuildError as error:
         raise SiteError("staging", str(error)) from error
     write_config(library, navigation, config_file, docs_dir=staging_dir, site_dir=site_dir)

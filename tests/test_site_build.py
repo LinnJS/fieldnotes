@@ -7,9 +7,10 @@ from typing import Any
 
 import pytest
 import yaml
-from conftest import write_root_files
-from kb.catalog import load_library
-from kb.export import ExportError
+from conftest import PandocReads, write_root_files
+from kb import site as kb_site
+from kb.catalog import Library, load_library
+from kb.export import ExportError, checked_document, find_pandoc
 from kb.readpath import source_label
 from kb.site import (
     CONFIG_FILE,
@@ -209,6 +210,31 @@ def test_a_whole_build_of_the_fixture_copy_passes_the_check_of_every_served_file
     assert (site_dir / f"books/{MIRRORED}/LICENSE").is_file()
     assert (site_dir / "search" / "search_index.json").is_file()
     assert site_problems(site_dir, ADDRESSES) == []
+
+
+def test_a_site_build_writes_the_full_text_once_and_reads_each_book_once(
+    library_copy: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write_root_files(library_copy)
+    library = load_library(library_copy)
+    full_text_builds: list[int] = []
+    build = kb_site.build_full_text
+
+    def counted_full_text(library: Library) -> dict[str, str]:
+        full_text_builds.append(1)
+        return build(library)
+
+    monkeypatch.setattr(kb_site, "build_full_text", counted_full_text)
+    reads = PandocReads(monkeypatch)
+    checked_document(library, library.resource(MIRRORED), find_pandoc())
+    one_document = reads.count
+    reads.count = 0
+
+    build_site(library)
+
+    assert len(full_text_builds) == 1
+    assert one_document > 0
+    assert reads.count == one_document
 
 
 HEAD_ROUTES = [

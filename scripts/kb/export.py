@@ -497,7 +497,13 @@ def _row_tags(rows: Json, cell_tag: str) -> Iterator[str]:
                 yield from _block_tags(cell[4])
 
 
-def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path) -> Path:
+def write_pdf(
+    library: Library,
+    resource: Resource,
+    out_dir: Path,
+    pandoc: Path,
+    document: dict[str, Json] | None = None,
+) -> Path:
     """Write a book's PDF.
 
     Pandoc writes Typst markup through ``templates/book.typ``, and the Typst compiler makes the
@@ -513,6 +519,8 @@ def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path)
         resource: The book.
         out_dir: Directory to write into. It is created when it does not exist.
         pandoc: The Pandoc executable, as ``find_pandoc`` returns it.
+        document: The book's document as ``checked_document`` returns it, for a caller that
+            writes both files of a book from one document. It is built here when omitted.
 
     Returns:
         The file written, ``<out_dir>/<resource-id>-<edition>.pdf``.
@@ -522,7 +530,8 @@ def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path)
             Typst compiler fails, or ``kb.export_check.pdf_problems`` finds a problem in the
             written file, which is then removed.
     """
-    document = checked_document(library, resource, pandoc)
+    if document is None:
+        document = checked_document(library, resource, pandoc)
     target = _book_file(library, resource, out_dir, "pdf")
     font_variables = [f"--variable=cjk-font={family}" for family in CJK_FONT_FAMILIES]
     with tempfile.TemporaryDirectory() as scratch:
@@ -552,7 +561,13 @@ def write_pdf(library: Library, resource: Resource, out_dir: Path, pandoc: Path)
     return _checked_file(target, problems, resource, "PDF")
 
 
-def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path) -> Path:
+def write_epub(
+    library: Library,
+    resource: Resource,
+    out_dir: Path,
+    pandoc: Path,
+    document: dict[str, Json] | None = None,
+) -> Path:
     """Write a book's EPUB.
 
     Pandoc writes an EPUB 3 file with ``templates/epub.css``, one content file per chapter, and
@@ -563,6 +578,8 @@ def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path
         resource: The book.
         out_dir: Directory to write into. It is created when it does not exist.
         pandoc: The Pandoc executable, as ``find_pandoc`` returns it.
+        document: The book's document as ``checked_document`` returns it, for a caller that
+            writes both files of a book from one document. It is built here when omitted.
 
     Returns:
         The file written, ``<out_dir>/<resource-id>-<edition>.epub``.
@@ -572,7 +589,8 @@ def write_epub(library: Library, resource: Resource, out_dir: Path, pandoc: Path
             or ``kb.export_check.epub_problems`` finds a problem in the written file, which is
             then removed.
     """
-    document = checked_document(library, resource, pandoc)
+    if document is None:
+        document = checked_document(library, resource, pandoc)
     target = _book_file(library, resource, out_dir, "epub")
     _write(
         pandoc,
