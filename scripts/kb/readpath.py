@@ -127,10 +127,9 @@ _QUOTED_SPAN = re.compile(
     r"|<q\b[^>]*>(.*?)</q\s*>",
     re.DOTALL | re.IGNORECASE,
 )
-# The group of _QUOTED_SPAN that holds the text of an HTML block quote, which is checked the
-# way a Markdown block quote is.
-_HTML_BLOCK_QUOTE_GROUP = 5
 _HTML_TAG = re.compile(r"</?[A-Za-z][^>]*>")
+# The opening or the closing tag of an HTML block quote. Group 1 is the slash of a closing tag.
+_HTML_BLOCK_QUOTE_TAG = re.compile(r"<(/?)blockquote\b[^>]*>", re.IGNORECASE)
 # What may stand in front of the mark of a block quote: any indentation, and the markers of the
 # list items the quote is nested in. A quote under a list item is indented four spaces or more,
 # and one that opens a list item follows its marker, and both are still quotes to a reader. A
@@ -630,9 +629,10 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
 
     A token must resolve, and an edition after ``@`` must be the indexed edition. A quote is a
     Markdown block quote, at any indentation and inside a list item as well, an HTML
-    ``<blockquote>``, or a long enough span in quotation marks in a paragraph that holds a
-    token. The marks are straight double quotes, curly double quotes, the corner brackets 「」
-    and 『』, and the HTML element ``<q>``. A span is long enough
+    ``<blockquote>`` element, or a long enough span in quotation marks in a paragraph that
+    holds a token. An HTML block quote may hold blank lines, and one that is never closed runs
+    to the end of the document. The marks are straight double quotes, curly double quotes,
+    the corner brackets 「」 and 『』, and the HTML element ``<q>``. A span is long enough
     when it holds four words or more, or six characters or more of a script written without
     spaces, which are Han, Hiragana, Katakana, and Hangul. A span is checked against the first
     token after it in its paragraph, and against the nearest token in front of it when none
@@ -1139,6 +1139,14 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
     does not keep the quote from being checked.
     """
     paragraphs = list(_paragraphs(masked))
+    # An HTML block quote may hold blank lines, and a reader still sees one quote, so it is
+    # read over the whole text first. Its place is then blanked, so the paragraphs below do not
+    # read it again.
+    for start, end, element in _html_block_quotes(text, masked, tokens, paragraphs):
+        if _comparable(element.text):
+            yield element
+        masked = masked[:start] + _blanked(masked[start:end]) + masked[end:]
+    paragraphs = list(_paragraphs(masked))
     for number, paragraph in enumerate(paragraphs):
         paragraph_end = paragraph[-1][1]
         # The line after a block quote may sit below a blank line, where Markdown starts a new
@@ -1178,11 +1186,63 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
             # The text is read from the original at the same offsets, because inline code in
             # the masked text is blanked.
             quote = _HTML_TAG.sub("", text[base + span.start(group) : base + span.end(group)])
-            block = group == _HTML_BLOCK_QUOTE_GROUP
-            if not (_comparable(quote) if block else _long_enough(quote)):
+            if not _long_enough(quote):
                 continue
             token = _first_token(tokens, end, paragraph_end) or _last_token(tokens, base, start)
-            if token is None and block and following is not None:
-                token = _first_token(tokens, following[0], following[1])
-            if token is not None or block:
-                yield _Quote(offset=start, text=quote, token=token, block=block)
+            if token is not None:
+                yield _Quote(offset=start, text=quote, token=token, block=False)
+
+
+def _blanked(text: str) -> str:
+    """Return a text with every character but a line break turned into a space."""
+    return "".join(character if character == "\n" else " " for character in text)
+
+
+def _html_block_quotes(
+    text: str,
+    masked: str,
+    tokens: list[CitationToken],
+    paragraphs: list[list[tuple[int, int]]],
+) -> Iterator[tuple[int, int, _Quote]]:
+    """Yield every HTML block quote with the offsets it spans, tags and all.
+
+    An element runs from its opening tag to the closing tag at the same depth, so a quote nested
+    in it is part of its text. An element that is never closed runs to the end of the text,
+    which is how a reader shows it. Its token is the first one from its opening tag to the end
+    of the paragraph that holds its closing tag, then the first one on the next line that holds
+    text, then the nearest one in front of it in the paragraph where it opens.
+    """
+    depth = 0
+    start = 0
+    for tag in _HTML_BLOCK_QUOTE_TAG.finditer(masked):
+        if not tag[1]:
+            if depth == 0:
+                start = tag.start()
+            depth += 1
+        elif depth > 0:
+            depth -= 1
+            if depth == 0:
+                yield _html_block_quote(text, tokens, paragraphs, start, tag.end())
+    if depth > 0:
+        yield _html_block_quote(text, tokens, paragraphs, start, len(masked))
+
+
+def _html_block_quote(
+    text: str,
+    tokens: list[CitationToken],
+    paragraphs: list[list[tuple[int, int]]],
+    start: int,
+    end: int,
+) -> tuple[int, int, _Quote]:
+    opening = next(paragraph for paragraph in paragraphs if paragraph[-1][1] >= start)
+    closing = [paragraph for paragraph in paragraphs if paragraph[0][0] < end]
+    paragraph_end = closing[-1][-1][1]
+    token = _first_token(tokens, start, paragraph_end)
+    if token is None:
+        following = next((paragraph for paragraph in paragraphs if paragraph[0][0] > end), None)
+        if following is not None:
+            token = _first_token(tokens, following[0][0], following[0][1])
+    if token is None:
+        token = _last_token(tokens, opening[0][0], start)
+    quote = _HTML_TAG.sub("", TOKEN_PATTERN.sub("", text[start:end]))
+    return start, end, _Quote(offset=start, text=quote, token=token, block=True)

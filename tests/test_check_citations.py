@@ -779,3 +779,58 @@ def test_an_html_block_quote_with_no_citation_fails(
         '"Agents always grade their own code."'
     ]
     assert code == 1
+
+
+# HTML block quotes that a Markdown reader shows as one quote, though a blank line splits the
+# element into several paragraphs or the element is never closed.
+SPLIT_HTML_BLOCK_QUOTES = [
+    "<blockquote>\n\n{quote}\n\n</blockquote>\n{token}\n",
+    "<blockquote>\n\n{quote} {token}\n\n</blockquote>\n",
+    "<blockquote>\n<p>{quote}</p>\n\n</blockquote> {token}\n",
+    "<blockquote>{quote} {token}\n",
+    "<blockquote>\n\n{quote}\n\nMore text of the quote.\n",
+]
+
+
+@pytest.mark.parametrize("layout", SPLIT_HTML_BLOCK_QUOTES)
+def test_a_fabricated_quote_in_an_html_block_quote_split_by_a_blank_line_fails(
+    layout: str, repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = layout.format(
+        quote="Agents always grade their own code perfectly.", token=f"[cite:{GENERATOR}]"
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert len(lines) == 1
+    assert "Agents always grade their own code perfectly." in lines[0]
+    assert code == 1
+
+
+@pytest.mark.parametrize("layout", SPLIT_HTML_BLOCK_QUOTES[:4])
+def test_an_exact_quote_in_an_html_block_quote_split_by_a_blank_line_passes(
+    layout: str, repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = layout.format(
+        quote="This isn't a smarts problem. It's an agent grading its own homework.",
+        token=f"[cite:{GENERATOR}]",
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_an_html_block_quote_split_by_a_blank_line_with_no_citation_fails(
+    repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = "Intro.\n\n<blockquote>\n\nAgents always grade their own code.\n\n</blockquote>\n"
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert [line.split(": ", 1)[1] for line in lines] == [
+        "The block quote has no citation token in its paragraph or on the next line: "
+        '"Agents always grade their own code."'
+    ]
+    assert code == 1
