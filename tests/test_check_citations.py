@@ -675,3 +675,64 @@ def test_a_line_that_opens_a_new_block_under_a_block_quote_does_not_continue_it(
 
     assert lines == []
     assert code == 0
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [
+        "<blockquote>{quote}</blockquote> {token}\n",
+        "<BLOCKQUOTE class=\"pull\">\n<p>{quote}</p>\n</BLOCKQUOTE>\n{token}\n",
+        "The author writes <q>{quote}</q> {token}\n",
+        "The author writes <q cite=\"x\">{quote}</Q>, which {token} records.\n",
+    ],
+)
+def test_a_fabricated_quote_written_as_html_fails(
+    layout: str, repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = layout.format(
+        quote="Agents always grade their own code perfectly.", token=f"[cite:{GENERATOR}]"
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert [line.split(": ", 1)[1] for line in lines] == [
+        f"The quote is not in {GENERATOR} word for word: "
+        '"Agents always grade their own code perfectly."'
+    ]
+    assert code == 1
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [
+        "<blockquote>{quote}</blockquote> {token}\n",
+        "The author writes <q>{quote}</q> {token}\n",
+        "The author writes <q><em>{quote}</em></q> {token}\n",
+    ],
+)
+def test_an_exact_quote_written_as_html_passes(
+    layout: str, repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = layout.format(
+        quote="This isn't a smarts problem. It's an agent grading its own homework.",
+        token=f"[cite:{GENERATOR}]",
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
+
+
+def test_an_html_block_quote_with_no_citation_fails(
+    repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = "<blockquote>Agents always grade their own code.</blockquote>\n"
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert lines == [
+        "1: The block quote has no citation token in its paragraph or on the next line: "
+        '"Agents always grade their own code."'
+    ]
+    assert code == 1

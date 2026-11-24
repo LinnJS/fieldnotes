@@ -117,9 +117,20 @@ TOKEN_PATTERN = re.compile(r"\[cite:([^\]\n]*)\]")
 RESOLVE_POINTER = re.compile(
     r"`([a-z0-9-]+)`\. Run `python3 scripts/resolve\.py \1` for its official URL\."
 )
-# A span between straight or curly double quotation marks, or between the corner brackets that
-# Chinese and Japanese prose quotes with. Every mark is one character long.
-_QUOTED_SPAN = re.compile(r'"[^"]+"|“[^”]+”|「[^」]+」|『[^』]+』')
+# A span between straight or curly double quotation marks, between the corner brackets that
+# Chinese and Japanese prose quotes with, or inside an HTML quote element, which a Markdown
+# reader shows as a quote too. Each alternative holds one group, the text inside the marks, so
+# the group that matched is the last one.
+_QUOTED_SPAN = re.compile(
+    r'"([^"]+)"|“([^”]+)”|「([^」]+)」|『([^』]+)』'
+    r"|<blockquote\b[^>]*>(.*?)</blockquote\s*>"
+    r"|<q\b[^>]*>(.*?)</q\s*>",
+    re.DOTALL | re.IGNORECASE,
+)
+# The group of _QUOTED_SPAN that holds the text of an HTML block quote, which is checked the
+# way a Markdown block quote is.
+_HTML_BLOCK_QUOTE_GROUP = 5
+_HTML_TAG = re.compile(r"</?[A-Za-z][^>]*>")
 # What may stand in front of the mark of a block quote: any indentation, and the markers of the
 # list items the quote is nested in. A quote under a list item is indented four spaces or more,
 # and one that opens a list item follows its marker, and both are still quotes to a reader. A
@@ -595,9 +606,10 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     """Check every citation token and every quote in a Markdown document.
 
     A token must resolve, and an edition after ``@`` must be the indexed edition. A quote is a
-    Markdown block quote, at any indentation and inside a list item as well, or a long enough
-    span in quotation marks in a paragraph that holds a token. The marks are straight double
-    quotes, curly double quotes, and the corner brackets 「」 and 『』. A span is long enough
+    Markdown block quote, at any indentation and inside a list item as well, an HTML
+    ``<blockquote>``, or a long enough span in quotation marks in a paragraph that holds a
+    token. The marks are straight double quotes, curly double quotes, the corner brackets 「」
+    and 『』, and the HTML element ``<q>``. A span is long enough
     when it holds four words or more, or six characters or more of a script written without
     spaces, which are Han, Hiragana, Katakana, and Hangul. A span is checked against the first
     token after it in its paragraph, and against the nearest token in front of it when none
@@ -1056,7 +1068,12 @@ def holds_quote(text: str) -> bool:
         True when a span between quotation marks is long enough to be a quote and not a term
         or a title.
     """
-    return any(_long_enough(span.group(0)[1:-1]) for span in _QUOTED_SPAN.finditer(text))
+    return any(_long_enough(_quoted_text(span)) for span in _QUOTED_SPAN.finditer(text))
+
+
+def _quoted_text(span: re.Match[str]) -> str:
+    """Return the text inside a match of ``_QUOTED_SPAN``, without the tags of any element."""
+    return _HTML_TAG.sub("", span[span.lastindex or 0])
 
 
 def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Quote]:
@@ -1102,9 +1119,15 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
         base = paragraph[0][0]
         for span in _QUOTED_SPAN.finditer("".join(prose)):
             start, end = base + span.start(), base + span.end()
-            quote = text[start + 1 : end - 1]
-            if not _long_enough(quote):
+            group = span.lastindex or 0
+            # The text is read from the original at the same offsets, because inline code in
+            # the masked text is blanked.
+            quote = _HTML_TAG.sub("", text[base + span.start(group) : base + span.end(group)])
+            block = group == _HTML_BLOCK_QUOTE_GROUP
+            if not (_comparable(quote) if block else _long_enough(quote)):
                 continue
             token = _first_token(tokens, end, paragraph_end) or _last_token(tokens, base, start)
-            if token is not None:
-                yield _Quote(offset=start, text=quote, token=token, block=False)
+            if token is None and block and following is not None:
+                token = _first_token(tokens, following[0], following[1])
+            if token is not None or block:
+                yield _Quote(offset=start, text=quote, token=token, block=block)
