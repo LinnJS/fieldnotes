@@ -148,7 +148,8 @@ def fetch_with_urllib(url: str, headers: Mapping[str, str]) -> Response:
 
     Args:
         url: The URL to request.
-        headers: The request headers.
+        headers: The request headers. An ``Authorization`` header is not sent on after a
+            redirect.
 
     Returns:
         The response, whatever its HTTP status.
@@ -157,7 +158,13 @@ def fetch_with_urllib(url: str, headers: Mapping[str, str]) -> Response:
         UpstreamError: No complete response arrived, for example because the network is down,
             the connection was reset, or the body was cut short.
     """
-    request = urllib.request.Request(url, headers=dict(headers), method="GET")
+    # urllib copies the ordinary headers of a request onto the request that follows a redirect,
+    # to whatever host it names. The token goes only to the address that was asked for.
+    ordinary = {name: value for name, value in headers.items() if name.lower() != "authorization"}
+    request = urllib.request.Request(url, headers=ordinary, method="GET")
+    for name, value in headers.items():
+        if name.lower() == "authorization":
+            request.add_unredirected_header(name, value)
     try:
         try:
             with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as reply:

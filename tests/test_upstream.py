@@ -1,8 +1,10 @@
 """The GitHub client and the evidence capture, driven by recorded responses."""
 
 import http.client
+import http.server
 import io
 import json
+import threading
 import urllib.error
 import urllib.request
 from collections.abc import Mapping
@@ -260,6 +262,62 @@ def test_error_answer_whose_body_is_cut_short_raises_an_upstream_error(
 
     with pytest.raises(UpstreamError, match="try again"):
         fetch_with_urllib(REQUEST_URL, {})
+
+
+class _RecordingHandler(http.server.BaseHTTPRequestHandler):
+    """Answers every GET with a redirect to ``redirect_to``, or with 200, and keeps the headers."""
+
+    redirect_to: str | None = None
+    seen: list[dict[str, str]]
+
+    def do_GET(self) -> None:
+        self.seen.append(dict(self.headers.items()))
+        if self.redirect_to is None:
+            self.send_response(200)
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"{}")
+        else:
+            self.send_response(302)
+            self.send_header("Location", self.redirect_to)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+    def log_message(self, format: str, *args: Any) -> None:
+        return None
+
+
+def _serve(redirect_to: str | None) -> tuple[http.server.HTTPServer, list[dict[str, str]]]:
+    seen: list[dict[str, str]] = []
+    handler = type("Handler", (_RecordingHandler,), {"redirect_to": redirect_to, "seen": seen})
+    server = http.server.HTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, seen
+
+
+def test_the_token_is_not_sent_on_to_the_address_of_a_redirect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A proxy from the environment would answer in place of the two local servers.
+    for name in ("http_proxy", "HTTP_PROXY", "all_proxy", "ALL_PROXY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("no_proxy", "*")
+    elsewhere, seen_elsewhere = _serve(None)
+    github, seen_at_github = _serve(f"http://localhost:{elsewhere.server_port}/file")
+    try:
+        response = fetch_with_urllib(
+            f"http://127.0.0.1:{github.server_port}/repos/a/b",
+            {"Accept": "application/json", "Authorization": "Bearer not-a-real-token"},
+        )
+    finally:
+        github.shutdown()
+        elsewhere.shutdown()
+
+    assert response.status == 200
+    assert seen_at_github[0]["Authorization"] == "Bearer not-a-real-token"
+    assert len(seen_elsewhere) == 1
+    assert "Authorization" not in seen_elsewhere[0]
+    assert seen_elsewhere[0]["Accept"] == "application/json"
 
 
 def test_error_answer_is_returned_with_its_status_headers_and_body(
