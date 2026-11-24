@@ -403,6 +403,9 @@ def test_capture_lists_license_files_under_every_common_name(fetch: RecordedFetc
         "COPYING.md": "Copying text.",
         "UNLICENSE": "Unlicense text.",
         "fonts/LICENSE-CC-BY.md": "Font license text.",
+        "LICENSE-CC-BY-4.0": "Creative Commons text.",
+        "LICENSE.MIT": "MIT text.",
+        "COPYING.LESSER": "Lesser GPL text.",
         "LICENSES.md": "A list of licenses, not one.",
         "licensed-photo.png": "not text",
     }
@@ -410,9 +413,12 @@ def test_capture_lists_license_files_under_every_common_name(fetch: RecordedFetc
     captured = capture(ExtraFilesClient(fetch, extra), REPOSITORY)
 
     assert sorted(license_file.path for license_file in captured.license_files) == [
+        "COPYING.LESSER",
         "COPYING.md",
         "LICENCE.md",
         "LICENSE",
+        "LICENSE-CC-BY-4.0",
+        "LICENSE.MIT",
         "UNLICENSE",
         "fonts/LICENSE-CC-BY.md",
     ]
@@ -430,7 +436,10 @@ class BinaryFilesClient(ExtraFilesClient):
 def test_capture_reads_no_file_whose_name_marks_an_image_a_document_or_code(
     fetch: RecordedFetch,
 ) -> None:
-    extra = {path: "" for path in ("assets/license.png", "LICENSE.pdf", "src/license.py")}
+    extra = {
+        path: ""
+        for path in ("assets/license.png", "LICENSE.pdf", "docs/Licence.DOCX", "src/license.py")
+    }
 
     captured = capture(BinaryFilesClient(fetch, extra), REPOSITORY)
 

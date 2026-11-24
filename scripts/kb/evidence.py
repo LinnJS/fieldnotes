@@ -48,6 +48,18 @@ _LICENSE_TERMS = re.compile(r"license|许可|协议|版权|授权", re.IGNORECAS
 _HEADING = re.compile(r"^ {0,3}(#{1,6})(?:[ \t]+|$)")
 _FENCE = re.compile(r"^ {0,3}(```|~~~)")
 _README_STEM = re.compile(r"^readme(?:[._-].*)?$", re.IGNORECASE)
+# The suffixes of images, documents, archives, and source code, which a file named for a
+# license may carry and which capture does not read as license text.
+_NOT_LICENSE_TEXT_SUFFIXES = frozenset(
+    {
+        *(".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp", ".tif", ".tiff"),
+        *(".pdf", ".doc", ".docx", ".odt", ".rtf", ".epub", ".pages"),
+        *(".zip", ".gz", ".tgz", ".tar", ".bz2", ".xz", ".7z"),
+        *(".py", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".go", ".rb", ".rs", ".java", ".kt"),
+        *(".c", ".h", ".cc", ".cpp", ".hpp", ".cs", ".swift", ".php", ".sh", ".json", ".yaml"),
+        *(".yml", ".toml", ".xml", ".css", ".scss"),
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -343,12 +355,17 @@ def render(captured: Capture) -> str:
 def _is_license_text(path: str) -> bool:
     """Say whether a file in a tree may hold license terms that capture can read as text.
 
-    The name must match ``LICENSE_FILE_PATTERN``, and its suffix must be one a README may have,
-    so an image, a document, or source code named for a license is not read. Its bytes need
-    not be UTF-8, and reading them would stop the capture of the whole repository.
+    The name must match ``LICENSE_FILE_PATTERN``, and its suffix must not mark an image, a
+    document, an archive, or source code. Such a file need not be UTF-8, and reading it would
+    stop the capture of the whole repository. Any other suffix is read, because license files
+    are often named with a version or a variant, as in ``LICENSE-CC-BY-4.0`` or
+    ``COPYING.LESSER``.
     """
     name = PurePosixPath(path)
-    return bool(LICENSE_FILE_PATTERN.match(name.name)) and name.suffix.lower() in README_SUFFIXES
+    return (
+        bool(LICENSE_FILE_PATTERN.match(name.name))
+        and name.suffix.lower() not in _NOT_LICENSE_TEXT_SUFFIXES
+    )
 
 
 def _is_readme(path: str) -> bool:
