@@ -150,9 +150,32 @@ _OPENS_BLOCK = re.compile(
     r"|[ \t]*(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)"
 )
 _QUOTE_MARKERS = re.compile(r"(?m)^" + _QUOTE_PREFIX + r"(?:[ \t]{0,3}> ?)+")
-# A backslash is how Markdown escapes one of the markers, so it is dropped with them.
-_INLINE_MARKERS = re.compile(r"[*_`\\]")
 _INLINE_CODE = re.compile(r"(`+).+?\1")
+# A backslash escape of an ASCII punctuation mark. Group 1 is the mark.
+_ESCAPE = re.compile(r"\\([!-/:-@\[-`{-~])")
+# An inline code span, which may run over a line break and not over a blank line. Group 2 is
+# the code.
+_CODE_SPAN = re.compile(
+    r"(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\n).)+?)(?<!`)\1(?!`)",
+    re.DOTALL,
+)
+# A blank line, which no emphasis runs over.
+_BLANK_LINE = re.compile(r"\n[ \t]*\n")
+# A pair of emphasis delimiters around text that starts and ends with something other than
+# white space, longest delimiter first. Text in a pair may hold a shorter delimiter of the same
+# mark, so the pairs nest. An underscore pair may not touch a letter or a digit outside it,
+# because an underscore inside a word, as in file_name, opens no emphasis.
+_EMPHASIS_PAIRS = (
+    re.compile(r"\*\*\*(?=\S)([^*]+?)(?<=\S)\*\*\*"),
+    re.compile(r"\*\*(?=\S)((?:[^*]|\*(?!\*))+?)(?<=\S)\*\*"),
+    re.compile(r"\*(?=\S)([^*]+?)(?<=\S)\*"),
+    re.compile(r"(?<![^\W_])___(?=\S)([^_]+?)(?<=\S)___(?![^\W_])"),
+    re.compile(r"(?<![^\W_])__(?=\S)((?:[^_]|_(?!_))+?)(?<=\S)__(?![^\W_])"),
+    re.compile(r"(?<![^\W_])_(?=\S)([^_]+?)(?<=\S)_(?![^\W_])"),
+)
+# Stands in for the text of a code span while emphasis is removed around it. It is a character
+# for private use, which no chapter writes.
+_CODE_PLACEHOLDER = "\ue000"
 _FRONTMATTER_FENCE = "---"
 
 
@@ -616,11 +639,12 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     follows.
 
     A quote must appear word for word in the chapter it cites, or in any chapter of the book
-    when it cites a book. White space, emphasis markers, inline code markers, and backslash
-    escapes are ignored on both sides. A quote that starts or ends inside a word of the chapter
-    does not match, where a word is a run of ASCII letters and digits. A quote that cites a
-    book whose text may not be quoted is a problem, and so is a block quote with no token in
-    its paragraph or on the next line that has text.
+    when it cites a book. White space, emphasis markers that pair, the backticks around inline
+    code, and the backslash of an escape are ignored on both sides. Any other asterisk,
+    underscore, backtick, or backslash is compared. A quote that starts or ends inside a word
+    of the chapter does not match, where a word is a run of ASCII letters and digits. A quote
+    that cites a book whose text may not be quoted is a problem, and so is a block quote with
+    no token in its paragraph or on the next line that has text.
 
     Tokens inside fenced code blocks and inline code are not citations. A quoted span that is
     exactly the title of the cited book or chapter is a title and not a quote, so the citation
@@ -963,9 +987,40 @@ def mask_code(text: str) -> str:
 
 
 def _comparable(text: str) -> str:
-    """Reduce Markdown to the words a quote is compared on."""
-    without_markers = _INLINE_MARKERS.sub("", _QUOTE_MARKERS.sub("", text))
-    return " ".join(without_markers.split())
+    r"""Reduce Markdown to the words a quote is compared on.
+
+    Only markup goes: the marks of a block quote, the backticks around a code span, the
+    backslash of an escape, and emphasis delimiters that pair. A code span keeps its text as
+    written. A lone asterisk, an underscore inside a word, and a backslash in front of a letter
+    are text, and stay. White space is joined.
+
+    Escapes are undone before code spans and emphasis are looked for, so an escaped mark reads
+    as the markup it spells. A chapter that writes ``\*word\*`` and a quote that writes
+    ``*word*`` both reduce to ``word``, which is what a reader who copies the page writes.
+    """
+    codes: list[str] = []
+
+    def unwrap(match: re.Match[str]) -> str:
+        codes.append(match[2])
+        return _CODE_PLACEHOLDER
+
+    unescaped = _ESCAPE.sub(r"\1", _QUOTE_MARKERS.sub("", text))
+    prose = _CODE_SPAN.sub(unwrap, unescaped)
+    paragraphs = [_without_emphasis(paragraph) for paragraph in _BLANK_LINE.split(prose)]
+    restored = iter(codes)
+    joined = re.sub(_CODE_PLACEHOLDER, lambda _: next(restored), "\n\n".join(paragraphs))
+    return " ".join(joined.split())
+
+
+def _without_emphasis(text: str) -> str:
+    """Remove each pair of emphasis delimiters, inner pairs as well, from one paragraph."""
+    while True:
+        reduced = text
+        for pair in _EMPHASIS_PAIRS:
+            reduced = pair.sub(r"\1", reduced)
+        if reduced == text:
+            return text
+        text = reduced
 
 
 def _titles(cited: Resolved) -> set[str]:

@@ -206,6 +206,49 @@ def test_a_quote_matches_text_the_chapter_writes_with_a_backslash_escape(
     assert code == 0
 
 
+MARKUP_SENSITIVE = [
+    # Code keeps its underscore, and a lone asterisk opens no emphasis.
+    ("the `file_name` field holds 2*3 items", "the filename field holds 23 items"),
+    # An underscore inside a word opens no emphasis either.
+    ("set max_turns to stop", "set maxturns to stop"),
+    # A backslash in front of a letter escapes nothing.
+    ("the path C:\\Temp is used", "the path C:Temp is used"),
+]
+
+
+@pytest.mark.parametrize(("chapter_text", "altered"), MARKUP_SENSITIVE)
+def test_a_quote_that_drops_characters_markup_does_not_remove_fails(
+    chapter_text: str,
+    altered: str,
+    library_copy: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    chapter = (
+        library_copy / "books" / "fixture-mirrored-book" / "chapters" / "01-folding-the-hull.md"
+    )
+    body = chapter.read_text(encoding="utf-8")
+    assert "Choose a sheet with no creases." in body
+    chapter.write_text(
+        body.replace("Choose a sheet with no creases.", f"In short, {chapter_text}."),
+        encoding="utf-8",
+    )
+
+    code, lines, _ = check(library_copy, tmp_path, f'It says "{altered}" [cite:{HULL}]\n', capsys)
+
+    assert [line.split(": ", 1)[1] for line in lines] == [
+        f'The quote is not in {HULL} word for word: "{altered}"'
+    ]
+    assert code == 1
+
+    code, lines, _ = check(
+        library_copy, tmp_path, f'It says "{chapter_text}" [cite:{HULL}]\n', capsys
+    )
+
+    assert lines == []
+    assert code == 0
+
+
 def test_a_quote_that_cites_a_mirrored_book_may_come_from_any_of_its_chapters(
     fixture_library_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

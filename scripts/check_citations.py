@@ -8,9 +8,10 @@ chapter files of the library this script is in, or of the library named by ``--r
 
 Three things are checked. Every ``[cite:<id>]`` token must resolve, and an ``@<edition>`` in it
 must be the indexed edition. Every quote must appear word for word in the chapter it cites,
-where white space, emphasis markers, inline code markers, and backslash escapes are ignored. A
-quote that starts or ends inside a word of the chapter does not match. Nothing may be quoted
-from a book that is not mirrored.
+where white space, emphasis markers that pair, the backticks around inline code, and the
+backslash of an escape are ignored. Any other asterisk, underscore, backtick, or backslash is
+compared. A quote that starts or ends inside a word of the chapter does not match. Nothing may
+be quoted from a book that is not mirrored.
 
 A quote is a Markdown or HTML block quote, or a span in quotation marks in a paragraph that
 holds a token. The marks are straight double quotes, curly double quotes, the corner brackets
