@@ -252,6 +252,18 @@ def test_a_book_directory_the_catalog_does_not_list_is_a_finding(library_copy: P
     ]
 
 
+@pytest.mark.parametrize("name", ["stolen-copy.pdf", ".hidden-copy.epub"])
+def test_a_plain_file_directly_under_the_books_directory_is_a_finding(
+    library_copy: Path, name: str
+) -> None:
+    (library_copy / "books" / name).write_bytes(b"%PDF-1.7 not the library's to hold")
+
+    findings = run_checks(library_copy)
+
+    assert located(findings) == [("catalog-stray-file", f"books/{name}", None)]
+    assert findings[0].fix
+
+
 def test_a_collection_the_catalog_does_not_declare_is_a_finding(library_copy: Path) -> None:
     replace_in(
         library_copy / "books" / REFERENCE / "metadata.yaml",

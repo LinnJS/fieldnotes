@@ -569,7 +569,12 @@ def _evidence_file_problem(evidence: EvidenceKind, path: str, permalink: str) ->
 
 
 def _check_catalog_consistency(library: Library) -> list[Finding]:
-    """Report where the catalog, the book directories, and the collections disagree."""
+    """Report where the catalog, the book directories, and the collections disagree.
+
+    The books directory holds one directory per cataloged book and nothing else. A file
+    directly under it belongs to no book, so no rule about a book's files ever reads it, and
+    it is a ``catalog-stray-file`` finding whatever its name.
+    """
     findings: list[Finding] = []
     catalog = library.catalog
     for resource_id in catalog.resources:
@@ -592,7 +597,22 @@ def _check_catalog_consistency(library: Library) -> list[Finding]:
     books = library.root / BOOKS_DIR
     if books.is_dir():
         for directory in books.iterdir():
-            if directory.is_dir() and directory.name not in catalog.resources:
+            if not directory.is_dir():
+                findings.append(
+                    Finding(
+                        rule="catalog-stray-file",
+                        file=f"{BOOKS_DIR}/{directory.name}",
+                        message=(
+                            f"The file is directly under {BOOKS_DIR}/, which holds only one "
+                            "directory per cataloged book."
+                        ),
+                        fix=(
+                            "Remove the file. If it belongs to a book, move it into that book's "
+                            "directory only where the book's mirror status allows it."
+                        ),
+                    )
+                )
+            elif directory.name not in catalog.resources:
                 findings.append(
                     Finding(
                         rule="catalog-unlisted-book",
