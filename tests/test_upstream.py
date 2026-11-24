@@ -418,6 +418,25 @@ def test_capture_lists_license_files_under_every_common_name(fetch: RecordedFetc
     ]
 
 
+class BinaryFilesClient(ExtraFilesClient):
+    """Adds files to the tree whose bytes, like those of an image, are not UTF-8 text."""
+
+    def file_text(self, repository: str, commit: str, path: str) -> str:
+        if path in self._extra:
+            raise UpstreamError(f"The file {path} in {repository} at {commit} is not UTF-8 text.")
+        return super().file_text(repository, commit, path)
+
+
+def test_capture_reads_no_file_whose_name_marks_an_image_a_document_or_code(
+    fetch: RecordedFetch,
+) -> None:
+    extra = {path: "" for path in ("assets/license.png", "LICENSE.pdf", "src/license.py")}
+
+    captured = capture(BinaryFilesClient(fetch, extra), REPOSITORY)
+
+    assert [license_file.path for license_file in captured.license_files] == ["LICENSE"]
+
+
 SAMPLE_README = """\
 # A Book
 

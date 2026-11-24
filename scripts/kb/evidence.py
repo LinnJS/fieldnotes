@@ -242,7 +242,7 @@ def capture(client: GitHubClient, repository: str, ref: str | None = None) -> Ca
             text=client.file_text(name, commit, entry.path),
         )
         for entry in tree
-        if LICENSE_FILE_PATTERN.match(PurePosixPath(entry.path).name)
+        if _is_license_text(entry.path)
     )
     readmes = tuple(entry for entry in tree if _is_readme(entry.path))
     readme_lines = tuple(
@@ -338,6 +338,17 @@ def render(captured: Capture) -> str:
         f"{edition.blob_sha}  {edition.format:<4}  {edition.path}" for edition in captured.editions
     )
     return "\n".join(lines) + "\n"
+
+
+def _is_license_text(path: str) -> bool:
+    """Say whether a file in a tree may hold license terms that capture can read as text.
+
+    The name must match ``LICENSE_FILE_PATTERN``, and its suffix must be one a README may have,
+    so an image, a document, or source code named for a license is not read. Its bytes need
+    not be UTF-8, and reading them would stop the capture of the whole repository.
+    """
+    name = PurePosixPath(path)
+    return bool(LICENSE_FILE_PATTERN.match(name.name)) and name.suffix.lower() in README_SUFFIXES
 
 
 def _is_readme(path: str) -> bool:
