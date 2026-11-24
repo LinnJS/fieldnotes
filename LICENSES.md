@@ -6,7 +6,8 @@ all of it. The table says which license applies to each part.
 | Part | Paths | License | Copyright holder |
 | --- | --- | --- | --- |
 | Code and configuration | `scripts/`, `tests/`, `schemas/`, `templates/`, `.github/`, `mkdocs.yml`, `pyproject.toml` | MIT, in [`LICENSE`](LICENSE) | Justin Linn |
-| Original prose and catalog data | `README.md`, `CONTRIBUTING.md`, `MAINTAINING.md`, `AGENTS.md`, `topics/`, `.agents/skills/`, `catalog.yaml`, `books/*/metadata.yaml`, `index/`, `upstream/` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The license statements quoted in metadata belong to their authors. | Justin Linn |
+| Original prose and catalog data | `README.md`, `CONTRIBUTING.md`, `MAINTAINING.md`, `SECURITY.md`, `AGENTS.md`, `topics/`, `.agents/skills/`, `catalog.yaml`, `books/*/metadata.yaml`, `index/`, `upstream/` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The license statements quoted in metadata belong to their authors. | Justin Linn |
+| Code of conduct | `CODE_OF_CONDUCT.md` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It is the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1, with this project's contact method added. | The Contributor Covenant authors |
 | Mirrored works | `books/<id>/chapters/`, `books/<id>/source/` | The work's own license, in `books/<id>/LICENSE` | The work's author |
 
 ## Mirrored works
