@@ -681,9 +681,9 @@ def test_a_line_that_opens_a_new_block_under_a_block_quote_does_not_continue_it(
     "layout",
     [
         "<blockquote>{quote}</blockquote> {token}\n",
-        "<BLOCKQUOTE class=\"pull\">\n<p>{quote}</p>\n</BLOCKQUOTE>\n{token}\n",
+        '<BLOCKQUOTE class="pull">\n<p>{quote}</p>\n</BLOCKQUOTE>\n{token}\n',
         "The author writes <q>{quote}</q> {token}\n",
-        "The author writes <q cite=\"x\">{quote}</Q>, which {token} records.\n",
+        'The author writes <q cite="x">{quote}</Q>, which {token} records.\n',
     ],
 )
 def test_a_fabricated_quote_written_as_html_fails(
