@@ -405,6 +405,19 @@ def test_a_link_alone_whose_text_names_the_chapter_it_points_at_needs_no_token(
     assert located(topic_findings(library_copy)) == []
 
 
+@pytest.mark.parametrize("suffix", ["#top", "?x=1", "#folding-the-hull?x=1"])
+def test_a_link_alone_with_a_fragment_or_a_query_is_held_to_the_same_rule(
+    library_copy: Path, suffix: str
+) -> None:
+    append_to(
+        library_copy / PAPER,
+        f"- [Loops never need an evaluator, the author proves it]({HULL_FILE}{suffix})\n"
+        f"- [Folding the Hull]({HULL_FILE}{suffix})\n",
+    )
+
+    assert located(topic_findings(library_copy)) == [("topic-uncited-paragraph", PAPER, 28)]
+
+
 def test_the_no_coverage_sentence_is_allowed_only_word_for_word(library_copy: Path) -> None:
     replace_in(library_copy / TEA, NO_COVERAGE, "No mirrored chapter covers this topic yet.")
 

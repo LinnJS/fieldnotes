@@ -1215,7 +1215,8 @@ def _is_pointer(paragraph: _Paragraph, page: Path, names: Mapping[str, frozenset
     """Say whether a paragraph is a list item that only points at a chapter, a topic, or a book.
 
     A link alone points without a claim only when its text names the chapter file or the topic
-    file it links to. Any other text says something about the page, so it needs a token. A
+    file it links to, whatever fragment or query follows the file. Any other text says
+    something about the page, so it needs a token. A
     chapter file that is missing or did not load has no name to compare, and is a finding of
     its own, so a link alone to it is taken as a pointer until that finding is fixed.
 
@@ -1232,7 +1233,9 @@ def _is_pointer(paragraph: _Paragraph, page: Path, names: Mapping[str, frozenset
     link = _LINK_POINTER.fullmatch(item[1])
     if link is None:
         return False
-    target = posixpath.normpath(posixpath.join(page.parent.as_posix(), link["target"]))
+    # The file is named without its fragment or query, the way _check_links finds it.
+    target_file = link["target"].partition("#")[0].partition("?")[0]
+    target = posixpath.normpath(posixpath.join(page.parent.as_posix(), target_file))
     if target in names:
         return _named(link["text"]) in names[target]
     parts = PurePosixPath(target).parts
