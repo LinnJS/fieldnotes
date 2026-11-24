@@ -1,12 +1,15 @@
 """A chapter must hold the words of its source, as often, and in nearly the same order."""
 
+import dataclasses
 import hashlib
 from pathlib import Path
 
 import pytest
-from kb.catalog import AcceptedDifference, load_chapters, load_resource
+from kb import fidelity
+from kb.catalog import AcceptedDifference, Resource, load_chapters, load_resource
 from kb.checks import Finding, run_checks
 from kb.fidelity import SIMILARITY_FLOOR, check_book, compare, report_lines
+from kb.ingest import ExtractedBook
 
 MIRRORED = "fixture-mirrored-book"
 REFERENCE = "fixture-reference-book"
@@ -414,6 +417,33 @@ def test_the_report_for_a_person_names_a_section_that_no_chapter_holds(library_c
     lines = report_lines(resource, report)
     assert '  MISSING  no chapter holds the section "Recovering a Sunk Boat"' in lines
     assert lines[-1] == "Chapters checked: 2. Failed: 0. Sections with no chapter: 1."
+
+
+def test_two_source_sections_with_one_title_fail_the_book_and_are_named(
+    library_copy: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The fixture source has three sections with three titles. A later source that printed a
+    # second section titled like the first, with other words in it, would leave one of the two
+    # in no chapter, and the chapter of the other would be compared with whichever came last.
+    extract = fidelity.extract_book
+
+    def with_a_repeated_title(root: Path, resource: Resource) -> ExtractedBook:
+        book = extract(root, resource)
+        first = book.sections[0]
+        twin = dataclasses.replace(first, blocks=book.sections[2].blocks)
+        return dataclasses.replace(book, sections=(twin, *book.sections))
+
+    monkeypatch.setattr(fidelity, "extract_book", with_a_repeated_title)
+    resource = load_resource(library_copy, MIRRORED)
+
+    report = check_book(library_copy, resource, load_chapters(library_copy, MIRRORED))
+
+    assert report.error is not None
+    assert 'more than one section titled "Folding the Hull"' in report.error.message
+    assert report.results == ()
+    findings = fidelity_findings(library_copy)
+    assert located(findings) == [("fidelity-source", METADATA.as_posix())]
+    assert '"Folding the Hull"' in findings[0].message
 
 
 BENT_FRONTMATTER = [

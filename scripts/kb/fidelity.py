@@ -134,8 +134,8 @@ class BookFidelity:
     """The outcome of comparing a book's chapters with its committed source file.
 
     Attributes:
-        error: Why the source file could not be extracted, or ``None``. No chapter is compared
-            when this is set.
+        error: Why the source file could not be extracted, or why its sections cannot be
+            matched to chapters, or ``None``. No chapter is compared when this is set.
         source: The source file the chapters were compared with, relative to the library root,
             or ``None`` when it could not be extracted.
         results: One result per chapter, in the order the chapters were given.
@@ -375,13 +375,30 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
     Returns:
         One result per chapter, the sections of the source that no chapter holds, and the
         spans of the source that are in no section. When the source file cannot be extracted,
-        the report holds the error and no results.
+        or two of its sections have one title, the report holds the error and no results.
     """
     profile = resource.extraction_profile
     try:
         book = extract_book(root, resource)
     except IngestError as error:
         return BookFidelity(error=error, source=None, results=())
+    # A chapter is found by its section's title, so of two sections with one title only the
+    # last could be compared, and the other would be reported nowhere.
+    counted = Counter(section.title for section in book.sections)
+    repeated = [title for title, count in counted.items() if count > 1]
+    if repeated:
+        named = ", ".join(f'"{title}"' for title in repeated)
+        return BookFidelity(
+            error=IngestError(
+                f"The source file {book.source.as_posix()} has more than one section titled "
+                f"{named}, and the extraction profile finds a section by its title, so no "
+                "chapter of the book can be matched to its section.",
+                "Stop, leave the book and its record as they are, and report the book to the "
+                "owner. The profile cannot tell these sections apart.",
+            ),
+            source=book.source,
+            results=(),
+        )
     # extract_book refuses a book that has no profile, so these are never empty by default.
     assignments = () if profile is None else profile.sections
     accepted = () if profile is None else profile.accepted_differences
