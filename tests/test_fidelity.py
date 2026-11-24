@@ -233,6 +233,14 @@ def test_a_flipped_number_and_a_dropped_word_each_fail() -> None:
         ("The gain was -5 points.", "The gain was 5 points.", ("-5",), ("5",)),
         ("It keeps 50% of the runs.", "It keeps 50 of the runs.", ("50%",), ("50",)),
         ("A run costs $20 a day.", "A run costs 20 a day.", ("$20",), ("20",)),
+        ("The tool is written in C++.", "The tool is written in C#.", ("C++",), ("C#",)),
+        (
+            "The tool is written in C#, mostly.",
+            "The tool is written in C, mostly.",
+            ("C#",),
+            ("C",),
+        ),
+        ("Players aged 18+ may join.", "Players aged 18 may join.", ("18+",), ("18",)),
     ],
 )
 def test_a_changed_operator_sign_percent_or_currency_mark_fails(

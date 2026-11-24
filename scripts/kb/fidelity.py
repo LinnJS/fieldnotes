@@ -77,6 +77,7 @@ _WORD_PARTS = re.compile(r"([\W_]*)(.*?)([\W_]*)", re.DOTALL)
 # a stray bracket is not one, because extraction and Markdown render those differently.
 _OPERATOR = re.compile(r"[-<>=!+/%~^&]+")
 _SIGNS = "+-"
+_NAME_SUFFIX = re.compile(r"[+#]+")
 
 # Marks that Markdown puts in front of a line or on a line of their own. The source has none of
 # them, and several are spelled like an operator, so they go before the words are counted.
@@ -163,8 +164,9 @@ def words(text: str) -> list[str]:
         The words in order. Compatibility characters such as ligatures and non-breaking spaces
         are normalized, curly quotes and dashes become their plain forms, and punctuation at
         the start and end of each word is dropped. A sign or a currency mark in front of a
-        number stays, a percent mark behind a number stays, and an operator that stands alone
-        is a word. Case is kept.
+        number stays, a percent mark behind a number stays, a run of plus or number signs
+        behind a letter or a digit stays, and an operator that stands alone is a word. Case
+        is kept.
     """
     normalized = unicodedata.normalize("NFKC", text).translate(_VARIANTS)
     return [word for word in map(_word, normalized.split()) if word]
@@ -183,6 +185,11 @@ def _word(token: str) -> str:
             word = mark + word
     if word[-1].isdigit() and after.startswith("%"):
         word += "%"
+    # A run of plus or number signs behind a letter or a digit is part of a name, as in C++,
+    # C#, and 18+, so dropping it would make two names one word.
+    suffix = _NAME_SUFFIX.match(after)
+    if suffix is not None and word[-1].isalnum():
+        word += suffix[0]
     return word
 
 
