@@ -236,7 +236,7 @@ Exact structural repairs and accepted differences depend on the drafts. Record e
 **Test scenarios**.
 
 - The real topic index includes both existing Loop IDs and the added Hermes IDs.
-- Agent Security resolves at least one mirrored chapter and its landing-page count agrees.
+- Agent Security's landing-page count agrees with its mirrored chapter references. When it gains none, the count stays 0 and the implementation PR names it, as KTD5 requires.
 - All five affected topic counts agree with actual chapter references.
 - Every topic citation resolves and source-reporting prose cites a chapter read in full.
 
