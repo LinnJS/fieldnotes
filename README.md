@@ -1,5 +1,9 @@
 # Fieldnotes
 
+[![Validate](https://github.com/LinnJS/fieldnotes/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/LinnJS/fieldnotes/actions/workflows/validate.yml)
+[![Code: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE)
+[![Prose and catalog: CC BY 4.0](https://img.shields.io/badge/prose%20and%20catalog-CC%20BY%204.0-blue.svg)](LICENSES.md)
+
 An independent community library of AI engineering resources, built so that a
 coding agent or a person can find what a book says on a topic, read that section,
 and cite it with provenance that can be checked.
@@ -11,6 +15,73 @@ The first collection is the AI Orange Books by HuaShu (花叔), published at
 and is not affiliated with it. Every book belongs to its author. The library holds
 the text of a book only when the author's own license file allows redistribution,
 and it links to the author's official source for every other book.
+
+**Status.** The library is young. It catalogs 19 books and holds the text of one.
+The tooling, the checks, and the agent instructions are complete enough to use.
+The documentation site is not published yet. See [Limitations](#limitations).
+
+## Quick start
+
+Nothing needs to be installed. The two read commands run on Python 3.9 or newer
+with the standard library alone.
+
+```sh
+git clone https://github.com/LinnJS/fieldnotes.git
+cd fieldnotes
+python3 scripts/resolve.py loop-engineering-orange-book/generator-and-evaluator
+```
+
+The command prints the record of that chapter. These are some of its lines.
+
+```text
+id: loop-engineering-orange-book/generator-and-evaluator
+title: Generator and Evaluator: Why an AI Can't Grade Its Own Code
+edition: v260615
+edition_behind: true
+license_id: MIT
+mirror_status: mirrored
+quote_permitted: true
+path: books/loop-engineering-orange-book/chapters/05-generator-and-evaluator.md
+source_pages: 17-20
+extraction_status: machine-extracted
+citation: HuaShu, "Loop Engineering: Stop Asking Me What It Is" (English ed. v260615), §05 "Generator and Evaluator: Why an AI Can't Grade Its Own Code", source PDF pp. 17-20. [cite:loop-engineering-orange-book/generator-and-evaluator@v260615]
+```
+
+From there:
+
+1. Read the chapter at the `path` the record names. Each chapter reads on its own.
+2. Quote it word for word, and put the `[cite:...]` token after the quote.
+3. Check what you wrote.
+
+```sh
+python3 scripts/check_citations.py notes.md
+```
+
+The check confirms that every token resolves, and that every quote is in the
+cited chapter word for word. It prints
+`check_citations: no problems in 1 file.` when the document is clean.
+
+To find a chapter in the first place, start at [`llms.txt`](llms.txt) or
+[`topics/index.md`](topics/index.md), or search the mirrored text with
+`rg -n "<words>" books/*/chapters/`.
+
+## What the library promises
+
+Three checks back what the library says about a book.
+
+- **A license gate.** A book's text enters the repository only when the author's
+  own license file, read at a pinned commit, allows redistribution and adaptation
+  under a license on the allowlist. The gate fails closed, so a book whose terms
+  are unclear stays reference-only. [`MAINTAINING.md`](MAINTAINING.md#license-policy)
+  has the policy table.
+- **A fidelity check.** A mirrored chapter is a faithful copy of its pinned source
+  edition. Validation compares each chapter's words, link destinations, and
+  frontmatter with a fresh extraction of the source PDF, and fails when they
+  differ.
+- **Citations that can be checked.** Every book and every mirrored chapter has a
+  permanent id. A citation token names the id, and `scripts/check_citations.py`
+  confirms the token and the quote beside it. An id that does not resolve is an
+  error and not a guess.
 
 ## What is in the library
 
@@ -53,6 +124,10 @@ at, and the date it was verified, is in `books/<id>/metadata.yaml`. Licenses wer
 last verified on 2026-11-20. The mirrored English edition of Loop Engineering is
 v260615, which is older than the Chinese edition v261020.
 
+Eleven topics under [`topics/`](topics/index.md) give reading paths across the
+books. A topic is the library's own text, and each paragraph that reports what a
+book says carries a citation to a mirrored chapter.
+
 ## Browse it
 
 - **In the repository.** Start at [`llms.txt`](llms.txt) or
@@ -79,8 +154,13 @@ python3 scripts/check_citations.py notes.md
 ```
 
 The first turns an id into its record, its file path, and a formatted citation.
+For an id it does not know, it exits with code 1 and prints the nearest valid ids.
 The second checks that every citation in a document resolves and that every quote
-matches the cited chapter word for word.
+matches the cited chapter word for word. Both take `--root` to point at another
+copy of the library, and `resolve.py` takes `--json` for one JSON object.
+
+An agent that works in another project can call both commands by their path in a
+clone of this repository. They find the library from their own location.
 
 Machine-readable entry points:
 
@@ -92,8 +172,18 @@ Machine-readable entry points:
 | `index/topics.json` | Every topic with the books and chapters it references |
 | `dist/llms-full.txt` | The full text of the mirrored books, built by `scripts/build.py --full` |
 
-Four skills live in `.agents/skills/`, with links under `.claude/skills/`:
-`add-resource`, `ingest-book`, `audit-agent-setup`, and `study`.
+Four skills live in `.agents/skills/`, with links under `.claude/skills/`.
+
+| Skill | What it does |
+| --- | --- |
+| [`add-resource`](.agents/skills/add-resource/SKILL.md) | Adds a book to the catalog from a URL, with license evidence captured at a pinned commit. |
+| [`ingest-book`](.agents/skills/ingest-book/SKILL.md) | Mirrors the text of a book whose record is `eligible`. |
+| [`audit-agent-setup`](.agents/skills/audit-agent-setup/SKILL.md) | Audits a project's agent setup against the mirrored chapters, with a citation for every finding. |
+| [`study`](.agents/skills/study/SKILL.md) | Returns a reading path and study questions for a topic or a book. |
+
+[`evals/prompts.yaml`](evals/prompts.yaml) holds prompts for testing how an agent
+uses the library, with the ids a good answer cites and the behavior it avoids. No
+command in this repository runs them.
 
 ## Install for development
 
@@ -112,6 +202,8 @@ uv run pytest
 uv run python scripts/validate.py
 ```
 
+The tests and validation run offline.
+
 ## Commands
 
 | Command | What it does |
@@ -125,9 +217,29 @@ uv run python scripts/validate.py
 | `python3 scripts/resolve.py <id>` | Prints a book's or a chapter's record and citation. No install needed. |
 | `python3 scripts/check_citations.py <files>` | Checks citations and quotes in Markdown files. No install needed. |
 
+Every command prints its options with `--help`.
+
 `evidence.py` and `sync.py` call the GitHub API. Set `GH_TOKEN` or `GITHUB_TOKEN`
 for the higher rate limit, for example
 `GH_TOKEN="$(gh auth token)" uv run python scripts/sync.py --dry-run`.
+
+## Repository layout
+
+| Path | Holds |
+| --- | --- |
+| `catalog.yaml` | The library's name and URLs, the license allowlist, and the list of cataloged books. |
+| `books/<id>/metadata.yaml` | One book's catalog record, with its license evidence and mirror status. |
+| `books/<id>/chapters/` | The text of a mirrored book, one Markdown file per section. Only a mirrored book has this directory. |
+| `topics/` | The library's own reading paths, one file per topic. |
+| `index/` and `llms.txt` | Generated indexes. `scripts/build.py` writes them. |
+| `upstream/` | What the last upstream sync saw. `scripts/sync.py` writes it. |
+| `scripts/` | The commands. The shared code is the `kb` package under `scripts/kb/`. |
+| `schemas/` | JSON Schemas for the catalog, a book record, a chapter's frontmatter, and a topic. |
+| `templates/` | The Typst template of the PDF, the EPUB stylesheet, and the site stylesheet. |
+| `tests/` | The offline tests and their fixtures. |
+| `evals/` | Prompts for evaluating agents that use the library. |
+| `.agents/skills/` | The four skills. |
+| `docs/plans/` | The design plans the library was built from. |
 
 ## How upstream changes arrive
 
@@ -144,6 +256,34 @@ Corrections, new resources, and translations are welcome. Read
 faithful copy of its source, so a correction may restore what the source says and
 may not reword it.
 
+A good first contribution is to read one mirrored chapter against its source PDF
+pages and mark it `human-reviewed`. No chapter has had that reading yet.
+
+Everyone who takes part is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Get help
+
+- **A question, a bug, or a proposal.** Open an
+  [issue](https://github.com/LinnJS/fieldnotes/issues/new/choose) and pick the
+  form that fits.
+- **A security problem.** Do not open a public issue. Follow
+  [`SECURITY.md`](SECURITY.md).
+
+## For authors and rights holders
+
+If you wrote a book in this catalog, or hold rights in one, you can ask for a
+record to be corrected, for a book to be described differently, or for mirrored
+text to come down. Open an issue with the "License or rights concern" form. If you
+prefer to write privately, use the contact details on the maintainer's
+[GitHub profile](https://github.com/LinnJS).
+
+When an author asks for a book to come down, the maintainer withdraws it by the
+steps in [`MAINTAINING.md`](MAINTAINING.md#withdraw-a-book). Those steps remove the
+text from the repository, the site, and the exports. The text stays in the Git
+history unless the maintainer also rewrites it, which that file treats as a
+separate decision.
+
 ## Limitations
 
 - One book is mirrored. The library is useful as a catalog for the other 18, and
@@ -155,7 +295,14 @@ may not reword it.
   author's note says the newer edition corrects errors in the June text, including
   a quote wrongly attributed to Addy Osmani. The passage has not been identified in
   the English text, so no chapter carries an erratum.
-- The workflows have not run on GitHub yet, and the site is not published.
+- The `Validate` workflow runs on every pull request. The `Publish` and
+  `Upstream sync` workflows start only from the default branch and have not run
+  on GitHub yet, and the site is not published.
+- The check of the built site holds each page to a list of elements, attributes,
+  and addresses. It does not compare the structure of a page with its Markdown.
+  Text that the site's Markdown reader takes for a list, a table, a heading, or a
+  rule therefore becomes one on the page. [`CONTRIBUTING.md`](CONTRIBUTING.md#what-the-builds-check)
+  says what each check reads.
 - The WorkBuddy reading editions that the author links require a sign-in and were
   not read.
 - License records reflect what was found on the date verified. They are not legal
@@ -166,3 +313,9 @@ may not reword it.
 The code is MIT. The library's own prose and catalog data are CC BY 4.0. A mirrored
 book keeps its author's license, which sits in `books/<id>/LICENSE`. See
 [`LICENSES.md`](LICENSES.md) for the map.
+
+## Acknowledgments
+
+The AI Orange Books are the work of HuaShu (花叔). This library exists because the
+author published them openly, and two of them under a license that allows a
+mirror. Read the books at their source: <https://www.huasheng.ai/orange-books>.

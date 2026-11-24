@@ -4,6 +4,28 @@ This library copies other people's books only where their license allows it, and
 it promises readers that a mirrored chapter says what its source says. Most of the
 rules below protect one of those two things.
 
+Everyone who takes part is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Ways to contribute
+
+| You want to | Start here |
+| --- | --- |
+| Report a bug in a command, the site, or an export | The "Tooling bug" issue form |
+| Report a chapter that differs from its source | The "Chapter differs from its source" issue form, or [Correct a chapter](#correct-a-chapter) |
+| Read a chapter against its source pages | [Correct a chapter](#correct-a-chapter). No chapter is `human-reviewed` yet, so this is a good first contribution. |
+| Report a correction the author published | [Report an erratum](#report-an-erratum) |
+| Add a book or another resource | The "Propose a resource" issue form, or [Propose a new resource](#propose-a-new-resource) |
+| Raise a license or rights concern | The "License or rights concern" issue form. The [README](README.md#for-authors-and-rights-holders) has a private route. |
+| Suggest a feature for the tooling | The "Feature request" issue form |
+| Ask how something works | The "Question" issue form |
+| Report a security problem | [`SECURITY.md`](SECURITY.md). Do not open a public issue. |
+
+The issue forms are at
+<https://github.com/LinnJS/fieldnotes/issues/new/choose>. For a change larger
+than a correction, open an issue first so the approach can be agreed before you
+write it.
+
 ## Before you start
 
 ```sh
@@ -101,6 +123,24 @@ allows it, propose it as a new edition with its own evidence.
 hand. After you change a book record, a chapter's frontmatter, a topic, or
 `catalog.yaml`, run `uv run python scripts/build.py` and commit the result.
 
+## Open a pull request
+
+1. Fork the repository and create a branch. Name it `type/short-description`,
+   such as `fix/chapter-05-table`, with the same types that commits use.
+2. Make one logical change. Keep a refactor apart from a change in behavior.
+3. Run the checks below and fix what they report.
+4. Open the pull request against `main` and fill in the template: the problem,
+   the change, and how to verify it.
+
+The repository owner merges every pull request. Nobody else merges, and nothing
+is pushed to `main` directly. A change to license evidence, a mirror status, or
+the allowlist gets the owner's own reading of the evidence before it merges, so
+it can take longer.
+
+By contributing, you agree that your contribution is licensed under the license
+that [`LICENSES.md`](LICENSES.md) gives for the part of the repository you
+change.
+
 ## Checks a pull request must pass
 
 ```sh
@@ -113,7 +153,10 @@ uv run python scripts/build.py --check
 uv run python scripts/build.py --site
 ```
 
-The `validate` workflow runs the same commands.
+The `Validate` workflow runs the same commands on every pull request, and two
+more: the read commands on the runner's own Python with nothing installed.
+
+## What the builds check
 
 A chapter, a topic, a license text, and a record field are text that the library
 did not write. The site and the exports render that text with raw HTML, images,
@@ -131,8 +174,11 @@ Each build then reads back what it wrote. Each check reads the parts named here
 and nothing else.
 
 - `scripts/kb/site_check.py` reads every HTML page whole, the page head and the
-  theme's markup included, and the search index. It accepts every other file by
-  its extension, its directory, or its name, and does not read it.
+  theme's markup included, and the search index. It holds each page to a list of
+  elements, attributes, and addresses. It does not compare the structure of a
+  page with its Markdown, so a list, a table, a heading, or a rule that
+  Python-Markdown makes out of text passes. It accepts every other file by its
+  extension, its directory, or its name, and does not read it.
 - `scripts/kb/export_check.py` reads every member of an EPUB. It reads each XML
   member against a list of elements, attributes, and addresses, compares the
   `mimetype` member with the EPUB type, and accepts the stylesheet by its name
@@ -144,12 +190,11 @@ and nothing else.
   headings, lists, list items, tables, rows, cells, block quotes, and contents
   entries, and their order is compared, not their nesting. It does not read the
   text drawn on a page, the paragraph and inline elements of the structure tree,
-  or the attributes of an element.
+  a rule line, or the attributes of an element.
 
-When one of those parts holds something that the library, the pinned theme, and
-the export do not write, the build fails and deletes its output. When that
-happens, do not edit the chapter or the record, and do not widen a list in either
-check. Report the failure to the owner.
+When one of those parts holds something its check does not allow, the build
+fails and deletes its output. When that happens, do not edit the chapter or the
+record, and do not widen a list in either check. Report the failure to the owner.
 
 A PDF fails this way when a table cell, a list item, or the text of a link in a
 chapter starts with such a mark, because Pandoc's Typst writer does not escape a
@@ -159,7 +204,10 @@ chapter as it is.
 ## Conventions
 
 - Commits follow Conventional Commits: `type(topic): description`, imperative
-  mood, lowercase, no trailing period.
+  mood, lowercase, no trailing period. The types are `feat`, `fix`, `docs`,
+  `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, and `revert`.
+- Prose is plain. The documents here use complete sentences and no semicolons
+  or em dashes.
 - Python is typed, passes `mypy --strict`, and carries Google-style docstrings on
   public symbols.
 - Tests run offline. A test that needs the network carries

@@ -3,6 +3,17 @@
 This file is for the repository owner. It covers the license policy, the tasks
 that only the owner performs, and what to do when something has to come down.
 
+| Task | Section |
+| --- | --- |
+| Decide whether a book's text may be mirrored | [License policy](#license-policy) |
+| Check a record against upstream | [Verify a book's evidence](#verify-a-books-evidence) |
+| Add the text of an eligible book | [Mirror an eligible book](#mirror-an-eligible-book) |
+| Move a mirrored book to a newer edition | [Upgrade a mirrored edition](#upgrade-a-mirrored-edition) |
+| Act on the weekly upstream report | [Read a sync pull request](#read-a-sync-pull-request) |
+| Answer an author or a rights holder | [Answer a rights request](#answer-a-rights-request) |
+| Take a book down | [Withdraw a book](#withdraw-a-book) |
+| Answer a private security report | [Answer a security report](#answer-a-security-report) |
+
 ## License policy
 
 A book's text enters the repository only when one function,
@@ -116,6 +127,21 @@ pull request whose body is `upstream/report.md`.
 - GitHub disables a scheduled workflow after 60 days without repository activity.
   Re-enable it from the Actions tab when that happens.
 
+## Answer a rights request
+
+The [README](README.md#for-authors-and-rights-holders) tells an author or a
+rights holder to open an issue with the "License or rights concern" form, or to
+write to you privately through your GitHub profile.
+
+- Reply to say you have the request, before you investigate.
+- When an author asks for a book to come down, withdraw it. The request does not
+  have to argue the license.
+- When someone other than the author raises a concern, run
+  "Verify a book's evidence" and compare the record with what upstream shows now.
+- When a record is wrong and the text is not at issue, correct the record in a
+  pull request and say in a notice what changed.
+- Do not paste private correspondence into an issue or a commit.
+
 ## Withdraw a book
 
 Use this when an author asks for a book to come down, or when its license evidence
@@ -135,6 +161,21 @@ turns out to be wrong.
 
 The text remains in the Git history after these steps. Rewriting history is a
 separate decision for you to make, and it affects every clone and fork.
+
+## Answer a security report
+
+[`SECURITY.md`](SECURITY.md) sends reports to GitHub's private vulnerability
+reporting, and to your GitHub profile while that feature is off.
+
+- Reproduce the report on a copy of the fixture library under
+  `tests/fixtures/library/`, not on the real records.
+- A report that outside text reached a page or an export as live markup is in
+  scope. Save a failing test before the fix.
+- A report that text became a list, a table, a heading, or a rule on a site page
+  is a known limit. [`CONTRIBUTING.md`](CONTRIBUTING.md#what-the-builds-check)
+  states it.
+- When a fix changes what a check reads, update that section of
+  `CONTRIBUTING.md` in the same pull request.
 
 ## Rename the library
 
@@ -167,16 +208,27 @@ from its collections, so a rename needs no structural change.
 
 ## Setup checklist
 
-These steps are yours. None of them has been done.
+These steps are yours. A ticked step was confirmed against GitHub on 2026-11-23.
+The others have not been done.
 
 - [ ] Read the two MIT license records against their permalinks, and confirm you
       accept the adapted MIT text as MIT for this library's purposes.
-- [ ] Create the GitHub repository as `fieldnotes` and push. Decide how `main` is
-      seeded, since the work sits on the branch `feat/resource-library-mvp`.
-- [ ] Set `library.base_url` and `library.repository` in `catalog.yaml` to the
+- [x] Create the GitHub repository as `fieldnotes` and push. The repository is
+      public, and `main` holds the first plan.
+- [x] Set `library.base_url` and `library.repository` in `catalog.yaml` to the
       real values, and rebuild.
+- [ ] Merge the first pull request, which brings the library to `main`. Until
+      then the repository's front page shows no README and no license.
 - [ ] Enable GitHub Pages with "GitHub Actions" as the source.
-- [ ] Watch the first runs of the three workflows. They have not run on GitHub.
+- [ ] Watch the first runs of the `Publish` and `Upstream sync` workflows. They
+      start only from the default branch and have not run on GitHub. `Validate`
+      has run on pull requests.
+- [ ] Enable private vulnerability reporting under Settings, Security, so the
+      route that `SECURITY.md` names first is open.
+- [ ] Give the repository a description, a homepage, and topics, so it can be
+      found.
+- [ ] Create the issue labels `chapter-text`, `new-resource`, and `rights`. The
+      issue forms name them, and GitHub leaves out a label that does not exist.
 - [ ] Decide on branch protection, with the sync pull request note above in mind.
 - [ ] Decide whether to add `CC-BY-NC-SA-4.0` to the allowlist. Doing so makes no
       book eligible by itself, because the four books under that license state it
