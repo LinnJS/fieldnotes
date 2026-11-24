@@ -205,7 +205,7 @@ The review packet can use the owner's existing PDF viewer. Live model choices an
 - **Goal.** Satisfy R1 and R3 for the merged corpus.
 - **Requirements.** R1-R3, R11, KTD2.
 - **Dependencies.** U1.
-- **Files.** Review `books/loop-engineering-orange-book/chapters/` and the Hermes chapters delivered by #3. Modify the relevant book metadata only for evidenced repairs or accurate review notices. Rebuild `index/catalog.json`, `index/chapters.jsonl`, `index/topics.json`, and `llms.txt` through `scripts/build.py`.
+- **Files.** Review `books/loop-engineering-orange-book/chapters/` and the Hermes chapters delivered by #3. Modify the `extraction_status` frontmatter of each reviewed chapter file under `books/<id>/chapters/`, and a chapter body only to restore what the source says. Modify the relevant book metadata only for evidenced repairs or accurate review notices. Rebuild `index/catalog.json`, `index/chapters.jsonl`, `index/topics.json`, and `llms.txt` through `scripts/build.py`.
 - **Approach.** Complete Loop in the inventory order, then enumerate and review Hermes. The owner performs the checklist and status edits. The agent prepares source-backed repairs, packet regeneration, fidelity results, and accurate documentation.
 - **Test expectation.** Use existing fidelity and real-book tests. Add no duplicate tests for metadata-only review changes.
 - **Verification.** Every current chapter's human status has a matching owner attestation, and every source restoration passes fidelity. The generated indexes and book notices agree with completed review.
@@ -225,7 +225,7 @@ The review packet can use the owner's existing PDF viewer. Live model choices an
 - **Goal.** Make R6 and R7 executable against the reviewed two-book corpus.
 - **Requirements.** R5-R7, KTD5.
 - **Dependencies.** U2 and the final disposition of U3.
-- **Files.** Modify `evals/prompts.yaml` and `tests/test_skills.py`. Add a small synthetic audit project in `tests/fixtures/eval-target/`.
+- **Files.** Modify `evals/prompts.yaml` and `tests/test_skills.py`. Add a small synthetic audit project in `tests/fixtures/eval-target/`, and list it in the Test fixtures section of `LICENSES.md`.
 - **Approach.** Preserve case IDs and prompt wording except for an explained premise change. Split prose criteria into individually gradeable entries while retaining their meaning. Refresh the header to document execution and evidence collection. Keep expected and forbidden IDs resolvable and attribution-aware.
 - **Tests.** Extend `tests/test_skills.py` to check the criterion contract, stable nine-case set, and current expected IDs. Confirm the audit fixture contains only synthetic instructions/configuration and supports the existing target-path substitution. These tests check rubric shape and references. The owner grades subject-matter adequacy.
 - **Verification.** Every YAML condition maps to a machine check or human worksheet entry, with the changes from the old corpus explained in the implementation PR.
