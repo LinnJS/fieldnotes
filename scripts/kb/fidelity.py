@@ -25,7 +25,7 @@ Errata live in a chapter's frontmatter. They are not chapter text and take no pa
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -277,7 +277,7 @@ def compare(
     source_text: str,
     chapter_body: str,
     accepted: Sequence[AcceptedDifference] = (),
-    source_links: Collection[str] | None = None,
+    source_links: Sequence[str] | None = None,
 ) -> FidelityResult:
     """Compare a chapter body with the plain text of its section in the source.
 
@@ -286,16 +286,17 @@ def compare(
         source_text: Plain text of the section, as ``kb.blocks.section_text`` returns it.
         chapter_body: The chapter's Markdown body.
         accepted: The book's accepted differences. Entries for other chapters are ignored.
-        source_links: The link targets the section holds, as ``kb.blocks.section_links``
-            returns them. ``None`` leaves the destinations of the chapter unchecked, which is
-            for a caller that has the plain text alone.
+        source_links: The link targets the section holds in reading order, as
+            ``kb.blocks.section_links`` returns them. ``None`` leaves the destinations of the
+            chapter unchecked, which is for a caller that has the plain text alone.
 
     Returns:
         The result. It fails when the words differ beyond the accepted differences, when an
         accepted difference is listed that the chapter does not have, when the word order
-        scores below ``SIMILARITY_FLOOR``, or when the chapter links to another set of
-        destinations than the section does. A link reads the same whatever it points at, so
-        the words alone cannot show a destination that was added or swapped.
+        scores below ``SIMILARITY_FLOOR``, or when the destinations of the chapter's links,
+        in reading order and counted once per link, are not those of the section. A link
+        reads the same whatever it points at, so the words alone cannot show a destination
+        that was added, repeated, or swapped with another.
     """
     source = words(source_text)
     chapter = words(markdown_text(chapter_body))
@@ -340,14 +341,13 @@ def compare(
     else:
         message = ""
     if source_links is not None:
-        wanted = {link_target(link) for link in source_links}
-        found = set(link_destinations(chapter_body))
+        wanted = tuple(link_target(link) for link in source_links)
+        found = link_destinations(chapter_body)
         if found != wanted:
             message = " ".join(
                 [
                     message or f"The chapter {chapter_id} does not have the links of its source.",
-                    f"Destinations only in the chapter: {_listed(found - wanted)}.",
-                    f"Destinations only in the source: {_listed(wanted - found)}.",
+                    _link_difference(found, wanted),
                 ]
             )
     return FidelityResult(
@@ -532,8 +532,32 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
     return lines
 
 
-def _listed(destinations: Collection[str]) -> str:
+def _listed(destinations: Iterable[str]) -> str:
     return ", ".join(sorted(destinations)) or "none"
+
+
+def _link_difference(found: Sequence[str], wanted: Sequence[str]) -> str:
+    """Say how the destinations of a chapter differ from those of its section, in reading order.
+
+    A destination counts once for each link that points at it, so one written twice where the
+    section has it once is a destination only in the chapter.
+    """
+    extra = Counter(found)
+    extra.subtract(wanted)
+    if any(extra.values()):
+        return (
+            f"Destinations only in the chapter: {_listed((+extra).elements())}. "
+            f"Destinations only in the source: {_listed((-extra).elements())}."
+        )
+    number, ours, theirs = next(
+        (number, ours, theirs)
+        for number, (ours, theirs) in enumerate(zip(found, wanted, strict=True), start=1)
+        if ours != theirs
+    )
+    return (
+        "The chapter links to the destinations of its source in another order. "
+        f"Link {number} points at {ours}, where the source points at {theirs}."
+    )
 
 
 def _strip_inline(text: str) -> str:

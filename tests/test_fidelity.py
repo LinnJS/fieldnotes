@@ -160,6 +160,40 @@ def test_a_link_to_the_destination_of_the_source_passes() -> None:
     assert compare(CHAPTER_ID, SOURCE_TEXT, linked, source_links=(QUAY,)).passed
 
 
+FLAX = "https://example.invalid/waxed-flax"
+
+
+def test_two_link_destinations_swapped_between_their_links_fail() -> None:
+    linked = CHAPTER_BODY.replace("on the quay", f"on [the quay]({FLAX})").replace(
+        "| Waxed flax |", f"| [Waxed flax]({QUAY}) |"
+    )
+
+    result = compare(CHAPTER_ID, SOURCE_TEXT, linked, source_links=(QUAY, FLAX))
+
+    assert not result.passed
+    assert f"Link 1 points at {FLAX}, where the source points at {QUAY}." in result.message
+
+
+def test_a_link_destination_written_twice_where_the_source_has_it_once_fails() -> None:
+    linked = CHAPTER_BODY.replace("on the quay", f"on [the quay]({QUAY})").replace(
+        "| Waxed flax |", f"| [Waxed flax]({QUAY}) |"
+    )
+
+    result = compare(CHAPTER_ID, SOURCE_TEXT, linked, source_links=(QUAY,))
+
+    assert not result.passed
+    assert f"Destinations only in the chapter: {QUAY}." in result.message
+    assert "Destinations only in the source: none." in result.message
+
+
+def test_link_destinations_in_the_order_of_the_source_pass() -> None:
+    linked = CHAPTER_BODY.replace("on the quay", f"on [the quay]({QUAY})").replace(
+        "| Waxed flax |", f"| [Waxed flax]({FLAX}) |"
+    )
+
+    assert compare(CHAPTER_ID, SOURCE_TEXT, linked, source_links=(QUAY, FLAX)).passed
+
+
 def test_a_link_shown_inside_inline_code_is_words_and_not_a_destination() -> None:
     shown = CHAPTER_BODY.replace("Waxed flax", "`[Waxed flax](https://example.invalid/shown)`")
 
