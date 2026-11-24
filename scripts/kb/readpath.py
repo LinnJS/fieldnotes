@@ -129,6 +129,15 @@ _QUOTE_PREFIX = r"[ \t]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)*"
 QUOTE_LINE = re.compile(_QUOTE_PREFIX + r">")
 # A block quote line that opens a list item, which starts a quote of its own.
 _ITEM_QUOTE_LINE = re.compile(r"[ \t]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)+>")
+# A line that opens a block of its own, so it ends a block quote above it instead of continuing
+# it: a heading, a code fence, a list item, or a thematic break. A rule comes before a list item,
+# because a rule of dashes or asterisks with spaces between also starts like one.
+_OPENS_BLOCK = re.compile(
+    r" {0,3}#{1,6}(?:[ \t]|$)"
+    r"| {0,3}(?:`{3,}|~{3,})"
+    r"| {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$"
+    r"|[ \t]*(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)"
+)
 _QUOTE_MARKERS = re.compile(r"(?m)^" + _QUOTE_PREFIX + r"(?:[ \t]{0,3}> ?)+")
 # A backslash is how Markdown escapes one of the markers, so it is dropped with them.
 _INLINE_MARKERS = re.compile(r"[*_`\\]")
@@ -1067,9 +1076,17 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
         run: list[tuple[int, int]] = []
         for line in [*paragraph, None]:
             quoted = line is not None and QUOTE_LINE.match(masked, line[0], line[1])
+            # Markdown reads a line with no mark under a quote line as more of the same quote,
+            # unless the line opens a block of its own.
+            lazy = (
+                bool(run)
+                and line is not None
+                and not quoted
+                and _OPENS_BLOCK.match(masked, line[0], line[1]) is None
+            )
             # The quotes of two list items are two quotes, each with its own token.
             opens_item = line is not None and _ITEM_QUOTE_LINE.match(masked, line[0], line[1])
-            if run and (not quoted or opens_item):
+            if run and ((not quoted and not lazy) or opens_item):
                 start, end = run[0][0], run[-1][1]
                 token = _first_token(tokens, start, paragraph_end)
                 if token is None and following is not None:
@@ -1080,7 +1097,7 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
                 base = paragraph[0][0]
                 prose[start - base : end - base] = " " * (end - start)
                 run = []
-            if quoted and line is not None:
+            if (quoted or lazy) and line is not None:
                 run.append(line)
         base = paragraph[0][0]
         for span in _QUOTED_SPAN.finditer("".join(prose)):

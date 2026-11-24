@@ -586,12 +586,15 @@ def test_a_block_quote_inside_a_list_item_with_no_citation_fails(
 ) -> None:
     index = load_index(fixture_library_root)
     text = layout.format(quote="A boat that dries flat will fold again.", token="No source.")
+    # A line with no mark right under the quote line continues the quote.
+    shown = "A boat that dries flat will fold again."
+    if "> {quote}\n    {token}" in layout:
+        shown += " No source."
 
     problems = check_text(index, text)
 
     assert [problem.message for problem in problems] == [
-        "The block quote has no citation token in its paragraph or on the next line: "
-        '"A boat that dries flat will fold again."'
+        f'The block quote has no citation token in its paragraph or on the next line: "{shown}"'
     ]
 
 
@@ -632,3 +635,43 @@ def test_the_lines_of_one_quote_in_a_list_item_are_still_one_quote(
     )
 
     assert check_text(index, text) == []
+
+
+GENERATOR = "loop-engineering-orange-book/generator-and-evaluator"
+
+
+def test_a_line_with_no_quote_mark_that_continues_a_block_quote_is_checked_as_quote(
+    repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Markdown reads a line with no mark under a quote line as more of the same quote, so a
+    # reader sees the invented second sentence as the author's words.
+    text = (
+        "> This isn't a smarts problem. It's an agent grading its own homework.\n"
+        f"The author also says agents should always grade their own code. [cite:{GENERATOR}]\n"
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert lines == [
+        f"1: The quote is not in {GENERATOR} word for word: \"This isn't a smarts problem. "
+        "It's an agent grading its own homework. The author also says agents should always "
+        'grade their own code."'
+    ]
+    assert code == 1
+
+
+def test_a_line_that_opens_a_new_block_under_a_block_quote_does_not_continue_it(
+    repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    quote = "> This isn't a smarts problem. It's an agent grading its own homework.\n"
+    text = (
+        f"{quote}[cite:{GENERATOR}]\n\n"
+        f"{quote}# The author's next point\n[cite:{GENERATOR}]\n\n"
+        f"{quote}- A list item of our own. [cite:{GENERATOR}]\n\n"
+        f"{quote}---\n[cite:{GENERATOR}]\n"
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
