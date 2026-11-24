@@ -140,14 +140,16 @@ QUOTE_LINE = re.compile(_QUOTE_PREFIX + r">")
 # A block quote line that opens a list item, which starts a quote of its own.
 _ITEM_QUOTE_LINE = re.compile(r"[ \t]*(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)+>")
 # A line that opens a block of its own, so it ends a block quote above it instead of continuing
-# it: a heading, a code fence, a list item, or a thematic break. A rule comes before a list item,
-# because a rule of dashes or asterisks with spaces between also starts like one.
+# it: a heading, a code fence, or a thematic break. A list item does too, see _OPENS_ITEM.
 _OPENS_BLOCK = re.compile(
     r" {0,3}#{1,6}(?:[ \t]|$)"
     r"| {0,3}(?:`{3,}|~{3,})"
     r"| {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$"
-    r"|[ \t]*(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)"
 )
+# A line that opens a list item. Group 1 is its indentation. It ends a block quote above it only
+# when it is indented less than four columns past the mark of the quote, because a line indented
+# further cannot open a list item there and a reader shows it as more of the quote.
+_OPENS_ITEM = re.compile(r"([ \t]*)(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)")
 _QUOTE_MARKERS = re.compile(r"(?m)^" + _QUOTE_PREFIX + r"(?:[ \t]{0,3}> ?)+")
 _INLINE_CODE = re.compile(r"(`+).+?\1")
 # A backslash escape of an ASCII punctuation mark. Group 1 is the mark.
@@ -1154,6 +1156,8 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
         following = paragraphs[number + 1][0] if number + 1 < len(paragraphs) else None
         prose = list(masked[paragraph[0][0] : paragraph_end])
         run: list[tuple[int, int]] = []
+        # The column of the quote mark on the last quote line of the run.
+        mark = 0
         for line in [*paragraph, None]:
             quoted = line is not None and QUOTE_LINE.match(masked, line[0], line[1])
             # Markdown reads a line with no mark under a quote line as more of the same quote,
@@ -1162,7 +1166,7 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
                 bool(run)
                 and line is not None
                 and not quoted
-                and _OPENS_BLOCK.match(masked, line[0], line[1]) is None
+                and not _opens_block(masked[line[0] : line[1]], mark)
             )
             # The quotes of two list items are two quotes, each with its own token.
             opens_item = line is not None and _ITEM_QUOTE_LINE.match(masked, line[0], line[1])
@@ -1179,6 +1183,8 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
                 run = []
             if (quoted or lazy) and line is not None:
                 run.append(line)
+            if quoted:
+                mark = _columns(quoted.group(0)[:-1])
         base = paragraph[0][0]
         for span in _QUOTED_SPAN.finditer("".join(prose)):
             start, end = base + span.start(), base + span.end()
@@ -1191,6 +1197,24 @@ def _quotes(text: str, masked: str, tokens: list[CitationToken]) -> Iterator[_Qu
             token = _first_token(tokens, end, paragraph_end) or _last_token(tokens, base, start)
             if token is not None:
                 yield _Quote(offset=start, text=quote, token=token, block=False)
+
+
+def _columns(text: str) -> int:
+    """Return the number of columns a text takes, with a tab stop every four columns."""
+    return len(text.expandtabs(4))
+
+
+def _opens_block(line: str, mark: int) -> bool:
+    """Say whether a line under a block quote opens a block of its own and ends the quote.
+
+    Args:
+        line: The line, without its line break.
+        mark: The column of the quote mark on the quote line above it.
+    """
+    if _OPENS_BLOCK.match(line):
+        return True
+    item = _OPENS_ITEM.match(line)
+    return item is not None and _columns(item[1]) - mark < 4
 
 
 def _blanked(text: str) -> str:

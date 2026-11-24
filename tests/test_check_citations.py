@@ -834,3 +834,45 @@ def test_an_html_block_quote_split_by_a_blank_line_with_no_citation_fails(
         '"Agents always grade their own code."'
     ]
     assert code == 1
+
+
+@pytest.mark.parametrize(
+    "lazy",
+    [
+        "    - The author also says agents should always grade their own code.",
+        "        1. The author also says agents should always grade their own code.",
+        "\t- The author also says agents should always grade their own code.",
+    ],
+)
+def test_a_lazy_line_indented_past_a_list_item_under_a_block_quote_is_checked(
+    lazy: str, repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = (
+        "> This isn't a smarts problem. It's an agent grading its own homework. "
+        f"[cite:{GENERATOR}]\n{lazy}\n"
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert len(lines) == 1
+    assert "word for word" in lines[0]
+    assert code == 1
+
+
+def test_a_list_item_beside_a_block_quote_in_a_list_item_does_not_continue_it(
+    repo_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = (
+        "- A point of ours.\n"
+        "    > This isn't a smarts problem. It's an agent grading its own homework. "
+        f"[cite:{GENERATOR}]\n"
+        "    - A second point of ours, in the same item.\n"
+        "- > This isn't a smarts problem. It's an agent grading its own homework. "
+        f"[cite:{GENERATOR}]\n"
+        "- A third point of ours.\n"
+    )
+
+    code, lines, _ = check(repo_root, tmp_path, text, capsys)
+
+    assert lines == []
+    assert code == 0
