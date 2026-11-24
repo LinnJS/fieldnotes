@@ -1,0 +1,92 @@
+id: 3d-vibe-coding-handbook
+type: book
+collection: orange-books
+
+title:
+  original: 3D Vibe Coding 手册
+  english: 3D Vibe Coding Handbook
+  english_official: false
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/3d-vibe-coding/
+  repository: https://github.com/alchaincyf/3d-vibe-coding-handbook
+  hosted_editions: []
+
+site_slug: 3d-vibe-coding
+
+upstream:
+  kind: git
+  repository: alchaincyf/3d-vibe-coding-handbook
+  default_branch: master
+  head_commit: 272a90ef84a078464dc277624267cb9b2dfe6449
+
+editions:
+  - language: zh
+    version: v260914c
+    format: html
+    path: book/index.html
+    blob_sha: c543786b6df44117b5b1f83fde61a0b6b4aa50cc
+
+edition_patterns: {}
+
+newest_editions:
+  zh: v260914c
+
+license:
+  spdx: CC-BY-NC-SA-4.0
+  evidence: readme-statement
+  statement: |-
+    本作品采用 [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) 许可：署名、非商业使用、相同方式共享。
+
+    书里的 3D 资产同样按此许可提供，可自由用于学习、练手、非商业项目。
+    第三方部分（Three.js MIT、OpenStreetMap ODbL）按其自身许可，见上一节。
+  permalink: https://github.com/alchaincyf/3d-vibe-coding-handbook/blob/272a90ef84a078464dc277624267cb9b2dfe6449/README.md?plain=1#L77-L80
+  blob_sha: 293bf9bd4acb48757b908a56b7586a463a132258
+  commit: 272a90ef84a078464dc277624267cb9b2dfe6449
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      Repository tree of alchaincyf/3d-vibe-coding-handbook at commit
+      272a90ef84a078464dc277624267cb9b2dfe6449: no license file at the root. The three license
+      files, demos/发动机/lib/LICENSE, demos/巴黎/vendor/LICENSE, and demos/星月夜/lib/LICENSE, share blob
+      d07e209686512b9ac93d7df5481a4a6f622093e7 and hold the MIT license of the three.js authors.
+    - >-
+      README.md at commit 272a90ef84a078464dc277624267cb9b2dfe6449 (blob
+      293bf9bd4acb48757b908a56b7586a463a132258): the heading "## 授权" holds text from line 73 to
+      line 80.
+
+permissions:
+  redistribution: allowed
+  adaptation: allowed
+  commercial_use: denied
+  attribution_required: true
+  share_alike: true
+  third_party_rights: true
+
+mirror_status: reference-only
+
+notices:
+  - >-
+    The README says third-party parts keep their own licenses: Three.js under MIT, with its
+    license text beside each demo, and OpenStreetMap data under ODbL in the Paris demo.
+  - >-
+    The README gives the current version as v260914c. The HTML edition's file name carries no
+    version, so the book declares no edition pattern.
+  - >-
+    The README says the PDF is published under the repository's Releases. On 2026-11-20 the
+    release tagged v260914c carried 3d-vibe-coding-handbook-v260914c.pdf. Release assets are
+    outside the Git tree, so the PDF is not recorded as an edition.
+  - >-
+    The tree also holds index.html, which redirects to book/index.html, and one index.html per
+    demo. None of them is an edition of the book.

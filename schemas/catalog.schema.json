@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Library catalog",
+  "description": "The hand-edited catalog.yaml at the library root. It names the library, sets the license allowlist, and orders the resources. Each resource's facts live in books/<id>/metadata.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["library", "license_allowlist", "collections", "resources"],
+  "properties": {
+    "library": {
+      "description": "The only place the library's display names and URLs are written.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "title", "description", "base_url", "repository"],
+      "properties": {
+        "name": {
+          "description": "Short machine name of the library.",
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "description": "Display title of the library.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "description": "One or two sentences that say what the library is.",
+          "type": "string",
+          "minLength": 1
+        },
+        "base_url": {
+          "description": "URL the published site is served from.",
+          "$ref": "#/$defs/url"
+        },
+        "repository": {
+          "description": "URL of the library's own source repository.",
+          "$ref": "#/$defs/url"
+        }
+      }
+    },
+    "license_allowlist": {
+      "description": "SPDX ids whose books may be mirrored when the rest of the license gate passes.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[A-Za-z0-9.+-]+$" }
+    },
+    "collections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "$ref": "#/$defs/slug" },
+          "title": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "resources": {
+      "description": "Resource ids in display order. Each id has a books/<id>/metadata.yaml.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/slug" }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "description": "Kebab-case slug of lowercase letters and digits.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https?://\\S+$"
+    }
+  }
+}

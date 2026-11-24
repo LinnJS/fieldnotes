@@ -1,0 +1,63 @@
+# Test fixture. This book does not exist.
+# Every title, name, and URL in this file is invented for automated tests.
+id: fixture-reference-book
+type: book
+collection: fixture-books
+
+title:
+  original: 发条茶事手册测试夹具
+  english: Clockwork Tea Manual (Test Fixture)
+  english_official: false
+
+author:
+  name: Fixture Author
+  native_name: 夹具作者
+  url: https://example.invalid/fixture-author
+
+translator: null
+
+languages:
+  - zh
+
+official_urls:
+  site: https://example.invalid/books/clockwork-tea
+  repository: null
+  hosted_editions: []
+
+site_slug: clockwork-tea
+
+upstream:
+  kind: url
+  url: https://example.invalid/books/clockwork-tea
+
+editions: []
+
+edition_patterns: {}
+
+newest_editions: {}
+
+license:
+  spdx: null
+  evidence: none
+  statement: null
+  permalink: null
+  blob_sha: null
+  commit: null
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - https://example.invalid/books/clockwork-tea
+    - https://example.invalid/books
+
+permissions:
+  redistribution: unclear
+  adaptation: unclear
+  commercial_use: unclear
+  attribution_required: false
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: reference-only
+
+notices:
+  - Test fixture. This book is invented for automated tests and has no text in the library.

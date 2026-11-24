@@ -1,0 +1,123 @@
+{
+  "note": "Recorded 2026-11-20. The body is complete.",
+  "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/trees/829aa6084cd68680e7f389bbde9dcaebda7a43e6?recursive=1",
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4992",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "sha": "829aa6084cd68680e7f389bbde9dcaebda7a43e6",
+    "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/trees/829aa6084cd68680e7f389bbde9dcaebda7a43e6",
+    "tree": [
+      {
+        "path": ".gitignore",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "e43b0f988953ae3a84b00331d0ccf5f7d51cb3cf",
+        "size": 10,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/e43b0f988953ae3a84b00331d0ccf5f7d51cb3cf"
+      },
+      {
+        "path": "LICENSE",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ee690880bf3c5d502623b427ce7e21381b0c986f",
+        "size": 1022,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/ee690880bf3c5d502623b427ce7e21381b0c986f"
+      },
+      {
+        "path": "Loop-Engineering-The-Complete-Guide-v260615.pdf",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d9624d19bafb87314ad7d86e40560a365d475851",
+        "size": 859142,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/d9624d19bafb87314ad7d86e40560a365d475851"
+      },
+      {
+        "path": "Loop-Engineering橙皮书-v261020.pdf",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "fa841400d12a1ca5cc9f589202687fbd56963fb5",
+        "size": 5208049,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/fa841400d12a1ca5cc9f589202687fbd56963fb5"
+      },
+      {
+        "path": "README.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "fc4050c0f8c73bcbb8131085228eb6cbb5b2af05",
+        "size": 5081,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/fc4050c0f8c73bcbb8131085228eb6cbb5b2af05"
+      },
+      {
+        "path": "README_zh.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0572ff1511f188eb843cc5c8c4f54bffa6b716bc",
+        "size": 5107,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/0572ff1511f188eb843cc5c8c4f54bffa6b716bc"
+      },
+      {
+        "path": "banner.jpg",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "250aeba3cd2617bd410e1769d8973d1d00824b99",
+        "size": 244553,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/250aeba3cd2617bd410e1769d8973d1d00824b99"
+      },
+      {
+        "path": "cover.jpg",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7408255feac85c0d33d9e21c67f8ec6d0bad357c",
+        "size": 588191,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/7408255feac85c0d33d9e21c67f8ec6d0bad357c"
+      },
+      {
+        "path": "screenshots",
+        "mode": "040000",
+        "type": "tree",
+        "sha": "c361cf2d57ea88f494d73c1496c605cd3c89c5f4",
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/trees/c361cf2d57ea88f494d73c1496c605cd3c89c5f4"
+      },
+      {
+        "path": "screenshots/page-ch01.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c59004a48517a676f0823f6c6ee03a4fc2e24afa",
+        "size": 145455,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/c59004a48517a676f0823f6c6ee03a4fc2e24afa"
+      },
+      {
+        "path": "screenshots/page-ch03.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "8aaa9a4c8c61ac13b28c9ab5daf376758ecffea4",
+        "size": 127897,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/8aaa9a4c8c61ac13b28c9ab5daf376758ecffea4"
+      },
+      {
+        "path": "screenshots/page-cover.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0ae57f9fac64da331e72ac0312cca075af83a90e",
+        "size": 86301,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/0ae57f9fac64da331e72ac0312cca075af83a90e"
+      },
+      {
+        "path": "screenshots/page-toc.png",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b09a22b0840e4f9d57baa3dce8e7cd9deae9b91c",
+        "size": 67151,
+        "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/blobs/b09a22b0840e4f9d57baa3dce8e7cd9deae9b91c"
+      }
+    ],
+    "truncated": false
+  }
+}

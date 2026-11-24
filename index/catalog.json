@@ -1,0 +1,1092 @@
+{
+  "collections": [
+    {
+      "id": "orange-books",
+      "title": "AI Orange Books"
+    }
+  ],
+  "library": {
+    "base_url": "https://linnjs.github.io/fieldnotes/",
+    "description": "An independent community library of AI engineering resources whose first collection is HuaShu's AI Orange Books.",
+    "name": "fieldnotes",
+    "repository": "https://github.com/LinnJS/fieldnotes",
+    "title": "Fieldnotes"
+  },
+  "license_allowlist": [
+    "MIT"
+  ],
+  "resources": [
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [
+        "loop-engineering-orange-book/what-loop-engineering-really-is",
+        "loop-engineering-orange-book/from-prompt-to-context-to-loop",
+        "loop-engineering-orange-book/five-moves-of-one-loop",
+        "loop-engineering-orange-book/six-parts-of-a-loop",
+        "loop-engineering-orange-book/generator-and-evaluator",
+        "loop-engineering-orange-book/loops-that-run-while-you-sleep",
+        "loop-engineering-orange-book/costs",
+        "loop-engineering-orange-book/stay-the-engineer",
+        "loop-engineering-orange-book/build-your-first-loop"
+      ],
+      "collection": "orange-books",
+      "edition": "v260615",
+      "edition_behind": true,
+      "edition_language": "en",
+      "id": "loop-engineering-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "license-file",
+      "license_id": "MIT",
+      "license_path": "books/loop-engineering-orange-book/LICENSE",
+      "license_permalink": "https://github.com/alchaincyf/loop-engineering-orange-book/blob/829aa6084cd68680e7f389bbde9dcaebda7a43e6/LICENSE",
+      "mirror_status": "mirrored",
+      "newer_editions": [
+        {
+          "language": "zh",
+          "version": "v261020"
+        }
+      ],
+      "newest_editions": {
+        "en": "v260615",
+        "zh": "v261020"
+      },
+      "notices": [
+        "The license file is the MIT text with \"this software and associated documentation files (the \"Software\")\" replaced by \"this book and associated files (the \"Work\")\" and \"Software\" replaced by \"Work\" throughout.",
+        "GitHub's license detector reports NOASSERTION for the repository.",
+        "The license file requires its copyright notice and permission notice in all copies. The README adds that attribution is appreciated but not required.",
+        "The mirrored English edition v260615 predates the Chinese October revision v261020, whose note to readers lists errata for the June edition, including a quote wrongly attributed to Addy Osmani. The affected passage has not been identified in the English text, so the chapters reproduce the June text as printed and no chapter records an erratum.",
+        "The chapters are machine-extracted from the pinned PDF. No person has read them against the source yet."
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/H6TXqZsuCnOeR3SvXpNXZk"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/loop-engineering-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/loop-engineering/"
+      },
+      "path": "books/loop-engineering-orange-book",
+      "quote_permitted": true,
+      "source": {
+        "path": "Loop-Engineering-The-Complete-Guide-v260615.pdf",
+        "repository": "alchaincyf/loop-engineering-orange-book",
+        "revision": "829aa6084cd68680e7f389bbde9dcaebda7a43e6"
+      },
+      "title": {
+        "english": "Loop Engineering: Stop Asking Me What It Is",
+        "english_official": true,
+        "original": "别再问我什么是 Loop Engineering"
+      },
+      "topics": [
+        "agent-architecture",
+        "agent-orchestration",
+        "agent-reliability",
+        "coding-agents",
+        "context-engineering",
+        "development-workflows",
+        "evaluation-and-testing",
+        "harness-engineering",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "hermes-agent-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "license-file",
+      "license_id": "MIT",
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/hermes-agent-orange-book/blob/b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692/LICENSE",
+      "mirror_status": "eligible",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v260607",
+        "zh": "v261020"
+      },
+      "notices": [
+        "The license file is the MIT text with \"this software and associated documentation files (the \"Software\")\" replaced by \"this book and associated files (the \"Work\")\" and \"Software\" replaced by \"Work\" throughout.",
+        "GitHub's license detector reports NOASSERTION for the repository.",
+        "The license file requires its copyright notice and permission notice in all copies. The README adds that attribution is appreciated but not required.",
+        "The README says the first edition used CC BY-NC-SA 4.0 and that the book is released under the MIT License starting with edition 2.0. The recorded evidence is the license file at the pinned commit.",
+        "The English edition v260607 is the second edition and predates the Chinese third edition v261020. The README's errata section says the data-collection inference in section 03 is wrong, that the Chinese edition v261020 corrects it, and that the English edition v260607 has not been regenerated."
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/qAVr77wMMaD1AmkPtmL501"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/hermes-agent-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/hermes-agent/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Hermes Agent 2.0: The Complete Guide",
+        "english_official": true,
+        "original": "Hermes Agent橙皮书2.0"
+      },
+      "topics": [
+        "agent-orchestration",
+        "agent-security",
+        "harness-engineering",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "codex-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": "CC-BY-NC-SA-4.0",
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/codex-orange-book/blob/44487efa500bc65c1d1afde7c7b737613aad9df0/README.md?plain=1#L140",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v2.0.1",
+        "zh": "v261020"
+      },
+      "notices": [
+        "The English edition v2.0.1 predates the Chinese edition v261020. The README says the English edition has not been updated yet.",
+        "The README calls the English edition a native-prose translation and names no translator.",
+        "README_zh.md at the same commit states the terms in Chinese at line 150: 本作品基于 [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) 协议发布。在保留署名的前提下，可自由分享和改编（非商用）。"
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/6X9tCSrgcsExJxZV9zSRhS"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/codex-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/codex/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "OpenAI Codex: The Complete Guide",
+        "english_official": true,
+        "original": "OpenAI Codex 从入门到精通"
+      },
+      "topics": [
+        "coding-agents",
+        "development-workflows",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "claude-code-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": "CC-BY-NC-SA-4.0",
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/claude-code-orange-book/blob/a1cea18324f1d5bc885720246ec43d6713937713/README.md?plain=1#L89",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v260411",
+        "zh": "v260411"
+      },
+      "notices": [
+        "README_zh.md at the same commit states the terms in Chinese at line 82: 本作品采用 [CC BY-NC-SA 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) 许可证。可自由分享和改编，但需署名、非商业性使用、相同方式共享。"
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/cY2uZj6drEgu0MQnKRI0li"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/claude-code-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/claude-code/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Claude Code: The Complete Guide",
+        "english_official": true,
+        "original": "Claude Code 从入门到精通"
+      },
+      "topics": [
+        "agent-orchestration",
+        "coding-agents",
+        "context-engineering",
+        "development-workflows",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "deepseek-harness-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": "CC-BY-NC-SA-4.0",
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/deepseek-harness-orange-book/blob/84798928cbc2e08b018052d2182e4887ba2d55d1/README.md?plain=1#L158",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "zh": "v261020"
+      },
+      "notices": [
+        "The README gives the English title in its English summary and says the book is Chinese only for now.",
+        "The repository also holds a slide deck, DeepSeek-Harness-Orange-Book-Magazine-Deck.pptx, which is not recorded as an edition."
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/XABVjoKqAElOoh6PgTgjeM"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/deepseek-harness-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/deepseek-harness/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "DeepSeek Harness: From First Boot to Teardown",
+        "english_official": true,
+        "original": "DeepSeek Harness：从开机到拆开"
+      },
+      "topics": [
+        "agent-security",
+        "harness-engineering",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "3d-vibe-coding-handbook",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": "CC-BY-NC-SA-4.0",
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/3d-vibe-coding-handbook/blob/272a90ef84a078464dc277624267cb9b2dfe6449/README.md?plain=1#L77-L80",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "zh": "v260914c"
+      },
+      "notices": [
+        "The README says third-party parts keep their own licenses: Three.js under MIT, with its license text beside each demo, and OpenStreetMap data under ODbL in the Paris demo.",
+        "The README gives the current version as v260914c. The HTML edition's file name carries no version, so the book declares no edition pattern.",
+        "The README says the PDF is published under the repository's Releases. On 2026-11-20 the release tagged v260914c carried 3d-vibe-coding-handbook-v260914c.pdf. Release assets are outside the Git tree, so the PDF is not recorded as an edition.",
+        "The tree also holds index.html, which redirects to book/index.html, and one index.html per demo. None of them is an edition of the book."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": "https://github.com/alchaincyf/3d-vibe-coding-handbook",
+        "site": "https://www.huasheng.ai/orange-books/3d-vibe-coding/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "3D Vibe Coding Handbook",
+        "english_official": false,
+        "original": "3D Vibe Coding 手册"
+      },
+      "topics": [
+        "development-workflows"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "harness-engineering-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/harness-engineering-orange-book/blob/a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71/README.md?plain=1#L78",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v260411",
+        "zh": "v260411"
+      },
+      "notices": [
+        "README_zh.md at the same commit states the terms in Chinese at line 79: 本作品仅供学习交流使用。引用请注明出处。"
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/XaAUeol6AD4lNQqk1NY00W"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/harness-engineering-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/harness/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Harness Engineering: The Complete Guide",
+        "english_official": true,
+        "original": "Harness Engineering：缰绳工程学完全指南"
+      },
+      "topics": [
+        "agent-architecture",
+        "agent-orchestration",
+        "agent-reliability",
+        "harness-engineering",
+        "memory-and-state-management"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "obsidian-ai-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/obsidian-ai-orange-book/blob/7ed9ac29fedba90932c5c02ce3f39fde7f524879/README.md?plain=1#L110",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v1.0.0",
+        "zh": "v261020"
+      },
+      "notices": [
+        "The recorded statement comes from README.md, which is in Chinese. It welcomes reposting and quoting with credit to the source.",
+        "The English edition v1.0.0 predates the Chinese edition v261020. The README says the English edition has not followed the October revision.",
+        "README_en.md at the same commit states the terms in English at line 86: This work is shared freely for educational purposes. Feel free to share and reference with attribution."
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/g5E78ejX962o977geKeOjj"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/obsidian-ai-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/obsidian-ai/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Obsidian + Claude Code: Rebuild Your Second Brain with AI",
+        "english_official": true,
+        "original": "Obsidian + Claude Code：用AI重建你的第二大脑"
+      },
+      "topics": [
+        "memory-and-state-management"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "polymarket-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/polymarket-orange-book/blob/cfb072ed3672fb14dc15be52b36b0ec312753996/README.md?plain=1#L57",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v260411",
+        "zh": "v2.0.0"
+      },
+      "notices": [
+        "The English edition is v260411 and the Chinese edition is v2.0.0. The two version schemes differ, so the versions do not show which edition is newer.",
+        "The README carries a disclaimer that the book is for educational purposes only and is not investment advice.",
+        "README_zh.md at the same commit states the terms in Chinese at line 57: 本作品免费分享用于教育目的。欢迎转发引用，请注明出处。"
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": "https://github.com/alchaincyf/polymarket-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/polymarket/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Polymarket: The Complete Guide",
+        "english_official": true,
+        "original": "Polymarket 完全指南"
+      },
+      "topics": [],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "agent-skills-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/agent-skills-orange-book/blob/0469422e4a69ccf87b54d074b6f49c63cf96c388/README.md?plain=1#L67",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v260411",
+        "zh": "v260411"
+      },
+      "notices": [
+        "README_zh.md at the same commit states the terms in Chinese at line 67: 本书免费提供，仅限个人学习使用。未经授权请勿用于商业传播。"
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/JEdWEHCbVQDe5RmhKwsz77"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/agent-skills-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/agent-skills/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Agent Skills: The Complete Guide",
+        "english_official": true,
+        "original": "Agent Skills 橙皮书"
+      },
+      "topics": [
+        "development-workflows",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "openclaw-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/openclaw-orange-book/blob/e8b8509699e5b5a7e2de5274f529965b093f86c9/README.md?plain=1#L88",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v260411",
+        "zh": "v1.4.0"
+      },
+      "notices": [
+        "README_zh.md has no section about terms.",
+        "The English edition is v260411 and the Chinese edition is v1.4.0. The two version schemes differ, so the versions do not show which edition is newer."
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/2UiiQIDT8kkhFn8seBRAS1"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/openclaw-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/openclaw/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "OpenClaw: The Complete Guide",
+        "english_official": true,
+        "original": "OpenClaw 橙皮书：从入门到精通"
+      },
+      "topics": [
+        "agent-architecture",
+        "agent-security",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "claude-code-source-analysis-orange-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "readme-statement",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": "https://github.com/alchaincyf/claude-code-source-analysis-orange-book/blob/9c2c8f427cfb3f2d510e43e889b811b8f08aee91/README.md?plain=1#L93",
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "en": "v260411",
+        "zh": "v260411"
+      },
+      "notices": [
+        "The README says the book analyzes Claude Code source code that was exposed in a leak in March 2026. The record flags third-party rights for that reason.",
+        "README_zh.md has no section about terms. It carries the disclaimer about the leaked source code in Chinese."
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "WorkBuddy",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/XFmwjvAbcxmujlmXdftvlK"
+          },
+          {
+            "name": "WorkBuddy, all Orange Books",
+            "note": "Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.",
+            "url": "https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI"
+          }
+        ],
+        "repository": "https://github.com/alchaincyf/claude-code-source-analysis-orange-book",
+        "site": "https://www.huasheng.ai/orange-books/source-code/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Claude Code: Source Code Analysis",
+        "english_official": true,
+        "original": "Claude Code 源码解析"
+      },
+      "topics": [
+        "agent-architecture",
+        "agent-orchestration",
+        "agent-security",
+        "coding-agents",
+        "context-engineering",
+        "harness-engineering",
+        "memory-and-state-management",
+        "tool-use-and-integration"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "cursor-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "zh": "v260403"
+      },
+      "notices": [
+        "The page shows the version v260403.",
+        "The author's listing links no repository for this book. Its page offers the PDF through the author's WeChat official account and gives no public file URL."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://www.huasheng.ai/orange-books/cursor/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Cursor: From Beginner to Mastery",
+        "english_official": false,
+        "original": "Cursor 从入门到精通"
+      },
+      "topics": [],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "gemma4-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {},
+      "notices": [
+        "The page shows no version for the book.",
+        "The author's listing links no repository for this book. Its page offers the PDF through the author's WeChat official account and gives no public file URL."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://www.huasheng.ai/orange-books/gemma4/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Gemma 4: The Complete Guide",
+        "english_official": false,
+        "original": "Gemma 4 完全指南"
+      },
+      "topics": [],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "opus-4-7-system-card-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {},
+      "notices": [
+        "The page describes the book as a full Chinese translation of Anthropic's 232-page Claude Opus 4.7 System Card with HuaShu's commentary. The record flags third-party rights because the translated document is Anthropic's.",
+        "The page credits the book to HuaShu and names no separate translator.",
+        "The page shows no version for the book.",
+        "The author's listing links no repository for this book. Its page offers the PDF through the author's WeChat official account and gives no public file URL."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://www.huasheng.ai/orange-books/opus-4.7/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Claude Opus 4.7 System Card, Chinese Edition",
+        "english_official": false,
+        "original": "Claude Opus 4.7 System Card 中文版"
+      },
+      "topics": [],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "Anthropic",
+        "native_name": null,
+        "url": null
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "founders-playbook-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {},
+      "notices": [
+        "The page credits the book as “Anthropic 原作 · 花叔 译”, so Anthropic is recorded as the author and HuaShu as the translator. The page says the translation was produced with Claude Code.",
+        "The English title is the title of Anthropic's original handbook as the page gives it. The page links the original at https://claude.com/blog/the-founders-playbook.",
+        "The page says the translation is for personal study and internal research only and is not distributed commercially: 本译本仅供个人学习与内部研究，不做商业发行。 The sentence stands on a web page with no commit to pin it to, so the license evidence stays none.",
+        "The record flags third-party rights because the translated handbook is Anthropic's.",
+        "The edition URL points at a location named latest, so its content can change without the URL changing. The page shows no version for the book.",
+        "The author's listing links no repository for this book. Its page offers the PDF through the author's WeChat official account and gives no public file URL."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://www.huasheng.ai/orange-books/founders-playbook/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "The Founder’s Playbook: Building an AI-Native Startup",
+        "english_official": true,
+        "original": "创始人行动手册"
+      },
+      "topics": [],
+      "translator": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "doubao-work-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {},
+      "notices": [
+        "The page shows no version for the book.",
+        "The author's listing links no repository for this book. Its page offers the PDF through the author's WeChat official account and gives no public file URL."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://www.huasheng.ai/orange-books/doubao-work/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Doubao Work: From Beginner to Mastery",
+        "english_official": false,
+        "original": "豆包工作从入门到精通"
+      },
+      "topics": [],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "amazon-quick-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {},
+      "notices": [
+        "The page shows no version for the book.",
+        "The author's listing links no repository for this book. Its page offers the PDF through the author's WeChat official account and gives no public file URL."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://www.huasheng.ai/orange-books/amazon-quick/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Amazon Quick Getting Started Orange Book",
+        "english_official": false,
+        "original": "Amazon Quick 上手橙皮书"
+      },
+      "topics": [],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "HuaShu",
+        "native_name": "花叔",
+        "url": "https://github.com/alchaincyf"
+      },
+      "chapters": [],
+      "collection": "orange-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "phone-skill-orange-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {
+        "zh": "v261015"
+      },
+      "notices": [
+        "The page shows the version v261015. Both edition URLs point at a location named latest, so their content can change without the URL changing.",
+        "The EPUB edition was not opened.",
+        "The page shows no byline. HuaShu is recorded as the author because the book is on his site and in his listing of the series.",
+        "The author's listing links no repository for this book. Its page offers the PDF through the author's WeChat official account and gives no public file URL."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://www.huasheng.ai/orange-books/phone-skill/"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "From One Sentence to a Phone Skill",
+        "english_official": false,
+        "original": "从一句话到一个手机Skill"
+      },
+      "topics": [],
+      "translator": null,
+      "type": "book"
+    }
+  ]
+}

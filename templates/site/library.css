@@ -1,0 +1,98 @@
+/* Styles for the pages the site build generates: the catalog cards, the status labels, and the
+   facts block at the top of a book or chapter page. Colors that are not fixed below come from
+   the theme's own variables, so they follow the light and the dark palette. */
+
+:root {
+  --library-mirrored: #2e7d32;
+  --library-eligible: #1565c0;
+  --library-reference-only: #546e7a;
+}
+
+/* The theme's link color for an orange primary has a contrast ratio below 3 to 1 on a white
+   page. This darker orange reaches 5 to 1. The selector names both attributes so that it
+   outranks the theme's own rule, and the dark palette keeps the theme's color. */
+[data-md-color-scheme="default"][data-md-color-primary="orange"] {
+  --md-typeset-a-color: #b34700;
+}
+
+.md-typeset .library-card {
+  margin: 1.2em 0;
+  padding: 0.2em 1em 0.6em;
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-left-width: 0.25rem;
+  border-radius: 0.2rem;
+}
+
+.md-typeset .library-card--mirrored {
+  border-left-color: var(--library-mirrored);
+}
+
+.md-typeset .library-card--eligible {
+  border-left-color: var(--library-eligible);
+}
+
+.md-typeset .library-card--reference-only {
+  border-left-color: var(--library-reference-only);
+  border-left-style: dashed;
+}
+
+.md-typeset .library-card h3 {
+  margin: 0.8em 0 0.4em;
+}
+
+/* The label states the status in words. The color only repeats it. The label is a block that
+   holds one paragraph, and it is drawn as a badge as wide as its word. The outer margin is the
+   one a paragraph of the page has, so the label is spaced in its card as a paragraph is. */
+.md-typeset .library-status {
+  display: block;
+  width: fit-content;
+  margin: 0.8rem 0;
+  padding: 0.1em 0.7em;
+  border-radius: 1em;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.md-typeset .library-status p {
+  margin: 0;
+}
+
+.md-typeset .library-status--mirrored {
+  background-color: var(--library-mirrored);
+}
+
+.md-typeset .library-status--eligible {
+  background-color: var(--library-eligible);
+}
+
+.md-typeset .library-status--reference-only {
+  background-color: var(--library-reference-only);
+}
+
+.md-typeset .library-facts {
+  margin: 1em 0;
+  padding: 0.1em 1em;
+  border-left: 0.2rem solid var(--md-primary-fg-color);
+  background-color: var(--md-code-bg-color);
+  font-size: 0.72rem;
+}
+
+.md-typeset .library-facts ul {
+  margin-left: 0;
+  list-style: none;
+}
+
+.md-typeset .library-facts ul li {
+  margin-left: 0;
+}
+
+.md-typeset .library-facts ul ul {
+  margin-left: 1em;
+  list-style: disc;
+}
+
+.md-typeset .library-facts code {
+  word-break: break-all;
+}

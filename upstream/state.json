@@ -1,0 +1,64 @@
+{
+  "books": {
+    "3d-vibe-coding-handbook": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "272a90ef84a078464dc277624267cb9b2dfe6449"
+    },
+    "agent-skills-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "0469422e4a69ccf87b54d074b6f49c63cf96c388"
+    },
+    "claude-code-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "a1cea18324f1d5bc885720246ec43d6713937713"
+    },
+    "claude-code-source-analysis-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "9c2c8f427cfb3f2d510e43e889b811b8f08aee91"
+    },
+    "codex-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "44487efa500bc65c1d1afde7c7b737613aad9df0"
+    },
+    "deepseek-harness-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "84798928cbc2e08b018052d2182e4887ba2d55d1"
+    },
+    "harness-engineering-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "a5c33b9159750cbf2bb9a7c3e37ae40c18aa7e71"
+    },
+    "hermes-agent-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692"
+    },
+    "loop-engineering-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "829aa6084cd68680e7f389bbde9dcaebda7a43e6"
+    },
+    "obsidian-ai-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "7ed9ac29fedba90932c5c02ce3f39fde7f524879"
+    },
+    "openclaw-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "e8b8509699e5b5a7e2de5274f529965b093f86c9"
+    },
+    "polymarket-orange-book": {
+      "classification": "unchanged",
+      "findings": [],
+      "head_commit": "cfb072ed3672fb14dc15be52b36b0ec312753996"
+    }
+  }
+}

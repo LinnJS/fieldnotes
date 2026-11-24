@@ -1,0 +1,111 @@
+/* Stylesheet for the EPUB of one mirrored book. The export command hands it to Pandoc. */
+
+body {
+  margin: 5%;
+  font-family: serif;
+  line-height: 1.5;
+  text-align: left;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  text-align: left;
+  hyphens: none;
+}
+
+h1 {
+  margin-top: 1.5em;
+  font-size: 1.7em;
+}
+
+h2 {
+  margin-top: 1.6em;
+  font-size: 1.25em;
+}
+
+/* Pandoc writes the chapter number into its own span. */
+.header-section-number,
+.section-header-number,
+.toc-section-number {
+  margin-right: 0.3em;
+  color: #a34a00;
+}
+
+a {
+  color: #a34a00;
+}
+
+blockquote {
+  margin: 1em 0;
+  padding: 0.2em 0 0.2em 1em;
+  border-left: 0.2em solid #b9b9b9;
+}
+
+code {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+/* A license text and a command must keep their line breaks, and a narrow screen must still
+   show every character, so long lines wrap. */
+pre {
+  margin: 1em 0;
+  padding: 0.7em 0.9em;
+  border-left: 0.2em solid #a34a00;
+  background-color: #f4f4f4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+pre code {
+  font-size: 0.85em;
+}
+
+table {
+  width: 100%;
+  margin: 1.2em 0;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+th,
+td {
+  padding: 0.4em 0.5em;
+  border-bottom: 1px solid #b9b9b9;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  border-bottom: 2px solid #6f6f6f;
+  font-weight: bold;
+}
+
+section.titlepage {
+  margin-top: 20%;
+  text-align: center;
+}
+
+section.titlepage h1 {
+  text-align: center;
+}
+
+section.titlepage .subtitle {
+  font-size: 1.2em;
+}
+
+section.titlepage .author {
+  margin-top: 2em;
+  font-size: 1.2em;
+}
+
+section.titlepage .rights {
+  margin-top: 3em;
+  font-size: 0.85em;
+}
+
+nav ol {
+  list-style-type: none;
+}

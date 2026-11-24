@@ -1,0 +1,195 @@
+id: loop-engineering-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: 别再问我什么是 Loop Engineering
+  english: "Loop Engineering: Stop Asking Me What It Is"
+  english_official: true
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+  - en
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/loop-engineering/
+  repository: https://github.com/alchaincyf/loop-engineering-orange-book
+  hosted_editions:
+    - name: WorkBuddy
+      url: https://www.workbuddy.cn/space/d/H6TXqZsuCnOeR3SvXpNXZk
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+    - name: WorkBuddy, all Orange Books
+      url: https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+
+site_slug: loop-engineering
+
+upstream:
+  kind: git
+  repository: alchaincyf/loop-engineering-orange-book
+  default_branch: main
+  head_commit: 829aa6084cd68680e7f389bbde9dcaebda7a43e6
+
+editions:
+  - language: en
+    version: v260615
+    format: pdf
+    path: Loop-Engineering-The-Complete-Guide-v260615.pdf
+    blob_sha: d9624d19bafb87314ad7d86e40560a365d475851
+  - language: zh
+    version: v261020
+    format: pdf
+    path: Loop-Engineering橙皮书-v261020.pdf
+    blob_sha: fa841400d12a1ca5cc9f589202687fbd56963fb5
+
+edition_patterns:
+  en: '^Loop-Engineering-The-Complete-Guide-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+  zh: '^Loop-Engineering橙皮书-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+
+newest_editions:
+  en: v260615
+  zh: v261020
+
+license:
+  spdx: MIT
+  evidence: license-file
+  statement: |
+    MIT License
+
+    Copyright (c) 2026 HuaShu (花叔)
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this book and associated files (the "Work"), to deal in the Work without
+    restriction, including without limitation the rights to use, copy, modify,
+    merge, publish, distribute, sublicense, and/or sell copies of the Work, and to
+    permit persons to whom the Work is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Work.
+
+    THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE WORK OR THE USE OR OTHER DEALINGS IN THE
+    WORK.
+  permalink: https://github.com/alchaincyf/loop-engineering-orange-book/blob/829aa6084cd68680e7f389bbde9dcaebda7a43e6/LICENSE
+  blob_sha: ee690880bf3c5d502623b427ce7e21381b0c986f
+  commit: 829aa6084cd68680e7f389bbde9dcaebda7a43e6
+  verified_on: 2026-11-20
+  departs_from_template: true
+  locations_checked:
+    - >-
+      LICENSE at commit 829aa6084cd68680e7f389bbde9dcaebda7a43e6 (blob
+      ee690880bf3c5d502623b427ce7e21381b0c986f): read in full.
+    - >-
+      README.md at commit 829aa6084cd68680e7f389bbde9dcaebda7a43e6 (blob
+      fc4050c0f8c73bcbb8131085228eb6cbb5b2af05): the heading "## License" holds text at line 88.
+    - >-
+      README_zh.md at commit 829aa6084cd68680e7f389bbde9dcaebda7a43e6 (blob
+      0572ff1511f188eb843cc5c8c4f54bffa6b716bc): the heading "## 许可" holds text at line 92.
+
+permissions:
+  redistribution: allowed
+  adaptation: allowed
+  commercial_use: allowed
+  attribution_required: true
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: mirrored
+
+pinned_source:
+  repository: alchaincyf/loop-engineering-orange-book
+  commit: 829aa6084cd68680e7f389bbde9dcaebda7a43e6
+  path: Loop-Engineering-The-Complete-Guide-v260615.pdf
+  sha256: 1583b97473fd0e5d05cb5362eff0b7a8093d3d803115d04c72b89c557e100e2f
+  edition: v260615
+  language: en
+  local_path: source/Loop-Engineering-The-Complete-Guide-v260615.pdf
+
+extraction_profile:
+  roles:
+    - role: section-label
+      font_size: 24.0
+    - role: section-title
+      font_size: 26.7
+    - role: lede
+      font_size: 15.3
+    - role: heading
+      font_size: 17.3
+    - role: body
+      font_size: 14.0
+    - role: kicker
+      font_size: 13.3
+      max_indent: 48.0
+    - role: quote
+      font_size: 13.3
+      min_indent: 48.0
+    - role: table-header
+      font_size: 11.3
+    - role: table-cell
+      font_size: 12.7
+    - role: code
+      font_size: 12.0
+  section_start: '^§\d{2}$'
+  excluded_pages:
+    - 1
+    - 2
+    - 36
+  sections:
+    - title: "Stop Asking: What Loop Engineering Really Is"
+      slug: what-loop-engineering-really-is
+      part: Part 1 · What It Is
+    - title: From Prompt to Context to Loop
+      slug: from-prompt-to-context-to-loop
+      part: Part 1 · What It Is
+    - title: The Five Moves of One Loop
+      slug: five-moves-of-one-loop
+      part: Part 2 · How It Turns
+    - title: "Six Parts: What a Loop Is Built From"
+      slug: six-parts-of-a-loop
+      part: Part 2 · How It Turns
+    - title: "Generator and Evaluator: Why an AI Can't Grade Its Own Code"
+      slug: generator-and-evaluator
+      part: Part 2 · How It Turns
+    - title: "Loops That Run While You Sleep: Three Real Ones"
+      slug: loops-that-run-while-you-sleep
+      part: Part 3 · Where It Runs, What It Costs
+    - title: "The Costs: Verification Debt, Comprehension Rot, Token Blowout"
+      slug: costs
+      part: Part 3 · Where It Runs, What It Costs
+    - title: Stay the Engineer, Not Just the One Who Presses Go
+      slug: stay-the-engineer
+      part: Part 4 · How You Start
+    - title: Build Your First Loop Today
+      slug: build-your-first-loop
+      part: Part 4 · How You Start
+  accepted_differences: []
+
+notices:
+  - >-
+    The license file is the MIT text with "this software and associated documentation files (the
+    "Software")" replaced by "this book and associated files (the "Work")" and "Software" replaced
+    by "Work" throughout.
+  - GitHub's license detector reports NOASSERTION for the repository.
+  - >-
+    The license file requires its copyright notice and permission notice in all copies. The README
+    adds that attribution is appreciated but not required.
+  - >-
+    The mirrored English edition v260615 predates the Chinese October revision v261020, whose note
+    to readers lists errata for the June edition, including a quote wrongly attributed to Addy
+    Osmani. The affected passage has not been identified in the English text, so the chapters
+    reproduce the June text as printed and no chapter records an erratum.
+  - >-
+    The chapters are machine-extracted from the pinned PDF. No person has read them against the
+    source yet.

@@ -1,0 +1,79 @@
+id: amazon-quick-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: Amazon Quick 上手橙皮书
+  english: Amazon Quick Getting Started Orange Book
+  english_official: false
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/amazon-quick/
+  repository: null
+  hosted_editions: []
+
+site_slug: amazon-quick
+
+upstream:
+  kind: url
+  url: https://www.huasheng.ai/orange-books/amazon-quick/
+
+editions:
+  - language: zh
+    version: null
+    format: html
+    path: https://www.huasheng.ai/orange-books/amazon-quick/read/
+    blob_sha: null
+
+edition_patterns: {}
+
+newest_editions: {}
+
+license:
+  spdx: null
+  evidence: none
+  statement: null
+  permalink: null
+  blob_sha: null
+  commit: null
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      https://www.huasheng.ai/orange-books/amazon-quick/ fetched on 2026-11-20. The static HTML
+      was searched for License, 许可, 版权, 授权, 转载, CC BY, MIT, Copyright, and ©, and the visible text
+      was read. No terms were found.
+    - >-
+      https://www.huasheng.ai/orange-books/ (the author's listing of all books) fetched on
+      2026-11-20. The static HTML was searched for License, 许可, 版权, 授权, 转载, CC BY, MIT, Copyright,
+      and ©. No terms were found.
+    - >-
+      https://www.huasheng.ai/orange-books/amazon-quick/read/ (the online reading edition) fetched
+      on 2026-11-20. The visible text was searched for License, 许可, 版权, 授权, 转载, CC BY, Copyright,
+      ©, 商业, 仅供, All rights, and 著作权. No terms for the book were found.
+
+permissions:
+  redistribution: unclear
+  adaptation: unclear
+  commercial_use: unclear
+  attribution_required: false
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: reference-only
+
+notices:
+  - The page shows no version for the book.
+  - >-
+    The author's listing links no repository for this book. Its page offers the PDF through the
+    author's WeChat official account and gives no public file URL.

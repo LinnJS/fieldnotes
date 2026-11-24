@@ -1,0 +1,21 @@
+# Test fixture. This is a synthetic library for automated tests.
+# Every name, URL, and hash in it is invented.
+library:
+  name: fixture-library
+  title: Fixture Library
+  description: >-
+    A synthetic library used only by automated tests. It holds one mirrored
+    book and one reference-only book, and all of their text is invented.
+  base_url: https://example.invalid/fixture-library/
+  repository: https://example.invalid/fixture-owner/fixture-library
+
+license_allowlist:
+  - MIT
+
+collections:
+  - id: fixture-books
+    title: Fixture Books
+
+resources:
+  - fixture-mirrored-book
+  - fixture-reference-book

@@ -1,0 +1,22 @@
+{
+  "note": "Not recorded. Written from the recorded response of 2026-11-20 with an invented commit id, as if upstream had pushed one commit.",
+  "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/ref/heads/main",
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-github-media-type": "github.v3; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4990",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "json": {
+    "ref": "refs/heads/main",
+    "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/refs/heads/main",
+    "object": {
+      "sha": "1111111111111111111111111111111111111111",
+      "type": "commit",
+      "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/git/commits/1111111111111111111111111111111111111111"
+    }
+  }
+}

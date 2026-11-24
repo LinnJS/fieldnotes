@@ -1,0 +1,14 @@
+{
+  "note": "Recorded 2026-11-20 with the raw media type. The body is trimmed the same way as the English README, so line numbers differ from upstream.",
+  "url": "https://api.github.com/repos/alchaincyf/loop-engineering-orange-book/contents/README_zh.md?ref=829aa6084cd68680e7f389bbde9dcaebda7a43e6",
+  "status": 200,
+  "headers": {
+    "content-type": "application/vnd.github.raw+json; charset=utf-8",
+    "x-github-media-type": "github.v3; param=raw; format=json",
+    "x-ratelimit-limit": "5000",
+    "x-ratelimit-remaining": "4988",
+    "x-ratelimit-reset": "1795219447",
+    "x-ratelimit-resource": "core"
+  },
+  "text_file": "readme-zh.md"
+}

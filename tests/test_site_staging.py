@@ -1,0 +1,849 @@
+"""Staging writes the documentation site's source tree from the canonical files of a library."""
+
+import html
+import re
+import shutil
+from pathlib import Path
+
+import pytest
+import yaml
+from kb.catalog import Library, load_library
+from kb.export import bundle_files
+from kb.indexes import build_full_text, build_indexes
+from kb.site import HOOK, Downloads, SiteError, publish_canonical_files, stage, write_config
+from kb.site_check import content_problems
+from mkdocs.utils.meta import get_data
+from site_hooks.outside_text import CLOSE, MARKER, render
+
+MIRRORED = "fixture-mirrored-book"
+REFERENCE = "fixture-reference-book"
+EDITION = "v1.0.0"
+PINNED_COMMIT = "a" * 40
+SOURCE_URL = (
+    "https://github.com/fixture-author/fixture-mirrored-book/blob/"
+    f"{PINNED_COMMIT}/Paper-Boat-Engineering-v1.0.0.pdf"
+)
+ERRATUM = "The invented second edition says the pond table lists depth in hands and not in spans."
+ERRATUM_URL = "https://example.invalid/fixture-author/fixture-mirrored-book/errata"
+MACHINE_EXTRACTED_SENTENCE = "no person has compared it with the source"
+
+CHAPTER_PAGES = [
+    f"books/{MIRRORED}/chapters/01-folding-the-hull.md",
+    f"books/{MIRRORED}/chapters/02-choosing-a-pond.md",
+    f"books/{MIRRORED}/chapters/03-recovering-a-sunk-boat.md",
+]
+
+HULL_TOKEN = f"[cite:{MIRRORED}/folding-the-hull@{EDITION}]"
+
+# The tests write their own topics, so the expected links below are named here and do not
+# depend on what the committed fixture topics happen to say.
+TOPIC = f"""---
+id: paper-craft
+title: Paper Craft
+references:
+  - resource: {MIRRORED}
+    chapter: {MIRRORED}/folding-the-hull
+    note: Covers how a hull is folded from a single sheet.
+  - resource: {REFERENCE}
+    note: Listed for its subject only.
+---
+
+# Paper Craft
+
+**Scope (editorial).** This topic is invented for automated tests.
+
+The hull chapter tells the reader to stop after three folds. {HULL_TOKEN}
+
+Another book shares the subject. [cite:{REFERENCE}]
+
+A token is written as `[cite:{MIRRORED}]` in a document.
+
+## Where to read
+
+- [Folding the Hull](../books/{MIRRORED}/chapters/01-folding-the-hull.md)
+- [The license of the book](../books/{MIRRORED}/LICENSE)
+- `{REFERENCE}`. Run `python3 scripts/resolve.py {REFERENCE}` for its official URL.
+"""
+
+_LINK_TARGET = re.compile(r"\]\(([^)\s]+)")
+
+
+@pytest.fixture
+def library_root(library_copy: Path) -> Path:
+    """Return a copy of the fixture library whose only topic is the one written above."""
+    topics = library_copy / "topics"
+    shutil.rmtree(topics)
+    topics.mkdir()
+    (topics / "paper-craft.md").write_text(TOPIC, encoding="utf-8")
+    return library_copy
+
+
+@pytest.fixture
+def library(library_root: Path) -> Library:
+    return load_library(library_root)
+
+
+@pytest.fixture
+def staged(library: Library, tmp_path: Path) -> Path:
+    """Stage the library with no downloads and return the staging directory."""
+    staging_dir = tmp_path / "site-src"
+    stage(library, staging_dir)
+    return staging_dir
+
+
+def read(staging_dir: Path, name: str) -> str:
+    return (staging_dir / name).read_text(encoding="utf-8")
+
+
+def snapshot(directory: Path) -> dict[str, bytes]:
+    return {
+        path.relative_to(directory).as_posix(): path.read_bytes()
+        for path in sorted(directory.rglob("*"))
+        if path.is_file()
+    }
+
+
+def catalog_sections(staging_dir: Path) -> dict[str, str]:
+    """Split the staged catalog page into the text under each second-level heading."""
+    parts = re.split(r"(?m)^## (.+)$", read(staging_dir, "catalog.md"))
+    return {parts[n].strip(): parts[n + 1] for n in range(1, len(parts), 2)}
+
+
+def card(section: str, resource_id: str) -> str:
+    """Return the one card of a catalog section that carries the given resource id."""
+    cards = [
+        text
+        for text in section.split(f"{MARKER} library-card ")[1:]
+        if f" #{resource_id} " in text.partition("\n")[0]
+    ]
+    assert len(cards) == 1
+    return cards[0]
+
+
+def status_label(status: str, label: str) -> str:
+    """Return the staged status label of a card, as the library block writes it."""
+    return f"{MARKER} library-status library-status--{status}\n\n{label}\n\n{CLOSE}"
+
+
+def body(page: str) -> str:
+    """Return a staged page without its front matter, as MkDocs reads it."""
+    text, settings = get_data(page)
+    assert settings == {}
+    return text
+
+
+def built(page: str) -> str:
+    """Render a staged page with the features the site build uses."""
+    return render(body(page))
+
+
+def test_each_mirrored_chapter_gets_a_page_and_the_reference_book_gets_none(staged: Path) -> None:
+    for page in CHAPTER_PAGES:
+        assert (staged / page).is_file()
+    assert (staged / f"books/{MIRRORED}/index.md").is_file()
+    assert not (staged / f"books/{REFERENCE}").exists()
+
+
+def test_chapter_page_shows_author_edition_license_and_official_link(
+    staged: Path, library: Library
+) -> None:
+    page = read(staged, CHAPTER_PAGES[0])
+
+    assert "Fixture Author (夹具作者)" in page
+    assert f"{EDITION}, English" in page
+    assert "[MIT](../license-text.md)" in page
+    assert SOURCE_URL in page
+    assert PINNED_COMMIT in page
+    assert "pp. 3-4" in page
+    assert "machine-extracted" in page
+    assert MACHINE_EXTRACTED_SENTENCE in page
+    assert f"`{MIRRORED}/folding-the-hull`" in page
+    assert f"`{HULL_TOKEN}`" in page
+    # The fixture's English edition is behind its Chinese one.
+    assert "The newest Chinese edition is v1.1.0." in page
+
+
+def test_chapter_page_keeps_the_canonical_body_under_its_title(
+    staged: Path, library: Library
+) -> None:
+    page = read(staged, CHAPTER_PAGES[0])
+    canonical = library.chapters_of(MIRRORED)[0].body
+    title, _, text = canonical.partition("\n")
+
+    assert title == "# Folding the Hull"
+    assert page.startswith("---\n{}\n---\n")
+    assert body(page).startswith(f"{title}\n")
+    assert page.endswith(text)
+
+
+def test_chapter_prose_that_looks_like_markup_is_shown_and_not_rendered(
+    library_root: Path, tmp_path: Path
+) -> None:
+    # The ingest writer puts a backslash in front of an angle bracket of the source, and it
+    # leaves a brace as written.
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(
+            "\n"
+            "Never trust \\<img src=x onerror=alert(1)> in a page.\n"
+            "\n"
+            '## Config { onclick="alert(1)" }\n'
+            "\n"
+            "Code keeps `\\<kept> {kept}` as written.\n"
+            "\n"
+            "```text\n"
+            "\\<kept> {kept}\n"
+            "```\n"
+        )
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    page = read(staging_dir, CHAPTER_PAGES[0])
+    rendered = built(page)
+
+    assert "<img" not in rendered
+    assert re.search(r"<h2[^>]*\sonclick=", rendered) is None
+    assert "Never trust \\&lt;img src=x onerror=alert(1)&gt; in a page." in rendered
+    assert 'Config { onclick="alert(1)" }' in html.unescape(rendered)
+    assert "Code keeps `\\<kept> {kept}` as written." in page
+    assert "```text\n\\<kept> {kept}\n```" in page
+
+
+def test_a_bare_tag_in_a_chapter_is_shown_and_links_keep_working(
+    library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(
+            "\n"
+            "A bare <script>alert(1)</script> tag, an autolink <https://example.invalid/a>, "
+            "and a [bracketed link](<https://example.invalid/a b>).\n"
+        )
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
+
+    assert "<script" not in rendered
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in rendered
+    assert '<a href="https://example.invalid/a">https://example.invalid/a</a>' in rendered
+    # A destination in angle brackets may hold a space, and the link keeps working.
+    assert '<a href="https://example.invalid/a b">bracketed link</a>' in rendered
+
+
+NOT_A_LINK = [
+    # What the ingest writer emits for source prose that only looks like a link.
+    "see \\[1\\](\\<img src=x onerror=alert(1)>) here",
+    # A tag in parentheses after a bracket, with no destination a link could have.
+    "see [1](x <img src=x onerror=alert(1)>) here",
+    "see 1](<img src=x onerror=alert(1)>) here",
+    'see [1](https://example.invalid/a "t") <img src=x onerror=alert(1)> here',
+]
+
+
+@pytest.mark.parametrize("prose", NOT_A_LINK)
+def test_a_tag_in_parentheses_that_are_not_a_link_destination_is_shown(
+    prose: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
+
+    assert "<img" not in rendered
+    assert "&lt;img src=x onerror=alert(1)&gt;" in rendered
+
+
+TAG = "<img src=x onerror=alert(1)>"
+NOT_CODE = [
+    # What the ingest writer emits for source prose with literal backticks around a tag.
+    "Use \\`\\<img src=x onerror=alert(1)>\\` here",
+    f"Use \\`{TAG}\\` here",
+    # The first backtick pairs with the second, so the tag stands outside the code.
+    f"an open ` tick\n`{TAG}` here",
+    # A fence that never closes is prose to the renderer.
+    f"~~~\n{TAG}\n",
+    f"```\n{TAG}\n",
+    # So is a fence whose opening line the renderer does not accept.
+    f"~~~ two words\n{TAG}\n~~~",
+    # A closing fence that is shorter than the opening one closes nothing.
+    f"````\n{TAG}\n```",
+    # A tag that opens a line is a raw block even between two backticks.
+    "a `\n<script>alert(1)</script>\n` b",
+]
+
+
+@pytest.mark.parametrize("prose", NOT_CODE)
+def test_a_tag_in_text_that_only_looks_like_code_is_shown(
+    prose: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
+
+    assert "<img" not in rendered
+    assert "<script" not in rendered
+    assert content_problems(rendered) == []
+
+
+SCRIPT_LINKS = [
+    "a [link](javascript:alert(1)) here",
+    "a [link](<javascript:alert(1)>) here",
+    "a [link]( JaVaScRiPt:alert(1)) here",
+    "a [link](java&#9;script:alert(1)) here",
+    "a [link](javascript&colon;alert(1)) here",
+    "a [link](data:text/html,x) here",
+    "a [link][1] here\n\n[1]: javascript:alert(1)",
+    "an outer [text [link](<javascript:alert(1)>)\n \\[more](x) here",
+]
+
+
+@pytest.mark.parametrize("prose", SCRIPT_LINKS)
+def test_a_link_that_is_not_a_web_address_is_shown_as_text(
+    prose: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
+
+    assert content_problems(rendered) == []
+    # Below the header boxes, no link has a scheme. The renderer may still pair the outer
+    # brackets of the last case into a link to the relative path ``x``.
+    chapter_body = rendered.rpartition("</div>")[2]
+    hrefs = [html.unescape(href) for href in re.findall(r'href="([^"]*)"', chapter_body)]
+    assert hrefs
+    assert [href for href in hrefs if re.match(r"\s*[A-Za-z][A-Za-z0-9+.-]*:", href)] == []
+    assert "link" in html.unescape(chapter_body).rpartition("</h2>")[2]
+
+
+def test_an_image_in_a_chapter_is_shown_as_text(library_root: Path, tmp_path: Path) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write("\nSee ![the hull](https://example.invalid/hull.png) here.\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
+
+    assert "<img" not in rendered
+    assert "See ![the hull](https://example.invalid/hull.png) here." in rendered
+    assert content_problems(rendered) == []
+
+
+def test_a_url_of_a_record_cannot_end_its_link_and_start_markup(
+    library_root: Path, tmp_path: Path
+) -> None:
+    suffix = ")<svg/onload=alert(1)>"
+    metadata = library_root / "books" / MIRRORED / "metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    for url in (
+        "https://example.invalid/books/paper-boat",
+        "https://example.invalid/fixture-author/fixture-mirrored-book",
+        "https://example.invalid/reader/paper-boat",
+    ):
+        assert f"{url}\n" in text
+        text = text.replace(f"{url}\n", f"{url}{suffix}\n")
+    metadata.write_text(text, encoding="utf-8")
+    chapter = library_root / "books" / MIRRORED / "chapters" / "02-choosing-a-pond.md"
+    errata = "source_url: https://example.invalid/fixture-author/fixture-mirrored-book/errata"
+    text = chapter.read_text(encoding="utf-8")
+    assert f"{errata}\n" in text
+    chapter.write_text(text.replace(f"{errata}\n", f"{errata}{suffix}\n"), encoding="utf-8")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    pages = sorted(staging_dir.rglob("*.md"))
+    assert pages
+    for page in pages:
+        rendered = built(page.read_text(encoding="utf-8"))
+        assert "<svg" not in rendered, page
+        assert content_problems(rendered) == [], page
+    catalog = built(read(staging_dir, "catalog.md"))
+    assert (
+        'href="https://example.invalid/books/paper-boat%29%3Csvg/onload=alert%281%29%3E"' in catalog
+    )
+
+
+CODE = [
+    ("Use `<kept a=1>` here", "<code>&lt;kept a=1&gt;</code>"),
+    ("Use ``a ` <kept>`` here", "<code>a ` &lt;kept&gt;</code>"),
+    ("Two \\\\`<kept>` slashes", "<code>&lt;kept&gt;</code>"),
+    ("```text\n<kept>\n```", "&lt;kept&gt;"),
+    ("~~~\n<kept>\n~~~~", "&lt;kept&gt;"),
+    # A run of tildes that opens no block is shown as the tildes it is.
+    ("~~~ two words\nkept", "<p>~~~ two words\nkept</p>"),
+]
+
+
+@pytest.mark.parametrize(("prose", "shown"), CODE)
+def test_a_tag_in_code_is_shown_once_and_not_as_an_entity(
+    prose: str, shown: str, library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    with chapter.open("a", encoding="utf-8") as file:
+        file.write(f"\n{prose}\n")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[0]))
+
+    assert shown in rendered
+    assert "&amp;lt;" not in rendered
+    assert content_problems(rendered) == []
+
+
+def test_reviewed_chapter_carries_no_machine_extraction_notice(staged: Path) -> None:
+    page = read(staged, CHAPTER_PAGES[2])
+
+    assert "human-reviewed" in page
+    assert MACHINE_EXTRACTED_SENTENCE not in page
+
+
+def test_chapter_page_shows_its_erratum(staged: Path) -> None:
+    with_erratum = read(staged, CHAPTER_PAGES[1])
+
+    assert ERRATUM in with_erratum
+    assert ERRATUM_URL in with_erratum
+    assert "erratum" not in read(staged, CHAPTER_PAGES[0]).lower()
+
+
+def test_license_page_prints_the_license_file_verbatim(staged: Path, library_root: Path) -> None:
+    license_text = (library_root / f"books/{MIRRORED}/LICENSE").read_text(encoding="utf-8")
+
+    assert license_text.strip("\n") in read(staged, f"books/{MIRRORED}/license-text.md")
+
+
+def test_catalog_page_shows_the_reference_book_with_its_link_and_label(staged: Path) -> None:
+    sections = catalog_sections(staged)
+    assert list(sections) == ["Mirrored", "Eligible", "Reference-only"]
+
+    mirrored = card(sections["Mirrored"], MIRRORED)
+    reference = card(sections["Reference-only"], REFERENCE)
+    assert "Clockwork Tea Manual (Test Fixture)" in reference
+    assert status_label("reference-only", "Reference-only") in reference
+    assert "https://example.invalid/books/clockwork-tea" in reference
+    assert "发条茶事手册测试夹具" in reference
+    assert "It is this library's translation, not the author's." in reference
+    assert "translation" not in mirrored
+    assert "no license terms found" in reference
+    assert "Fixture Author (夹具作者)" in reference
+    assert "Test fixture. This book is invented for automated tests" in reference
+
+    assert status_label("mirrored", "Mirrored") in mirrored
+    assert f"(books/{MIRRORED}/index.md)" in mirrored
+    assert REFERENCE not in sections["Mirrored"]
+    assert MIRRORED not in sections["Reference-only"]
+
+
+def test_eligible_book_gets_a_card_that_says_so_and_no_pages(
+    library_root: Path, tmp_path: Path
+) -> None:
+    metadata = library_root / f"books/{MIRRORED}/metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    metadata.write_text(
+        text.replace("mirror_status: mirrored", "mirror_status: eligible"), encoding="utf-8"
+    )
+    # The topic cites a chapter, and an eligible book has none to cite.
+    shutil.rmtree(library_root / "topics")
+    staging_dir = tmp_path / "site-src"
+
+    stage(load_library(library_root), staging_dir)
+
+    eligible = card(catalog_sections(staging_dir)["Eligible"], MIRRORED)
+    assert status_label("eligible", "Eligible") in eligible
+    assert "Its license allows mirroring, and the book has not been mirrored yet." in eligible
+    assert not (staging_dir / "books").exists()
+    assert not list(staging_dir.glob("llms-full/*.txt"))
+    for name, data in snapshot(staging_dir).items():
+        assert b"A paper boat begins as a rectangle" not in data, name
+
+
+def test_book_recorded_as_eligible_gets_a_reference_only_card_when_the_gate_rejects_it(
+    library_root: Path, tmp_path: Path
+) -> None:
+    metadata = library_root / f"books/{MIRRORED}/metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    metadata.write_text(
+        text.replace("mirror_status: mirrored", "mirror_status: eligible").replace(
+            "redistribution: allowed", "redistribution: unclear"
+        ),
+        encoding="utf-8",
+    )
+    shutil.rmtree(library_root / "topics")
+    staging_dir = tmp_path / "site-src"
+
+    stage(load_library(library_root), staging_dir)
+
+    sections = catalog_sections(staging_dir)
+    assert status_label("reference-only", "Reference-only") in card(
+        sections["Reference-only"], MIRRORED
+    )
+    assert MIRRORED not in sections["Eligible"]
+    assert not (staging_dir / "books").exists()
+
+
+def test_citation_token_in_a_topic_becomes_a_link_to_the_chapter_page(staged: Path) -> None:
+    page = read(staged, "topics/paper-craft.md")
+
+    assert f"(../books/{MIRRORED}/chapters/01-folding-the-hull.md " in page
+    assert f"(../catalog.md#{REFERENCE} " in page
+    assert HULL_TOKEN not in page
+    assert f"[cite:{REFERENCE}]" not in page
+    # A token inside code is an example and not a citation, so it stays as written.
+    assert f"`[cite:{MIRRORED}]`" in page
+
+
+def test_reading_list_item_for_a_book_that_is_not_mirrored_links_its_catalog_card(
+    staged: Path,
+) -> None:
+    page = read(staged, "topics/paper-craft.md")
+    items = [line for line in page.splitlines() if line.startswith("- ")]
+
+    assert items[-1].startswith(
+        f"- [Clockwork Tea Manual (Test Fixture)](../catalog.md#{REFERENCE} "
+    )
+    assert items[-1].endswith("is not mirrored. Its catalog card lists the official links.")
+    assert "scripts/resolve.py" not in page
+
+
+POINTER = f"- `{REFERENCE}`. Run `python3 scripts/resolve.py {REFERENCE}` for its official URL."
+
+
+@pytest.mark.parametrize(
+    ("opening", "inner", "closing"),
+    [("````", "```", "````"), ("```", "~~~", "```"), ("~~~~", "~~~ not a close", "~~~~")],
+)
+def test_a_reading_list_item_shown_inside_a_code_block_stays_as_written(
+    opening: str, inner: str, closing: str, library_root: Path, tmp_path: Path
+) -> None:
+    topic = library_root / "topics" / "paper-craft.md"
+    example = f"\nThe item is written as:\n\n{opening}markdown\n{inner}\n{POINTER}\n{closing}\n"
+    topic.write_text(topic.read_text(encoding="utf-8") + example, encoding="utf-8")
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(library_root), staging_dir)
+
+    page = read(staging_dir, "topics/paper-craft.md")
+
+    shown = page[page.index(f"{opening}markdown") :]
+    assert shown.splitlines()[:4] == [f"{opening}markdown", inner, POINTER, closing]
+    assert page.count("is not mirrored. Its catalog card lists the official links.") == 1
+
+
+def test_links_between_canonical_files_point_at_staged_pages(staged: Path) -> None:
+    page = read(staged, "topics/paper-craft.md")
+
+    assert f"(../books/{MIRRORED}/license-text.md)" in page
+    targets = [target.partition("#")[0] for target in _LINK_TARGET.findall(page)]
+    assert len(targets) == 5
+    for target in targets:
+        assert (staged / "topics" / target).resolve().is_file(), target
+    # A chapter's link to a sibling chapter also lands on a staged page.
+    chapter_body = read(staged, CHAPTER_PAGES[2]).rpartition(f"\n{CLOSE}\n")[2]
+    assert "](" in chapter_body
+    for target in _LINK_TARGET.findall(chapter_body):
+        if "://" not in target:
+            assert (staged / CHAPTER_PAGES[2]).parent.joinpath(target).resolve().is_file(), target
+
+
+def test_token_that_does_not_resolve_fails_staging_and_names_the_file(
+    library_root: Path, tmp_path: Path
+) -> None:
+    topic = library_root / "topics" / "paper-craft.md"
+    topic.write_text(
+        TOPIC.replace(HULL_TOKEN, f"[cite:{MIRRORED}/no-such-chapter]"), encoding="utf-8"
+    )
+
+    with pytest.raises(SiteError) as raised:
+        stage(load_library(library_root), tmp_path / "site-src")
+
+    assert "topics/paper-craft.md" in str(raised.value)
+    assert f"[cite:{MIRRORED}/no-such-chapter]" in str(raised.value)
+
+
+def test_staging_twice_gives_identical_files(library: Library, tmp_path: Path) -> None:
+    staging_dir = tmp_path / "site-src"
+    stage(library, staging_dir)
+    first = snapshot(staging_dir)
+    # A file left over from an earlier run must not survive, because staging starts empty.
+    (staging_dir / "left-over.md").write_text("stale\n", encoding="utf-8")
+
+    stage(library, staging_dir)
+
+    assert snapshot(staging_dir) == first
+    stage(library, tmp_path / "elsewhere")
+    assert snapshot(tmp_path / "elsewhere") == first
+
+
+def test_machine_files_are_staged_and_linked_from_the_agents_page(
+    staged: Path, library: Library
+) -> None:
+    for name, text in build_indexes(library).items():
+        assert read(staged, name) == text
+    full_text = build_full_text(library)
+    assert read(staged, "llms-full.txt") == full_text["dist/llms-full.txt"]
+    assert read(staged, f"llms-full/{MIRRORED}.txt") == full_text[f"dist/llms-full/{MIRRORED}.txt"]
+
+    agents = read(staged, "agents.md")
+    for name in (
+        "llms.txt",
+        "llms-full.txt",
+        f"llms-full/{MIRRORED}.txt",
+        "index/catalog.json",
+        "index/topics.json",
+        "index/chapters.jsonl",
+    ):
+        assert f"]({name})" in agents
+    assert "python3 scripts/resolve.py" in agents
+    assert "python3 scripts/check_citations.py" in agents
+
+
+def test_downloads_are_staged_and_only_the_mirrored_book_links_them(
+    library: Library, tmp_path: Path
+) -> None:
+    exports = tmp_path / "exports"
+    exports.mkdir()
+    pdf = exports / f"{MIRRORED}-{EDITION}.pdf"
+    epub = exports / f"{MIRRORED}-{EDITION}.epub"
+    bundle = exports / "fixture-library-bundle.zip"
+    for number, path in enumerate((pdf, epub, bundle)):
+        path.write_bytes(b"download %d" % number)
+    staging_dir = tmp_path / "site-src"
+
+    stage(library, staging_dir, Downloads(books={MIRRORED: (pdf, epub)}, bundle=bundle))
+
+    assert sorted(path.name for path in (staging_dir / "downloads").iterdir()) == sorted(
+        [pdf.name, epub.name, bundle.name]
+    )
+    assert (staging_dir / "downloads" / pdf.name).read_bytes() == b"download 0"
+    overview = read(staging_dir, f"books/{MIRRORED}/index.md")
+    assert f"(../../downloads/{pdf.name})" in overview
+    assert f"(../../downloads/{epub.name})" in overview
+    assert f"(downloads/{bundle.name})" in read(staging_dir, "agents.md")
+
+    reference = card(catalog_sections(staging_dir)["Reference-only"], REFERENCE)
+    assert "downloads/" not in reference
+    assert "chapters/" not in reference
+    assert not [name for name in snapshot(staging_dir) if REFERENCE in name]
+
+
+def test_home_page_says_what_the_library_is_and_that_it_is_independent(staged: Path) -> None:
+    home = read(staged, "index.md")
+
+    assert body(home).startswith("# Fixture Library\n")
+    assert "A synthetic library used only by automated tests." in home
+    assert "independent" in home
+    assert "(catalog.md)" in home
+    assert "(agents.md)" in home
+
+
+def test_generated_config_takes_its_names_from_the_catalog_and_lists_every_page(
+    library: Library, tmp_path: Path, repo_root: Path
+) -> None:
+    staging_dir = tmp_path / "build" / "site-src"
+    config_file = tmp_path / "build" / "mkdocs.yml"
+
+    navigation = stage(library, staging_dir)
+    write_config(
+        library, navigation, config_file, docs_dir=staging_dir, site_dir=tmp_path / "dist" / "site"
+    )
+
+    config = yaml.safe_load(config_file.read_text(encoding="utf-8"))
+    assert (config_file.parent / config["INHERIT"]).resolve() == repo_root / "mkdocs.yml"
+    assert config["site_name"] == "Fixture Library"
+    assert config["site_description"].startswith("A synthetic library used only by automated")
+    assert config["site_url"] == "https://example.invalid/fixture-library/"
+    assert config["repo_url"] == "https://example.invalid/fixture-owner/fixture-library"
+    assert config["docs_dir"] == "site-src"
+    assert config["site_dir"] == "../dist/site"
+    assert [(config_file.parent / hook).resolve() for hook in config["hooks"]] == [HOOK]
+    assert repo_root / "scripts" / "site_hooks" / "outside_text.py" == HOOK
+    assert [next(iter(entry)) for entry in config["nav"]] == [
+        "Home",
+        "Books",
+        "Topics",
+        "Catalog",
+        "Agents",
+    ]
+
+    def leaves(entry: object) -> list[str]:
+        if isinstance(entry, str):
+            return [entry]
+        if isinstance(entry, dict):
+            return [leaf for value in entry.values() for leaf in leaves(value)]
+        assert isinstance(entry, list)
+        return [leaf for item in entry for leaf in leaves(item)]
+
+    listed = leaves(config["nav"])
+    pages = [name for name in snapshot(staging_dir) if name.endswith(".md")]
+    assert sorted(listed) == sorted(pages)
+    # The chapters of a book are listed in reading order, between its overview and its license.
+    book = listed.index(f"books/{MIRRORED}/index.md")
+    assert listed[book + 1 : book + 5] == [*CHAPTER_PAGES, f"books/{MIRRORED}/license-text.md"]
+
+
+def test_a_navigation_label_holds_no_tag(library_root: Path, tmp_path: Path) -> None:
+    # The theme prints a navigation label as written, so a tag in a title would be live.
+    topic = library_root / "topics" / "paper-craft.md"
+    topic.write_text(
+        topic.read_text(encoding="utf-8").replace(
+            "title: Paper Craft", 'title: "Paper & <b>Craft</b>"'
+        ),
+        encoding="utf-8",
+    )
+    chapter = library_root / "books" / MIRRORED / "chapters" / "01-folding-the-hull.md"
+    chapter.write_text(
+        chapter.read_text(encoding="utf-8").replace(
+            "title: Folding the Hull", 'title: "Folding <i>the</i> Hull"'
+        ),
+        encoding="utf-8",
+    )
+
+    navigation = stage(load_library(library_root), tmp_path / "site-src")
+
+    def labels(entry: object) -> list[str]:
+        if isinstance(entry, dict):
+            return [*entry, *(label for value in entry.values() for label in labels(value))]
+        if isinstance(entry, list):
+            return [label for item in entry for label in labels(item)]
+        return []
+
+    found = labels(navigation)
+    assert "Paper & &lt;b&gt;Craft&lt;/b&gt;" in found
+    assert "§01 Folding &lt;i&gt;the&lt;/i&gt; Hull" in found
+    assert not [label for label in found if "<" in label or ">" in label]
+
+
+def test_canonical_files_are_served_at_their_repository_paths(
+    library_root: Path, tmp_path: Path
+) -> None:
+    (library_root / "AGENTS.md").write_text("Instructions for agents.\n", encoding="utf-8")
+    (library_root / "LICENSES.md").write_text("Licenses.\n", encoding="utf-8")
+    site_dir = tmp_path / "site"
+    site_dir.mkdir()
+    (site_dir / "llms.txt").write_text("as built\n", encoding="utf-8")
+
+    copied = publish_canonical_files(load_library(library_root), site_dir)
+
+    served = set(snapshot(site_dir))
+    assert f"books/{MIRRORED}/chapters/01-folding-the-hull.md" in served
+    assert f"books/{MIRRORED}/LICENSE" in served
+    assert f"books/{REFERENCE}/metadata.yaml" in served
+    assert {"AGENTS.md", "catalog.yaml", "topics/paper-craft.md"} <= served
+    assert (site_dir / CHAPTER_PAGES[0]).read_bytes() == (
+        library_root / CHAPTER_PAGES[0]
+    ).read_bytes()
+    # A file the build already wrote is left as built.
+    assert read(site_dir, "llms.txt") == "as built\n"
+    assert Path("llms.txt") not in copied
+    # The source file of a mirrored book and anything else in a book directory stay out.
+    assert not any("/source/" in name for name in served)
+    assert {name for name in served if name.startswith(f"books/{REFERENCE}/")} == {
+        f"books/{REFERENCE}/metadata.yaml"
+    }
+
+
+def test_no_built_page_takes_the_place_of_a_served_file_when_case_is_ignored(
+    library_root: Path, staged: Path
+) -> None:
+    (library_root / "AGENTS.md").write_text("Instructions for agents.\n", encoding="utf-8")
+    (library_root / "LICENSES.md").write_text("Licenses.\n", encoding="utf-8")
+    # MkDocs builds the page ``a/b.md`` into the directory ``a/b``.
+    page_directories = {
+        name.removesuffix(".md").lower() for name in snapshot(staged) if name.endswith(".md")
+    }
+    served = {path.as_posix().lower() for path in bundle_files(load_library(library_root))}
+
+    assert page_directories & served == set()
+
+
+NOTICE_YAML = "  - Test fixture. This book and its text are invented for automated tests.\n"
+# Record text that opens a block when Markdown reads it at the start of a line, and record text
+# that only looks like it does. Each must reach the page as the words of one list item.
+LINE_START_NOTICES = {
+    "fullwidth digit": ["\uff11. Fold the sheet before launch."],
+    "arabic-indic digit": ["\u0661) Fold the sheet before launch."],
+    "ascii number": ["1. Fold the sheet before launch."],
+    "ascii number with a parenthesis": ["2) Fold the sheet."],
+    "three table rows": ["Depth | Width", "-|-", "3 | 4"],
+    "two table rows": ["Depth | Width", ": | :"],
+    "two dashes": ["--"],
+    "a dash item": ["- Fold the sheet."],
+    "a plus item": ["+ Fold the sheet."],
+    "a quote": ["> Fold the sheet."],
+    "an equals rule": ["= Fold the sheet.", "==="],
+    "a tilde fence": ["~~~ fold", "Fold the sheet.", "~~~"],
+    "honest text": ["1.5 times the width.", "-5 degrees at night.", "#12 is the pond.", "/usr"],
+}
+_ELEMENT = re.compile(r"<([a-z][a-z0-9]*)[\s>/]")
+_LEAF_ITEM = re.compile(r"<li>([^<]*)</li>")
+
+
+def staged_with_notices(root: Path, tmp_path: Path, notices: list[str]) -> dict[str, str]:
+    """Stage the library with these notices on the mirrored book and render its two pages."""
+    metadata = root / "books" / MIRRORED / "metadata.yaml"
+    text = metadata.read_text(encoding="utf-8")
+    assert NOTICE_YAML in text
+    written = "".join(
+        f"  - {yaml.safe_dump(notice, allow_unicode=True).split(chr(10))[0]}\n"
+        for notice in notices
+    )
+    metadata.write_text(text.replace(NOTICE_YAML, written), encoding="utf-8")
+    assert load_library(root).resource(MIRRORED).notices == tuple(notices)
+    staging_dir = tmp_path / "site-src"
+    stage(load_library(root), staging_dir)
+    return {
+        name: built(read(staging_dir, name))
+        for name in ("catalog.md", f"books/{MIRRORED}/index.md")
+    }
+
+
+@pytest.mark.parametrize("notices", LINE_START_NOTICES.values(), ids=LINE_START_NOTICES)
+def test_a_notice_that_starts_like_a_block_is_one_item_of_text_on_the_site(
+    notices: list[str], library_root: Path, tmp_path: Path
+) -> None:
+    plain_root = tmp_path / "plain"
+    shutil.copytree(library_root, plain_root)
+    plain = [f"Plain notice {number}." for number in range(len(notices))]
+    expected = staged_with_notices(plain_root, tmp_path / "plain-out", plain)
+
+    pages = staged_with_notices(library_root, tmp_path / "out", notices)
+
+    for name, rendered in pages.items():
+        assert sorted(_ELEMENT.findall(rendered)) == sorted(_ELEMENT.findall(expected[name])), name
+        items = [html.unescape(item) for item in _LEAF_ITEM.findall(rendered)]
+        assert [item for item in items if item in notices] == notices, name
+        assert content_problems(rendered) == [], name
+
+
+def test_an_erratum_that_starts_with_a_number_is_text_on_the_chapter_page(
+    library_root: Path, tmp_path: Path
+) -> None:
+    chapter = library_root / "books" / MIRRORED / "chapters" / "02-choosing-a-pond.md"
+    text = chapter.read_text(encoding="utf-8")
+    assert f"description: {ERRATUM}\n" in text
+    staging_dir = tmp_path / "plain"
+    stage(load_library(library_root), staging_dir)
+    expected = built(read(staging_dir, CHAPTER_PAGES[1]))
+    description = "\u0661. The pond table lists depth in hands."
+    chapter.write_text(
+        text.replace(f"description: {ERRATUM}\n", f'description: "{description}"\n'),
+        encoding="utf-8",
+    )
+    staging_dir = tmp_path / "out"
+    stage(load_library(library_root), staging_dir)
+
+    rendered = built(read(staging_dir, CHAPTER_PAGES[1]))
+
+    assert sorted(_ELEMENT.findall(rendered)) == sorted(_ELEMENT.findall(expected))
+    assert f"<p>{description} The erratum is recorded here" in html.unescape(rendered)

@@ -1,0 +1,75 @@
+# Base configuration of the documentation site.
+#
+# The site has no hand-written source tree. `uv run python scripts/build.py --site` stages every
+# page from the canonical files into build/site-src/, writes build/mkdocs.yml, and builds from
+# that file. The generated file inherits this one and adds what catalog.yaml decides: the site
+# name, description, and URL, the repository link, and the navigation. This file therefore sets
+# no site name, and `mkdocs build` run on it directly stops for that reason.
+
+docs_dir: build/site-src
+site_dir: dist/site
+
+# Every page is generated, so a link to edit a page on the repository host would lead nowhere.
+edit_uri: ""
+
+theme:
+  name: material
+  # Each entry carries a media query, so the palette follows the system preference until the
+  # reader uses the toggle.
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: orange
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.indexes
+    - navigation.footer
+    - content.code.copy
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/library.css
+
+# Pages hold text the library did not write, so they render with only the features that text
+# needs, and no extension here reads an attribute list. The hook in
+# scripts/site_hooks/outside_text.py, which the generated file names, turns off what
+# Python-Markdown itself reads: raw HTML, images, reference definitions, and links that are not
+# web or mail addresses. It also writes the library's own boxes, and it lists these same
+# extensions for its tests. The options of a fenced code block, such as an id or a class, are
+# the one feature left on, because pymdownx.superfences has no setting for them. It writes them
+# into the page unescaped, so they can write any element, and the check of the built pages is
+# the only layer that refuses what they write. An empty marker keeps a [TOC] line in a chapter
+# as text.
+markdown_extensions:
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+      marker: ""
+
+# The strict build treats each of these as an error, so a page that is missing from the
+# navigation, or a link or anchor that leads nowhere, stops the build.
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn

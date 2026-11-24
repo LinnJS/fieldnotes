@@ -1,0 +1,139 @@
+id: hermes-agent-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: Hermes Agent橙皮书2.0
+  english: "Hermes Agent 2.0: The Complete Guide"
+  english_official: true
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+  - en
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/hermes-agent/
+  repository: https://github.com/alchaincyf/hermes-agent-orange-book
+  hosted_editions:
+    - name: WorkBuddy
+      url: https://www.workbuddy.cn/space/d/qAVr77wMMaD1AmkPtmL501
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+    - name: WorkBuddy, all Orange Books
+      url: https://www.workbuddy.cn/space/d/YcllWXknAUoMk6lFSWdfbI
+      note: Requires a WorkBuddy sign-in. Not read. Language, edition, and terms are unverified.
+
+site_slug: hermes-agent
+
+upstream:
+  kind: git
+  repository: alchaincyf/hermes-agent-orange-book
+  default_branch: main
+  head_commit: b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692
+
+editions:
+  - language: en
+    version: v260607
+    format: pdf
+    path: Hermes-Agent-The-Complete-Guide-v260607.pdf
+    blob_sha: 75191ec13bfeebab08252a95bce83572fb82a0b1
+  - language: zh
+    version: v261020
+    format: pdf
+    path: Hermes-Agent橙皮书2.0-v261020.pdf
+    blob_sha: 03a15267fa052cd638684e7f17ec0aec1ad90cf5
+
+edition_patterns:
+  en: '^Hermes-Agent-The-Complete-Guide-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+  zh: '^Hermes-Agent橙皮书\d+\.\d+-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+
+newest_editions:
+  en: v260607
+  zh: v261020
+
+license:
+  spdx: MIT
+  evidence: license-file
+  statement: |
+    MIT License
+
+    Copyright (c) 2026 HuaShu (花叔)
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this book and associated files (the "Work"), to deal in the Work without
+    restriction, including without limitation the rights to use, copy, modify,
+    merge, publish, distribute, sublicense, and/or sell copies of the Work, and to
+    permit persons to whom the Work is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Work.
+
+    THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE WORK OR THE USE OR OTHER DEALINGS IN THE
+    WORK.
+  permalink: https://github.com/alchaincyf/hermes-agent-orange-book/blob/b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692/LICENSE
+  blob_sha: ee690880bf3c5d502623b427ce7e21381b0c986f
+  commit: b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692
+  verified_on: 2026-11-20
+  departs_from_template: true
+  locations_checked:
+    - >-
+      LICENSE at commit b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692 (blob
+      ee690880bf3c5d502623b427ce7e21381b0c986f): read in full.
+    - >-
+      README.md at commit b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692 (blob
+      78cd40940db5f983fafab918e29ca1b0bdfad73c): the heading "## License" holds text at line 113.
+    - >-
+      README_zh.md at commit b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692 (blob
+      5941a5cbbf749d08a8c130d260614ee406df8990): the heading "## 许可" holds text at line 119.
+
+permissions:
+  redistribution: allowed
+  adaptation: allowed
+  commercial_use: allowed
+  attribution_required: true
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: eligible
+
+pinned_source:
+  repository: alchaincyf/hermes-agent-orange-book
+  commit: b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692
+  path: Hermes-Agent-The-Complete-Guide-v260607.pdf
+  sha256: 250eaee552121313db913893404b9b1574c7f2ea7b06d25e8641054a51642d59
+  edition: v260607
+  language: en
+  local_path: null
+
+extraction_profile: null
+
+notices:
+  - >-
+    The license file is the MIT text with "this software and associated documentation files (the
+    "Software")" replaced by "this book and associated files (the "Work")" and "Software" replaced
+    by "Work" throughout.
+  - GitHub's license detector reports NOASSERTION for the repository.
+  - >-
+    The license file requires its copyright notice and permission notice in all copies. The README
+    adds that attribution is appreciated but not required.
+  - >-
+    The README says the first edition used CC BY-NC-SA 4.0 and that the book is released under the
+    MIT License starting with edition 2.0. The recorded evidence is the license file at the pinned
+    commit.
+  - >-
+    The English edition v260607 is the second edition and predates the Chinese third edition
+    v261020. The README's errata section says the data-collection inference in section 03 is
+    wrong, that the Chinese edition v261020 corrects it, and that the English edition v260607 has
+    not been regenerated.

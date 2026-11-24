@@ -1,0 +1,14 @@
+# Generated output. The committed indexes live in index/ and llms.txt.
+build/
+dist/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store

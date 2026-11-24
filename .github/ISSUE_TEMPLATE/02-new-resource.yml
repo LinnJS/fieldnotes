@@ -1,0 +1,73 @@
+name: Propose a resource
+description: Suggest a book or another resource for the catalog.
+title: "resource: "
+labels: ["new-resource"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The catalog records facts about a work: its title, its official URL, its editions, and the license evidence found at a pinned commit. A new record starts as `reference-only`. The library holds a work's text only when the license gate in `scripts/kb/gate.py` allows it, and only the repository owner merges a change to license evidence or a status.
+
+        Do not paste the text of the work into this issue.
+
+  - type: input
+    id: official-url
+    attributes:
+      label: Official URL
+      description: The author's own page or repository for the work.
+      placeholder: https://
+    validations:
+      required: true
+
+  - type: input
+    id: repository
+    attributes:
+      label: Source repository
+      description: The GitHub repository that holds the work, if there is one.
+      placeholder: owner/name
+
+  - type: input
+    id: author
+    attributes:
+      label: Author
+    validations:
+      required: true
+
+  - type: dropdown
+    id: license-evidence
+    attributes:
+      label: Where the license is stated
+      description: A license file in the repository is the evidence the gate reads. A README sentence alone leaves a work reference-only.
+      options:
+        - A license file in the repository
+        - A sentence in the README
+        - A statement on a web page
+        - No license terms found
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: license-statement
+    attributes:
+      label: The license statement
+      description: Link to the file, the README line, or the page, and quote only the license statement itself.
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it belongs in the library
+      description: The topics it covers, and how it relates to the books already in the catalog.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before you submit
+      options:
+        - label: I checked that the catalog does not already list this work.
+          required: true
+        - label: I have not pasted the text of the work into this issue.
+          required: true
+        - label: I would like to open the pull request myself with the `add-resource` skill.

@@ -1,0 +1,71 @@
+name: Tooling bug
+description: A command, a check, the site, an export, or a topic does something wrong.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the site or export read-back check fails on a chapter or a record, do not edit the chapter or widen a list in the check. Report the failure here with the full output.
+
+        For a chapter that differs from its source, use the "Chapter differs from its source" template instead.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Validation (scripts/validate.py)
+        - Indexes and llms.txt (scripts/build.py)
+        - Site (scripts/build.py --site)
+        - Exports (PDF, EPUB, bundle)
+        - Ingestion (scripts/ingest.py)
+        - Upstream sync or evidence capture
+        - resolve.py or check_citations.py
+        - Agent instructions or skills
+        - A topic misstates the chapter it cites
+        - Workflows
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command you ran, from the repository root.
+      render: shell
+      placeholder: uv run python scripts/validate.py
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Paste the full output. Remove any token or credential first.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: The output of the commands in the placeholder.
+      render: text
+      placeholder: |
+        git rev-parse --short HEAD
+        uname -sr
+        python3 --version
+        uv --version
+        pandoc --version | head -n 1
+    validations:
+      required: true

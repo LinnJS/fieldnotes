@@ -1,0 +1,91 @@
+id: phone-skill-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: 从一句话到一个手机Skill
+  english: From One Sentence to a Phone Skill
+  english_official: false
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/phone-skill/
+  repository: null
+  hosted_editions: []
+
+site_slug: phone-skill
+
+upstream:
+  kind: url
+  url: https://www.huasheng.ai/orange-books/phone-skill/
+
+editions:
+  - language: zh
+    version: v261015
+    format: html
+    path: https://pub-161ae4b5ed0644c4a43b5c6412287e03.r2.dev/latest/phone-skill.html
+    blob_sha: null
+  - language: zh
+    version: v261015
+    format: epub
+    path: https://pub-161ae4b5ed0644c4a43b5c6412287e03.r2.dev/latest/phone-skill.epub
+    blob_sha: null
+
+edition_patterns: {}
+
+newest_editions:
+  zh: v261015
+
+license:
+  spdx: null
+  evidence: none
+  statement: null
+  permalink: null
+  blob_sha: null
+  commit: null
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      https://www.huasheng.ai/orange-books/phone-skill/ fetched on 2026-11-20. The static HTML was
+      searched for License, 许可, 版权, 授权, 转载, CC BY, MIT, Copyright, and ©, and the visible text was
+      read. No terms were found.
+    - >-
+      https://www.huasheng.ai/orange-books/ (the author's listing of all books) fetched on
+      2026-11-20. The static HTML was searched for License, 许可, 版权, 授权, 转载, CC BY, MIT, Copyright,
+      and ©. No terms were found.
+    - >-
+      https://pub-161ae4b5ed0644c4a43b5c6412287e03.r2.dev/latest/phone-skill.html (the online
+      reading edition) fetched on 2026-11-20. The visible text was searched for License, 许可, 版权,
+      授权, 转载, CC BY, Copyright, ©, 商业, 仅供, All rights, and 著作权. No terms for the book were found.
+
+permissions:
+  redistribution: unclear
+  adaptation: unclear
+  commercial_use: unclear
+  attribution_required: false
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: reference-only
+
+notices:
+  - >-
+    The page shows the version v261015. Both edition URLs point at a location named latest, so
+    their content can change without the URL changing.
+  - The EPUB edition was not opened.
+  - >-
+    The page shows no byline. HuaShu is recorded as the author because the book is on his site and
+    in his listing of the series.
+  - >-
+    The author's listing links no repository for this book. Its page offers the PDF through the
+    author's WeChat official account and gives no public file URL.

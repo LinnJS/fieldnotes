@@ -1,0 +1,10 @@
+# The owner reviews every change. License evidence, mirror statuses, and the
+# allowlist change only through a pull request the owner merges (MAINTAINING.md),
+# so the license-bearing paths are named separately to keep that rule visible if
+# more reviewers are added for the rest of the tree.
+*                      @LinnJS
+
+/catalog.yaml          @LinnJS
+/books/                @LinnJS
+/scripts/kb/gate.py    @LinnJS
+/.github/              @LinnJS

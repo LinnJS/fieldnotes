@@ -1,0 +1,96 @@
+id: polymarket-orange-book
+type: book
+collection: orange-books
+
+title:
+  original: Polymarket 完全指南
+  english: "Polymarket: The Complete Guide"
+  english_official: true
+
+author:
+  name: HuaShu
+  native_name: 花叔
+  url: https://github.com/alchaincyf
+
+translator: null
+
+languages:
+  - zh
+  - en
+
+official_urls:
+  site: https://www.huasheng.ai/orange-books/polymarket/
+  repository: https://github.com/alchaincyf/polymarket-orange-book
+  hosted_editions: []
+
+site_slug: polymarket
+
+upstream:
+  kind: git
+  repository: alchaincyf/polymarket-orange-book
+  default_branch: main
+  head_commit: cfb072ed3672fb14dc15be52b36b0ec312753996
+
+editions:
+  - language: en
+    version: v260411
+    format: pdf
+    path: Polymarket-The-Complete-Guide-v260411.pdf
+    blob_sha: 310a887e67072b3439342eb75856301962c633d9
+  - language: zh
+    version: v2.0.0
+    format: pdf
+    path: Polymarket-Complete-Guide-zh-v2.0.0.pdf
+    blob_sha: 45887b5d3533e273aa98744c9891dcfdcdbae711
+
+edition_patterns:
+  en: '^Polymarket-The-Complete-Guide-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+  zh: '^Polymarket-Complete-Guide-zh-(?P<version>v\d+(?:\.\d+)*)\.pdf$'
+
+newest_editions:
+  en: v260411
+  zh: v2.0.0
+
+license:
+  spdx: null
+  evidence: readme-statement
+  statement: >-
+    This work is shared freely for educational purposes. Feel free to share and reference with
+    attribution.
+  permalink: https://github.com/alchaincyf/polymarket-orange-book/blob/cfb072ed3672fb14dc15be52b36b0ec312753996/README.md?plain=1#L57
+  blob_sha: b6cc09ebce41e0554fbc8a779fe90ced7510db12
+  commit: cfb072ed3672fb14dc15be52b36b0ec312753996
+  verified_on: 2026-11-20
+  departs_from_template: false
+  locations_checked:
+    - >-
+      Repository tree of alchaincyf/polymarket-orange-book at commit
+      cfb072ed3672fb14dc15be52b36b0ec312753996: no file named LICENSE, LICENSE.md, LICENSE.txt, or
+      COPYING.
+    - >-
+      README.md at commit cfb072ed3672fb14dc15be52b36b0ec312753996 (blob
+      b6cc09ebce41e0554fbc8a779fe90ced7510db12): the heading "## License" holds text at line 57.
+    - >-
+      README_zh.md at commit cfb072ed3672fb14dc15be52b36b0ec312753996 (blob
+      841158c2a4cc2075c1d8067b70a39c4dd5031b70): the heading "## 许可" holds text at line 57.
+
+permissions:
+  redistribution: allowed
+  adaptation: unclear
+  commercial_use: unclear
+  attribution_required: true
+  share_alike: false
+  third_party_rights: false
+
+mirror_status: reference-only
+
+notices:
+  - >-
+    The English edition is v260411 and the Chinese edition is v2.0.0. The two version schemes
+    differ, so the versions do not show which edition is newer.
+  - >-
+    The README carries a disclaimer that the book is for educational purposes only and is not
+    investment advice.
+  - >-
+    README_zh.md at the same commit states the terms in Chinese at line 57:
+    本作品免费分享用于教育目的。欢迎转发引用，请注明出处。

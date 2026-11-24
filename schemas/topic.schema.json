@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Topic frontmatter",
+  "description": "The YAML frontmatter of a topic document in topics/. The body holds the editorial scope statement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "references"],
+  "properties": {
+    "id": {
+      "description": "Kebab-case slug of lowercase letters and digits.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resource", "note"],
+        "properties": {
+          "resource": {
+            "description": "Id of the referenced resource.",
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "chapter": {
+            "description": "Chapter id in the form <resource-id>/<slug>. It is set only for a chapter of a mirrored book.",
+            "type": ["string", "null"],
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "note": {
+            "description": "Why the reference is relevant, in the library's own words.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

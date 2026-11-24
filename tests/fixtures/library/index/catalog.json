@@ -1,0 +1,132 @@
+{
+  "collections": [
+    {
+      "id": "fixture-books",
+      "title": "Fixture Books"
+    }
+  ],
+  "library": {
+    "base_url": "https://example.invalid/fixture-library/",
+    "description": "A synthetic library used only by automated tests. It holds one mirrored book and one reference-only book, and all of their text is invented.",
+    "name": "fixture-library",
+    "repository": "https://example.invalid/fixture-owner/fixture-library",
+    "title": "Fixture Library"
+  },
+  "license_allowlist": [
+    "MIT"
+  ],
+  "resources": [
+    {
+      "author": {
+        "name": "Fixture Author",
+        "native_name": "夹具作者",
+        "url": "https://example.invalid/fixture-author"
+      },
+      "chapters": [
+        "fixture-mirrored-book/folding-the-hull",
+        "fixture-mirrored-book/choosing-a-pond",
+        "fixture-mirrored-book/recovering-a-sunk-boat"
+      ],
+      "collection": "fixture-books",
+      "edition": "v1.0.0",
+      "edition_behind": true,
+      "edition_language": "en",
+      "id": "fixture-mirrored-book",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "license_evidence": "license-file",
+      "license_id": "MIT",
+      "license_path": "books/fixture-mirrored-book/LICENSE",
+      "license_permalink": "https://github.com/fixture-author/fixture-mirrored-book/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/LICENSE",
+      "mirror_status": "mirrored",
+      "newer_editions": [
+        {
+          "language": "zh",
+          "version": "v1.1.0"
+        }
+      ],
+      "newest_editions": {
+        "en": "v1.0.0",
+        "zh": "v1.1.0"
+      },
+      "notices": [
+        "Test fixture. This book and its text are invented for automated tests."
+      ],
+      "official_urls": {
+        "hosted_editions": [
+          {
+            "name": "Fixture Reader",
+            "note": "One page per chapter. Invented for tests.",
+            "url": "https://example.invalid/reader/paper-boat"
+          }
+        ],
+        "repository": "https://example.invalid/fixture-author/fixture-mirrored-book",
+        "site": "https://example.invalid/books/paper-boat"
+      },
+      "path": "books/fixture-mirrored-book",
+      "quote_permitted": true,
+      "source": {
+        "path": "Paper-Boat-Engineering-v1.0.0.pdf",
+        "repository": "fixture-author/fixture-mirrored-book",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "title": {
+        "english": "Paper Boat Engineering (Test Fixture)",
+        "english_official": true,
+        "original": "纸船工程测试夹具"
+      },
+      "topics": [
+        "paper-craft"
+      ],
+      "translator": null,
+      "type": "book"
+    },
+    {
+      "author": {
+        "name": "Fixture Author",
+        "native_name": "夹具作者",
+        "url": "https://example.invalid/fixture-author"
+      },
+      "chapters": [],
+      "collection": "fixture-books",
+      "edition": null,
+      "edition_behind": false,
+      "edition_language": null,
+      "id": "fixture-reference-book",
+      "languages": [
+        "zh"
+      ],
+      "license_evidence": "none",
+      "license_id": null,
+      "license_path": null,
+      "license_permalink": null,
+      "mirror_status": "reference-only",
+      "newer_editions": [],
+      "newest_editions": {},
+      "notices": [
+        "Test fixture. This book is invented for automated tests and has no text in the library."
+      ],
+      "official_urls": {
+        "hosted_editions": [],
+        "repository": null,
+        "site": "https://example.invalid/books/clockwork-tea"
+      },
+      "path": null,
+      "quote_permitted": false,
+      "source": null,
+      "title": {
+        "english": "Clockwork Tea Manual (Test Fixture)",
+        "english_official": false,
+        "original": "发条茶事手册测试夹具"
+      },
+      "topics": [
+        "paper-craft",
+        "tea-service"
+      ],
+      "translator": null,
+      "type": "book"
+    }
+  ]
+}
