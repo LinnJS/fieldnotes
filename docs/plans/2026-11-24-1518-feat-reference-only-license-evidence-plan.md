@@ -34,7 +34,7 @@ Everything that depends on the author's reply, or on the owner widening the allo
 
 ### Summary
 
-17 of the 19 cataloged books are `reference-only`, and the library holds none of their text. The gate in `scripts/kb/gate.py` refuses each one for a recorded reason. This milestone asks the author for evidence that could change those reasons, puts two policy questions in front of the owner with what each choice costs, and closes a monitoring gap. The seven site-only books and any new book on the author's listing are invisible to the weekly sync today.
+17 of the 19 Orange Books are `reference-only`, and the library holds none of their text. The gate in `scripts/kb/gate.py` refuses each one for a recorded reason. This milestone asks the author for evidence that could change those reasons, puts two policy questions in front of the owner with what each choice costs, and closes a monitoring gap. The seven site-only books and any new book on the author's listing are invisible to the weekly sync today.
 
 ### Problem Frame
 
@@ -64,7 +64,7 @@ Exceptions that change a decision.
 
 - **The flag outranks any license.** Four records set `third_party_rights`. The gate refuses them at its first condition, before it reads the license. A license file from the author alone cannot clear the blocker on 3D Vibe Coding, Source Analysis, the Opus 4.7 System Card edition, or Founder's Playbook.
 - **Three of the four CC BY-NC-SA books have no recorded third-party blocker.** Codex, Claude Code, and DeepSeek Harness have no flag. 3D Vibe Coding names Three.js under MIT and OpenStreetMap data under ODbL in its README.
-- **Six site-only books show no terms, and one shows a limited-use notice.** The issue says seven have no terms found. The Founder's Playbook page carries a notice that limits the translation to personal study and internal research with no commercial distribution. The record holds it as a notice with evidence `none`, because a web page has no commit to pin.
+- **Six site-only books show no terms, and one shows a limited-use notice.** The issue says six have no terms found. The Founder's Playbook page carries a notice that limits the translation to personal study and internal research with no commercial distribution. The record holds it as a notice with evidence `none`, because a web page has no commit to pin.
 - **Founder's Playbook is Anthropic's work.** The record names Anthropic as author and HuaShu as translator. The Opus 4.7 System Card edition is a translation of Anthropic's document with HuaShu's commentary.
 - **Two informal records already allow redistribution.** Obsidian AI and Polymarket record redistribution as allowed with attribution. Adaptation stays unclear, and neither names an SPDX license.
 - **Two site-only reading links are mutable.** Phone Skill and Founder's Playbook point at a location named `latest`.
@@ -171,7 +171,7 @@ The published milestone 3 plan offers two routes, with neither approved yet. It 
 
 All four NC-SA metadata records already include an HTTP link to the CC BY-NC-SA 4.0 deed. If the owner approves that general route, check each grant against its final scope and canonical-URL normalization requirements and reuse its separate grant-evidence/legal-code representation. A deed link alone does not satisfy the proposed rule. All four still need a pinned source, all need NC-SA admission and operating/output support, and 3D retains its third-party blocker. If the owner chooses the upstream-file route or defers, keep requesting root license files. The outreach requests those files under either route.
 
-Reuse milestone 3's approved work-level attribution record, start/end boundaries, per-chapter associations, bundle inventory and requested-attribution-removal handling wherever they satisfy NC-SA. Milestone 4 adds the NC operating policy and remaining NC-specific checks. Implement no parallel attribution system.
+If the owner approves milestone 3's D1, reuse its work-level attribution record, start/end boundaries, per-chapter associations, bundle inventory and requested-attribution-removal handling wherever they satisfy NC-SA. Milestone 4 adds the NC operating policy and remaining NC-specific checks. Implement no parallel attribution system.
 
 ### Listing data flow
 
@@ -202,7 +202,7 @@ Sections 1 and 2(a)(1) permit reproduction, sharing, and adaptation for NonComme
 
 **Collections and adaptations.**
 
-A collection can keep separate licenses for its included works. Its own license does not replace those licenses. The included NonCommercial conditions still apply. Whether a creative modification is an adaptation depends on applicable law. Commercial purpose depends on the use, including when the user is a nonprofit. [Creative Commons FAQ](https://creativecommons.org/faq/#if-i-create-a-collection-that-includes-a-work-offered-under-a-cc-license-which-licenses-may-i-choose-for-the-collection).
+A collection can keep separate licenses for its included works. Its own license does not replace those licenses. The included NonCommercial conditions still apply. Whether a creative modification is an adaptation depends on applicable law, because Section 1(a) of the [CC BY-NC-SA 4.0 legal code](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en) defines Adapted Material as a modification that requires permission under the rights held by the Licensor. Commercial purpose depends on the use, including when the user is a nonprofit, because Section 1(k) defines NonCommercial by the purpose of the use. [Creative Commons FAQ](https://creativecommons.org/faq/#if-i-create-a-collection-that-includes-a-work-offered-under-a-cc-license-which-licenses-may-i-choose-for-the-collection).
 
 
 **Project inferences.** The following are proposed library policies derived from those conditions.
@@ -430,7 +430,7 @@ All of these are pending. No unit records a decision the owner has not made.
 
 ## Implementation Units
 
-U1, U2 and U3 are ordered work units for one owner-reviewed implementation pull request after milestones #3–#5. U2 and U3 can be developed while owner decisions remain pending. U1 records only decisions actually made. The owner can approve and send the letter earlier as a separate action.
+U1, U2 and U3 are ordered work units for one owner-reviewed implementation pull request after issues #3, #4, and #5. U2 and U3 can be developed while owner decisions remain pending. U1 records only decisions actually made. The owner can approve and send the letter earlier as a separate action.
 
 ### U1. Record the owner's decisions and the outreach
 
@@ -438,7 +438,7 @@ U1, U2 and U3 are ordered work units for one owner-reviewed implementation pull 
 
 **Requirement links.** R1, R6, R7, R9, R10, R21, R22.
 
-**Dependencies.** Milestones #3–#5 precede implementation. Record available owner answers to OD1, OD2 and OD3. Keep unanswered items open. Record a sent date only after the owner reports sending the letter.
+**Dependencies.** Issues #3, #4, and #5 precede implementation. Record available owner answers to OD1, OD2 and OD3. Keep unanswered items open. Record a sent date only after the owner reports sending the letter.
 
 **Files.**
 
@@ -461,7 +461,7 @@ U1, U2 and U3 are ordered work units for one owner-reviewed implementation pull 
 
 **Requirement links.** R11, R12, R13, R14, R15, R17, R18.
 
-**Dependencies.** Milestones #3–#5 precede implementation. U1 does not block parser work.
+**Dependencies.** Issues #3, #4, and #5 precede implementation. U1 does not block parser work.
 
 **Execution note.** Check the parser against the current listing structure before fixing fixtures. Verify the identifying User-Agent in a manual live check. A refusal exercises the normal reportable error path and does not block building the parser and failure reporting.
 
@@ -566,7 +566,7 @@ None of these is ready today. Each names its trigger.
 
 **F3. HTML source reader.** Trigger. F2 has landed and a book that passes the gate has no PDF edition to pin.
 
-1. Confirm which book needs it. The Codex record read on 2026-11-24 lists PDF, EPUB, and HTML editions in both languages, so the first plan's reason may no longer hold. The record with only an HTML edition is 3D Vibe Coding, which the flag blocks.
+1. Confirm which book needs it. The Codex record read on 2026-11-24 lists PDF, EPUB, and HTML editions in both languages, so the first plan's reason may no longer hold. Seven records list only an HTML edition. They are 3D Vibe Coding, which the flag blocks, and the six site-only records `cursor-orange-book`, `gemma4-orange-book`, `opus-4-7-system-card-orange-book`, `founders-playbook-orange-book`, `doubao-work-orange-book`, and `amazon-quick-orange-book`. `phone-skill-orange-book` lists EPUB and HTML.
 2. Only then design the reader beside `scripts/kb/ingest.py`, with the same fidelity check.
 
 **F4. URL evidence.** Trigger. The author states terms for a site-only book on a web page or by email and declines to publish them in Git.
@@ -594,6 +594,7 @@ Implementation records the results of the checks below. Planning ran no tests or
 | Library validation | `uv run python scripts/validate.py` | U1, U3 |
 | Generated files fresh | `uv run python scripts/build.py --check` | U1 |
 | Listing against the network | `uv run python scripts/sync.py --dry-run` | U3, by hand |
+| Listing baseline recorded | `uv run python scripts/sync.py` | U3, by hand, writes `upstream/state.json` |
 
 Invariants that every unit's diff must show.
 
