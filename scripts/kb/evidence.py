@@ -30,6 +30,13 @@ __all__ = [
 ]
 
 LICENSE_FILE_NAMES = frozenset({"license", "license.md", "license.txt", "copying"})
+"""The lower-case names a recorded license file may have, at the root of its repository."""
+LICENSE_FILE_PATTERN = re.compile(r"(?i)^(licen[cs]e|copying|unlicense)([-._].*)?$")
+"""The file names a repository may hold license terms under, as upstream changes are looked for.
+
+It is wider than ``LICENSE_FILE_NAMES``, so a license that upstream adds as ``LICENCE.md``,
+``COPYING.md``, ``UNLICENSE``, or ``LICENSE-CC-BY.md`` is found and shown to a person.
+"""
 README_PATH = "README.md"
 """The file a recorded README statement is quoted from, from the root of the repository."""
 README_SUFFIXES = frozenset({"", ".md", ".markdown", ".txt", ".rst"})
@@ -235,7 +242,7 @@ def capture(client: GitHubClient, repository: str, ref: str | None = None) -> Ca
             text=client.file_text(name, commit, entry.path),
         )
         for entry in tree
-        if PurePosixPath(entry.path).name.lower() in LICENSE_FILE_NAMES
+        if LICENSE_FILE_PATTERN.match(PurePosixPath(entry.path).name)
     )
     readmes = tuple(entry for entry in tree if _is_readme(entry.path))
     readme_lines = tuple(

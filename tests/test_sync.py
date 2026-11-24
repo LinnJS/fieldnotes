@@ -853,6 +853,25 @@ def test_license_file_in_a_book_that_recorded_none_is_reported_as_added(
     )
 
 
+@pytest.mark.parametrize(
+    "name", ["LICENCE.md", "COPYING.md", "UNLICENSE", "LICENSE-CC-BY.md", "license_mit.txt"]
+)
+def test_license_file_under_another_common_name_is_reported_as_added(
+    library: Path, name: str
+) -> None:
+    harness = load_resource(library, HARNESS)
+    tree = _tree(
+        (name, "0e" * 20),
+        ("README.md", "0f" * 20),
+        ("LICENSES.md", "1d" * 20),
+        (f"vendor/{name}", "1e" * 20),
+    )
+
+    assert compare(harness, HARNESS_REPOSITORY, tree, readme=f"{HARNESS_STATEMENT}\n") == (
+        Finding(kind=FindingKind.LICENSE_FILE_ADDED, path=name, blob_sha="0e" * 20),
+    )
+
+
 def test_statement_is_not_found_when_the_readme_is_gone(library: Path) -> None:
     harness = load_resource(library, HARNESS)
 

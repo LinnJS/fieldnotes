@@ -322,6 +322,44 @@ def test_capture_reports_the_commit_the_license_file_and_the_editions(
     ]
 
 
+class ExtraFilesClient(GitHubClient):
+    """Reads the recorded repository with more files at the root of its tree."""
+
+    def __init__(self, fetch: RecordedFetch, extra: Mapping[str, str]) -> None:
+        super().__init__(fetch)
+        self._extra = extra
+
+    def tree(self, repository: str, commit: str) -> tuple[TreeEntry, ...]:
+        added = tuple(TreeEntry(path=path, blob_sha="0e" * 20, size=1) for path in self._extra)
+        return (*super().tree(repository, commit), *added)
+
+    def file_text(self, repository: str, commit: str, path: str) -> str:
+        if path in self._extra:
+            return self._extra[path]
+        return super().file_text(repository, commit, path)
+
+
+def test_capture_lists_license_files_under_every_common_name(fetch: RecordedFetch) -> None:
+    extra = {
+        "LICENCE.md": "Licence text.",
+        "COPYING.md": "Copying text.",
+        "UNLICENSE": "Unlicense text.",
+        "fonts/LICENSE-CC-BY.md": "Font license text.",
+        "LICENSES.md": "A list of licenses, not one.",
+        "licensed-photo.png": "not text",
+    }
+
+    captured = capture(ExtraFilesClient(fetch, extra), REPOSITORY)
+
+    assert sorted(license_file.path for license_file in captured.license_files) == [
+        "COPYING.md",
+        "LICENCE.md",
+        "LICENSE",
+        "UNLICENSE",
+        "fonts/LICENSE-CC-BY.md",
+    ]
+
+
 SAMPLE_README = """\
 # A Book
 

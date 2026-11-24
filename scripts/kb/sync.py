@@ -32,7 +32,7 @@ from kb.catalog import (
     load_resource,
     version_key,
 )
-from kb.evidence import EDITION_SUFFIXES, LICENSE_FILE_NAMES, README_PATH
+from kb.evidence import EDITION_SUFFIXES, LICENSE_FILE_PATTERN, README_PATH
 from kb.upstream import (
     TOKEN_VARIABLES,
     GitHubClient,
@@ -508,7 +508,10 @@ def _license_findings(
     resource: Resource, tree: tuple[TreeEntry, ...], readme: str | None
 ) -> list[Finding]:
     recorded = resource.license
-    license_files = [entry for entry in tree if entry.path.lower() in LICENSE_FILE_NAMES]
+    # Only a file at the root of the repository speaks for the whole repository.
+    license_files = [
+        entry for entry in tree if "/" not in entry.path and LICENSE_FILE_PATTERN.match(entry.path)
+    ]
     findings: list[Finding] = []
     if recorded.evidence is EvidenceKind.LICENSE_FILE:
         different = [entry for entry in license_files if entry.blob_sha != recorded.blob_sha]
