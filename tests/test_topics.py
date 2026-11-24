@@ -368,6 +368,43 @@ def test_a_list_item_that_makes_a_claim_needs_a_token_and_a_pointer_does_not(
     assert located(topic_findings(library_copy)) == [("topic-uncited-paragraph", PAPER, 28)]
 
 
+HULL_FILE = "../books/fixture-mirrored-book/chapters/01-folding-the-hull.md"
+
+
+def test_a_link_alone_whose_text_makes_a_claim_needs_a_token(library_copy: Path) -> None:
+    append_to(
+        library_copy / PAPER,
+        f"- [Loops never need an evaluator, the author proves it]({HULL_FILE})\n"
+        "- [The license of the book](../books/fixture-mirrored-book/LICENSE)\n"
+        f"- [Folding the Hull, the best chapter]({HULL_FILE})\n",
+    )
+
+    assert located(topic_findings(library_copy)) == [
+        ("topic-uncited-paragraph", PAPER, 28),
+        ("topic-uncited-paragraph", PAPER, 29),
+        ("topic-uncited-paragraph", PAPER, 30),
+    ]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Folding the Hull",
+        "§01 Folding the Hull",
+        "§01  folding the hull",
+        HULL,
+        f"`{HULL}`",
+        "01-folding-the-hull.md",
+    ],
+)
+def test_a_link_alone_whose_text_names_the_chapter_it_points_at_needs_no_token(
+    library_copy: Path, text: str
+) -> None:
+    append_to(library_copy / PAPER, f"- [{text}]({HULL_FILE})\n")
+
+    assert located(topic_findings(library_copy)) == []
+
+
 def test_the_no_coverage_sentence_is_allowed_only_word_for_word(library_copy: Path) -> None:
     replace_in(library_copy / TEA, NO_COVERAGE, "No mirrored chapter covers this topic yet.")
 

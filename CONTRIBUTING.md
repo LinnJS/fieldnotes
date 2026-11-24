@@ -99,9 +99,12 @@ scope statement, labeled `**Scope (editorial).**`. Every paragraph after it must
 carry a citation token and say only what the cited mirrored chapter says. A
 fenced block counts as a paragraph and takes its token on the next line that has
 text. A heading longer than 80 characters counts as one too, so keep headings
-short. The landing page `topics/index.md` follows the same rule after its first
-paragraph. A table there needs no token unless a row holds a quote, and a
-link-only list item needs none. A line that opens with a pipe is a table row
+short. A list item needs no token when it is only a link whose text is the
+title, the section label and title, the id, or the file name of the chapter or
+topic it points at, or when it is only the resolve instruction for a book id.
+Any other link text makes a claim and needs a token. The landing page
+`topics/index.md` follows the same rule after its first paragraph. A table there
+needs no token unless a row holds a quote. A line that opens with a pipe is a table row
 only below a header row and a delimiter row. Map a
 chapter to a topic only after reading it. Map a book that is not mirrored only at
 the resource level, from what its public description says it covers, and never

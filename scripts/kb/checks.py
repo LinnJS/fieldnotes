@@ -14,12 +14,13 @@ whose metadata loaded, while ``Catalog.resources`` still lists every cataloged i
 import hashlib
 import html
 import json
+import posixpath
 import re
 import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import asdict, dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Literal
 from urllib.parse import unquote, urlsplit
 
@@ -87,9 +88,10 @@ _LINK = re.compile(r"\]\(\s*([^)\s]+)[^)]*\)")
 _NOT_A_FILE_LINK = ("http:", "https:", "mailto:", "#")
 _HEADING = re.compile(r" {0,3}#{1,6}(?:\s|$)")
 _LIST_ITEM = re.compile(r"\s*(?:[-*+]|\d+[.)])\s+(.*)")
-# A reading-list item that points somewhere and claims nothing is a link alone, or the
-# instruction to resolve the id of a book whose text is not in the library.
-_LINK_POINTER = re.compile(r"\[[^\]]*\]\([^)\s]+\)")
+# A reading-list item that points somewhere and claims nothing is a link alone whose text only
+# names the page it points at, or the instruction to resolve the id of a book whose text is not
+# in the library.
+_LINK_POINTER = re.compile(r"\[(?P<text>[^\]]*)\]\((?P<target>[^)\s]+)\)")
 _EXCERPT_LENGTH = 80
 
 # The canonical copy of each skill, which most agents read, and the directory one agent reads
@@ -1171,12 +1173,70 @@ def _paragraphs(body: str) -> Iterator[_Paragraph]:
         yield _paragraph(first, lines, "code" if open_fence is not None else None)
 
 
-def _is_pointer(paragraph: _Paragraph) -> bool:
-    """Say whether a paragraph is a list item that only points at a chapter file or a book."""
+def _page_names(library: Library) -> dict[str, frozenset[str]]:
+    """Map each chapter file and topic file to the texts that only name it, as ``_named`` gives.
+
+    A chapter is named by its title, by its section label and title as the reading lists and
+    the site write it, by its id, and by its file name. A topic is named by its title, its id,
+    and its file name.
+
+    Args:
+        library: The loaded library.
+
+    Returns:
+        The names of each file, keyed by its path from the library root in POSIX form.
+    """
+    names: dict[str, frozenset[str]] = {}
+    for chapter_file in library.chapters:
+        chapter = chapter_file.chapter
+        names[chapter_file.path.as_posix()] = frozenset(
+            _named(text)
+            for text in (
+                chapter.title,
+                f"{chapter.section_label} {chapter.title}",
+                chapter.id,
+                chapter_file.path.name,
+            )
+        )
+    for topic_file in library.topics:
+        topic = topic_file.topic
+        names[topic_file.path.as_posix()] = frozenset(
+            _named(text) for text in (topic.title, topic.id, topic_file.path.name)
+        )
+    return names
+
+
+def _named(text: str) -> str:
+    """Reduce a link text or a name to the form two names are compared in."""
+    return " ".join(text.strip("`").split()).casefold()
+
+
+def _is_pointer(paragraph: _Paragraph, page: Path, names: Mapping[str, frozenset[str]]) -> bool:
+    """Say whether a paragraph is a list item that only points at a chapter, a topic, or a book.
+
+    A link alone points without a claim only when its text names the chapter file or the topic
+    file it links to. Any other text says something about the page, so it needs a token. A
+    chapter file that is missing or did not load has no name to compare, and is a finding of
+    its own, so a link alone to it is taken as a pointer until that finding is fixed.
+
+    Args:
+        paragraph: The paragraph.
+        page: The path of the page that holds it, from the library root.
+        names: The names of every chapter file and topic file, as ``_page_names`` gives them.
+    """
     item = _LIST_ITEM.fullmatch(paragraph.text)
     if item is None:
         return False
-    return bool(_LINK_POINTER.fullmatch(item[1]) or RESOLVE_POINTER.fullmatch(item[1]))
+    if RESOLVE_POINTER.fullmatch(item[1]):
+        return True
+    link = _LINK_POINTER.fullmatch(item[1])
+    if link is None:
+        return False
+    target = posixpath.normpath(posixpath.join(page.parent.as_posix(), link["target"]))
+    if target in names:
+        return _named(link["text"]) in names[target]
+    parts = PurePosixPath(target).parts
+    return len(parts) == 4 and parts[0] == BOOKS_DIR and parts[2] == CHAPTERS_DIR
 
 
 def _names_mirrored_chapter(cited_id: str, mirrored_chapters: set[str], unknown: set[str]) -> bool:
@@ -1283,6 +1343,7 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
             )
         }
 
+    names = _page_names(library)
     findings: list[Finding] = []
     for topic_file in library.topics:
         topic = topic_file.topic
@@ -1313,9 +1374,12 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
             )
 
         def stands(
-            paragraph: _Paragraph, scope: _Paragraph | None = scope, covered: bool = covered
+            paragraph: _Paragraph,
+            scope: _Paragraph | None = scope,
+            covered: bool = covered,
+            page: Path = topic_file.path,
         ) -> bool:
-            if paragraph is scope or _is_pointer(paragraph):
+            if paragraph is scope or _is_pointer(paragraph, page, names):
                 return True
             return paragraph.text == NO_COVERAGE_SENTENCE and not covered
 
@@ -1325,8 +1389,9 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
                 lines_above + paragraph.first + 1,
                 f"the topic {topic.id} after its scope statement",
                 paragraph,
-                "A list item may stand without a token only as a link alone or as the resolve "
-                "instruction for a book id.",
+                "A list item may stand without a token only as a link alone whose text is the "
+                "title, the section label and title, the id, or the file name of the chapter "
+                "or topic it links to, or as the resolve instruction for a book id.",
             )
             for paragraph in _uncited(paragraphs, cited_lines(topic_file.body), stands)
         )
@@ -1342,7 +1407,8 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
                 "the topic landing page after its first",
                 paragraph,
                 "On the landing page a table row may stand without a token, and so may a list "
-                "item that is a link alone or the resolve instruction for a book id.",
+                "item that is a link alone whose text names the chapter or topic it links to, "
+                "or the resolve instruction for a book id.",
             )
             for paragraph in _uncited(
                 paragraphs,
@@ -1350,7 +1416,7 @@ def _check_topic_bodies(library: Library) -> list[Finding]:
                 lambda paragraph: (
                     paragraph is first
                     or (paragraph.kind == "table" and not holds_quote(paragraph.text))
-                    or _is_pointer(paragraph)
+                    or _is_pointer(paragraph, path, names)
                 ),
             )
         )
