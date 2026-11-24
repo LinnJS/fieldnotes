@@ -153,13 +153,13 @@ Catalog findings are computed again on every run from the current snapshot and t
 
 - KTD11. **Absence is scoped to the collection.** Only records in the `orange-books` collection with a non-null `site_slug` are expected on this listing. `site_slug` is nullable in the schema, so a resource from another author is never reported absent. The listing URL and the collection id are constants in `scripts/kb/listing.py`. A catalog field for a listing URL is deferred until a second listing exists.
 
-- KTD12. **The listing request is honest and uncredentialed.** The request goes through the injected `Fetch` with a `User-Agent` that names Fieldnotes and its repository URL and an `Accept` header, and nothing else. It never passes through `GitHubClient`, so no `Authorization` header can reach the author's site. It uses the existing timeout. The site fetch must expose redirect outcomes so an off-host destination is refused before another request, and bound the response while reading it. The existing `fetch_with_urllib` follows redirects and reads an unbounded body, so it cannot supply these guarantees unchanged. Keep that adjustment local to the site fetch. The check uses no browser identity and works around no challenge.
+- KTD12. **The listing request is honest and uncredentialed.** The request goes through the injected `Fetch` with a `User-Agent` that names Fieldnotes and its repository URL and an `Accept` header, and nothing else. It never passes through `GitHubClient`, so no `Authorization` header can reach the author's site. It uses the existing timeout. The site fetch must expose redirect outcomes so an off-host destination is refused before another request, and bound the response while reading it. The existing `fetch_with_urllib` follows redirects and reads an unbounded body, so it cannot supply these guarantees unchanged. Keep that adjustment local to the site fetch. `main` and `sync_library` therefore take a second injected `Fetch` for the site, which defaults to a function that does not follow redirects and caps the body it reads. It returns a 3xx `Response` with its `location` header, so `kb.listing` can refuse an off-host target. Tests can pass the same recording fake to both parameters. The check uses no browser identity and works around no challenge.
 
 - KTD13. **Error text is fixed per kind.** The report sentence for a listing error names the kind and the HTTP status and holds no time, no reset value, and no exception text. The person at the terminal gets the detail on standard error. A repeated identical failure then writes identical bytes.
 
 - KTD14. **A listing failure exits nonzero after the files are written.** The command writes the state and the report first, as it already does when every repository fails. The exit code is 1 when the library or the state cannot be read, when every checked repository ended in error, or when the listing read failed. A corrupt state file still stops the command before it writes anything.
 
-- KTD15. **The workflow publishes before it fails.** `.github/workflows/sync.yml` runs the command in one step, and a nonzero exit skips the diff, the validation, the push, and the pull request. The sync step records its outcome and lets the job continue. The existing steps run on whatever changed under `upstream/`. A final step fails the job when the sync step failed. When the command wrote nothing, nothing changed, so nothing is published.
+- KTD15. **The workflow publishes before it fails.** `.github/workflows/sync.yml` runs the command in one step, and a nonzero exit skips the diff, the validation, the push, and the pull request. The sync step records its outcome and lets the job continue. The existing steps run on whatever changed under `upstream/`. A final step fails the job when the sync step failed. When the command wrote nothing, nothing changed, so nothing is published. This also changes a run in which every repository ended in error. Today that run fails before publishing. After this change it publishes its report and then fails. This is intended. The kept state entries preserve earlier findings, and the published report shows the errors.
 
 - KTD16. **Site values are written as inert code spans.** Titles, slugs, URLs, versions, and page counts come from the author's page. The report writes each one with the existing `_code` helper. Every listing line starts with fixed words of the library's own, so no site value can start a line, and no listing line can match the workflow's `LICENSE-FINDING` pattern.
 
@@ -167,7 +167,7 @@ Catalog findings are computed again on every run from the current snapshot and t
 
 ### Milestone 3 evidence dependency
 
-The published milestone 3 plan offers two routes, with neither approved yet. It prefers an upstream root content-license file. Its alternative is a general qualified-README rule requiring an explicit scoped grant, a canonical deed or legal-code link, a pinned README blob and matching source commit, permission provenance, and separately hashed official legal-code bytes. The README keeps its evidence kind. A local standard-license copy cannot become upstream license-file evidence. [Milestone 3 decision brief](https://github.com/LinnJS/fieldnotes/blob/docs/plan-issue-5-12-factor-agents/docs/plans/2026-11-24-1506-feat-12-factor-agents-collection-plan.md#d2-meet-the-evidence-rule-for-content).
+The published milestone 3 plan offers two routes, with neither approved yet. It prefers an upstream root content-license file. Its alternative is a general qualified-README rule requiring an explicit scoped grant, a canonical deed or legal-code link, a pinned README blob and matching source commit, permission provenance, and separately hashed official legal-code bytes. The README keeps its evidence kind. A local standard-license copy cannot become upstream license-file evidence. [Milestone 3 decision brief](https://github.com/LinnJS/fieldnotes/blob/aa2295a4439e99b3c83fc5de0046116ddf354310/docs/plans/2026-11-24-1506-feat-12-factor-agents-collection-plan.md#d2-meet-the-evidence-rule-for-content).
 
 All four NC-SA metadata records already include an HTTP link to the CC BY-NC-SA 4.0 deed. If the owner approves that general route, check each grant against its final scope and canonical-URL normalization requirements and reuse its separate grant-evidence/legal-code representation. A deed link alone does not satisfy the proposed rule. All four still need a pinned source, all need NC-SA admission and operating/output support, and 3D retains its third-party blocker. If the owner chooses the upstream-file route or defers, keep requesting root license files. The outreach requests those files under either route.
 
@@ -218,7 +218,7 @@ A collection can keep separate licenses for its included works. Its own license 
 | --- | --- | --- |
 | `scripts/kb/gate.py` | Refuses on the flag, evidence, SPDX id, allowlist, pin, and two permissions | Reads neither `commercial_use` nor `share_alike`, so an allowlisted NC work with a license file would pass with no NC condition checked |
 | `scripts/kb/checks.py` | Ties evidence to a GitHub blob at the recorded commit | No rule that a record with this SPDX id must record commercial use denied, share-alike true, and attribution required |
-| `dist/llms-full.txt` and `dist/llms-full/<id>.txt` from `scripts/kb/indexes.py` | Each book segment opens with author, edition, source pin, license id, and the full license text. The opening says the library's license does not apply to the books | No statement of the NC and SA conditions for the combined file, no statement that the copy was converted, and no explicit output-wide notice directing readers to each book's terms |
+| `dist/llms-full.txt` and `dist/llms-full/<id>.txt` from `scripts/kb/indexes.py` | Each book segment opens with author, edition, source pin, license id, and the full license text. The opening says the library's license does not apply to the books | No statement of the NC and SA conditions for the combined file, no statement that the copy was converted, and no explicit output-wide notice directing readers to each book's terms. Today the file also carries no unofficial or not-endorsed statement, no translator line, and no official repository or site link in its opening or in a book segment |
 | PDF and EPUB from `scripts/kb/export.py` | A notice section with attribution, source permalink, the unofficial statement, notices, and the license in full | No modification statement beyond the extraction count, and no NC wording in the rights metadata beyond the id |
 | ZIP bundle from `scripts/kb/export.py` | Carries `books/<id>/LICENSE`, `LICENSES.md`, and every record | No explicit mixed-license inventory identifying NC-SA components |
 | Site | Built from the same gate decision through `quote_permitted` | `scripts/kb/site.py` already creates a per-book overview with attribution, a license-text link and source details. Follow-up F2 adds NC/SA and conversion notices consistently to book and chapter views |
@@ -274,11 +274,11 @@ The owner reads the notes, fills the bracketed fields, and sends the letter. Nob
 
 花叔你好，
 
-我是 [name]，在维护一个叫 Fieldnotes 的开源项目（ https://github.com/LinnJS/fieldnotes ，站点 https://linnjs.github.io/fieldnotes/ ）。它是一个独立的、由社区维护的 AI 工程资料库，第一个合集收录的就是你的橙皮书系列。这个项目没有得到你的认可或背书，项目的许可说明和每一份导出文件里都写明了这一点。
+我是 [name]，在维护一个叫 Fieldnotes 的开源项目（ https://github.com/LinnJS/fieldnotes ，站点 https://linnjs.github.io/fieldnotes/ ）。它是一个独立的、由社区维护的 AI 工程资料库，第一个合集收录的就是你的橙皮书系列。这个项目没有得到你的认可或背书，项目的 README、许可说明、文档站点，以及每本书的 PDF 和 EPUB 里都写明了这一点。
 
 资料库的目录条目记录书名、官方链接和我们找到的许可声明。只有在核对许可依据、授权范围和项目政策之后，我们才会镜像一本书的正文。其他书籍只列出条目和官方链接。下面想请你确认 17 本书的许可情况。
 
-镜像正文指的是对某一个固定版本做忠实的 Markdown 镜像。每一节一个文件，不改写、不删减、不润色原文。每份副本都标明作者和译者署名、官方仓库和站点链接、来源的提交号和文件、版本号，并注明这是非官方副本。分发文件附上完整许可文本，站点页面链接到每本书的许可页面。这些内容会出现在 Git 仓库、公开的文档站点、供 AI 助手读取的全文文件、每本书的 PDF 和 EPUB，以及一个 ZIP 打包文件里。
+镜像正文指的是对某一个固定版本做忠实的 Markdown 镜像。每一节一个文件，不改写、不删减、不润色原文。每份副本都标明来源仓库、提交号、文件和版本号。站点上每本书的介绍页以及每本书的 PDF 和 EPUB 还会标明作者和译者署名，附上官方仓库和站点链接，并注明这是非官方副本。分发文件附上完整许可文本，站点页面链接到每本书的许可页面。这些内容会出现在 Git 仓库、公开的文档站点、供 AI 助手读取的全文文件、每本书的 PDF 和 EPUB，以及一个 ZIP 打包文件里。
 
 想请你帮忙确认下面几件事。
 
@@ -342,11 +342,11 @@ Fieldnotes 维护者
 
 Hello HuaShu,
 
-I am [name]. I maintain Fieldnotes ( https://github.com/LinnJS/fieldnotes , site https://linnjs.github.io/fieldnotes/ ), an independent, community-run library of AI engineering resources. Its first collection is your Orange Books. You have not endorsed this project, and the project says so in its license notice and in every export it produces.
+I am [name]. I maintain Fieldnotes ( https://github.com/LinnJS/fieldnotes , site https://linnjs.github.io/fieldnotes/ ), an independent, community-run library of AI engineering resources. Its first collection is your Orange Books. You have not endorsed this project, and the project says so in its README and license notice, on its documentation site, and in the PDF and EPUB of each book.
 
 The library records titles, official links, and the license statements we find. We mirror a book only after reviewing the license evidence, its scope, and the permissions against our policy. Other books have catalog records and official links. This request concerns the 17 books listed below.
 
-A mirror preserves one pinned edition as Markdown. Each section is one file, with no rewording, no cuts, and no edits to your words. Every copy credits the author and any translator, links to the official repository and site, gives the source commit, file and edition, and identifies itself as unofficial. Distribution files carry the full license text. Site pages link to a per-book license page. That text appears in the Git repository, on the public documentation site, in a full-text file that AI agents read, in a PDF and an EPUB of each book, and in one ZIP bundle.
+A mirror preserves one pinned edition as Markdown. Each section is one file, with no rewording, no cuts, and no edits to your words. Every copy gives the source repository, commit, file and edition. Each book's page on the site and the PDF and EPUB of each book also credit the author and any translator, link to the official repository and site, and state that the copy is unofficial. Distribution files carry the full license text. Site pages link to a per-book license page. That text appears in the Git repository, on the public documentation site, in a full-text file that AI agents read, in a PDF and an EPUB of each book, and in one ZIP bundle.
 
 Please help us confirm the terms for these books.
 
@@ -424,7 +424,7 @@ All of these are pending. No unit records a decision the owner has not made.
 | OD1 | Approve the bilingual letter, channel and signature | Owner sends it after review. A public reply can be linked as an evidence lead |
 | OD2 | Whether `CC-BY-NC-SA-4.0` may join the allowlist | Option B in the brief. No allowlist change in this milestone |
 | OD3 | Whether to keep listing Claude Code Source Analysis | Keep it, with the added notice |
-| OD5 | Whether to extend the schema so a URL can be license evidence | Defer. Ask the author for public Git terms first. See follow-up F4 |
+| OD4 | Whether to extend the schema so a URL can be license evidence | Defer. Ask the author for public Git terms first. See follow-up F4 |
 
 ---
 
@@ -559,7 +559,7 @@ None of these is ready today. Each names its trigger.
 1. The owner writes the NonCommercial operating statement and the ShareAlike reading into `MAINTAINING.md` and `LICENSES.md`.
 2. `scripts/kb/checks.py` gains a consistency rule for the permissions of a record with this SPDX id.
 3. Add a typed policy setting in `catalog.yaml`, its schema and `scripts/kb/catalog.py`, defaulting to disabled for older catalogs. `scripts/kb/gate.py` reads `commercial_use` and the required attribution/share-alike flags. Denied commercial use can pass only with the approved NC operating policy and supported output obligations. Unclear commercial permission or inconsistent obligation flags refuse admission. The third-party refusal stays first. Test default-disabled and enabled behavior through normal consumers, including older records.
-4. `scripts/kb/indexes.py` and `scripts/kb/export.py` add the NC and SA statement and a conversion statement to each book segment, each notice section, and the bundle, and identify each component's terms in the combined outputs. Extra NC-free output variants require a separate need.
+4. `scripts/kb/indexes.py` and `scripts/kb/export.py` add the NC and SA statement and a conversion statement to each book segment, each notice section, and the bundle, and identify each component's terms in the combined outputs. The full-text output also gains the unofficial statement, the translator line, and the official links that the PDF and EPUB notice already carry. Extra NC-free output variants require a separate need.
 5. The site pages, `AGENTS.md`, and the skills get the matching notice and quoting guidance.
 6. Enable the allowlist only in the owner-reviewed change that includes the required gate, policy and output support. Reuse issue #5's approved per-work licensing support where it suffices.
 7. Tests. `tests/test_gate.py` for precedence and the new refusal, `tests/test_checks.py`, `tests/test_indexes.py` and `tests/test_export.py` for mixed-license output with an invented NC-SA fixture book, `tests/test_site_staging.py`, `tests/test_site_build.py`, and the allowlist assertion in `tests/test_catalog_data.py`.
@@ -576,9 +576,9 @@ None of these is ready today. Each names its trigger.
 
 **F5. Remove the Source Analysis listing.** Trigger. The owner chooses option 2 under OD3. The steps and tests are the removal seam in the brief.
 
-**F7. An author request to stop listing observation.** Trigger. The author asks that the listing not be fetched. Follow the existing rights-request runbook, remove or disable the new listing fetch in the owner-reviewed workflow change, and preserve repository polling. A stored snapshot remains historical observation and supplies no new evidence. No new configuration switch is required by this plan.
-
 **F6. Third-party scope.** Trigger. The author says which parts of a flagged book are his own. A person reviews each flagged record. The flag clears only when the record can show that the pinned source holds no third-party material, and only in a pull request the owner merges.
+
+**F7. An author request to stop listing observation.** Trigger. The author asks that the listing not be fetched. Follow the existing rights-request runbook, remove or disable the new listing fetch in the owner-reviewed workflow change, and preserve repository polling. A stored snapshot remains historical observation and supplies no new evidence. No new configuration switch is required by this plan.
 
 ---
 
