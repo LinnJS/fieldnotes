@@ -524,12 +524,6 @@ class Library:
     def resource(self, resource_id: str) -> Resource:
         """Return the resource with the given id.
 
-        Args:
-            resource_id: Id of a cataloged resource.
-
-        Returns:
-            The resource record.
-
         Raises:
             KeyError: No cataloged resource has that id.
         """
@@ -547,9 +541,6 @@ class Library:
         its frontmatter says. A file whose two answers disagree belongs to no book, and
         validation reports it.
 
-        Args:
-            resource_id: Id of a resource.
-
         Returns:
             The chapter files. The tuple is empty for a book with no chapters.
         """
@@ -564,12 +555,6 @@ class Library:
 
 def load_catalog(root: Path) -> Catalog:
     """Load and validate ``catalog.yaml``.
-
-    Args:
-        root: The library root.
-
-    Returns:
-        The catalog record.
 
     Raises:
         LoadError: The file cannot be read, is not well-formed YAML, or breaks the catalog schema.
@@ -599,9 +584,6 @@ def load_resource(root: Path, resource_id: str) -> Resource:
     Args:
         root: The library root.
         resource_id: Id of the resource, which is also its directory name.
-
-    Returns:
-        The resource record.
 
     Raises:
         LoadError: The file cannot be read, is not well-formed YAML, breaks the resource schema,
@@ -643,9 +625,6 @@ def load_topics(root: Path) -> tuple[TopicFile, ...]:
 
     The landing page ``topics/index.md`` is not a topic document and is skipped.
 
-    Args:
-        root: The library root.
-
     Returns:
         The topic documents in file name order. The tuple is empty when the directory is missing.
 
@@ -666,9 +645,6 @@ def load_library(root: Path) -> Library:
 
     Args:
         root: The library root, which is the directory that holds ``catalog.yaml``.
-
-    Returns:
-        The loaded library.
 
     Raises:
         LoadError: Any file cannot be read or is invalid. Loading stops at the first failure.

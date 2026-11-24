@@ -384,12 +384,6 @@ class Index:
     def chapter_body(self, chapter_id: str) -> str:
         """Read the Markdown of one chapter, without its frontmatter.
 
-        Args:
-            chapter_id: Id of an indexed chapter.
-
-        Returns:
-            The chapter's Markdown body.
-
         Raises:
             KeyError: No indexed chapter has that id.
             ReadPathError: The chapter file the index points at cannot be read.
@@ -437,9 +431,6 @@ def load_index(root: Path) -> Index:
     Args:
         root: The library root, which is the directory that holds ``index/``.
 
-    Returns:
-        The indexes.
-
     Raises:
         ReadPathError: An index file is missing, unreadable, or not what the build writes.
     """
@@ -461,10 +452,6 @@ def load_index(root: Path) -> Index:
 
 def resolve(index: Index, identifier: str) -> Resolved:
     """Find the resource or chapter an id names.
-
-    Args:
-        index: The indexes to look in.
-        identifier: A resource id or a chapter id.
 
     Returns:
         The record the id names, with its resource.
@@ -555,9 +542,6 @@ def format_citation(resource: ResourceRecord, chapter: ChapterRecord) -> str:
 def official_url(resource: ResourceRecord) -> str | None:
     """Return the first official location of a work: its site, its repository, or a hosted edition.
 
-    Args:
-        resource: The resource record.
-
     Returns:
         The URL, or ``None`` when the record holds none.
     """
@@ -592,9 +576,6 @@ def edition_note(language: str | None, edition: str | None, newer: list[EditionR
 
 def record_json(resolved: Resolved) -> dict[str, Any]:
     """Return the record an id names as one JSON-ready object.
-
-    Args:
-        resolved: What the id names.
 
     Returns:
         The chapter record with a ``citation`` key added, or the resource record.
@@ -651,10 +632,6 @@ def check_text(index: Index, text: str) -> list[CitationProblem]:
     Tokens inside fenced code blocks and inline code are not citations. A quoted span that is
     exactly the title of the cited book or chapter is a title and not a quote, so the citation
     that ``format_citation`` writes passes.
-
-    Args:
-        index: The indexes to check against.
-        text: The Markdown document.
 
     Returns:
         The problems in line order. The list is empty when nothing is wrong.
@@ -721,9 +698,6 @@ def cited_ids(text: str) -> dict[int, list[str]]:
 
     A token counts here exactly when ``check_text`` reads it as a citation, so one inside a
     fenced code block or inline code does not.
-
-    Args:
-        text: The Markdown document.
 
     Returns:
         The lines that hold a token, counted from 1. Each one maps to the chapter ids and
@@ -963,9 +937,6 @@ def mask_code(text: str) -> str:
 
     A citation token or a link inside code is an example and not a reference, so callers
     search the masked text and read matches from the original at the same offsets.
-
-    Args:
-        text: The Markdown.
 
     Returns:
         The text with every character of code replaced by a space.

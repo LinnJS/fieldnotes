@@ -248,8 +248,8 @@ def test_chapters_written_from_the_drafts_pass_the_fidelity_check(
         "Accepted differences: 0",
         "Chapters checked: 3. Failed: 0.",
     ]
-    # A draft carries no erratum and no review status, so the committed chapter index no longer
-    # matches the chapters, and that finding is not about fidelity.
+    # A draft carries no erratum and no review status, so the committed chapter index does not
+    # match the chapters, and that finding is not about fidelity.
     assert [finding for finding in run_checks(library_copy) if finding.rule != "index-stale"] == []
 
 
@@ -413,7 +413,7 @@ def test_a_source_with_another_digest_aborts_before_any_write_and_prints_both_di
 def test_text_that_fits_no_rule_is_printed_with_its_page_and_text(
     library_copy: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # With the back cover no longer left out, its two lines have sizes that no rule names.
+    # With the back cover not left out, its two lines have sizes that no rule names.
     replace_in(library_copy / METADATA, "    - 2\n    - 7\n", "    - 2\n")
 
     code = run(library_copy)

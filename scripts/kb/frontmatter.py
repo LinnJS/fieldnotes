@@ -118,9 +118,6 @@ class Topic:
 def split_frontmatter(text: str) -> tuple[str, str]:
     """Split a Markdown document into its YAML frontmatter and its body.
 
-    Args:
-        text: The whole document.
-
     Returns:
         The YAML between the two fence lines, and the body with leading blank lines removed.
 
@@ -140,9 +137,6 @@ def split_frontmatter(text: str) -> tuple[str, str]:
 
 def load_chapter(path: Path) -> tuple[Chapter, str]:
     """Load one chapter file.
-
-    Args:
-        path: The chapter's Markdown file.
 
     Returns:
         The chapter's frontmatter record and its Markdown body.
@@ -166,9 +160,6 @@ def load_chapter(path: Path) -> tuple[Chapter, str]:
 
 def load_topic(path: Path) -> tuple[Topic, str]:
     """Load one topic document.
-
-    Args:
-        path: The topic's Markdown file.
 
     Returns:
         The topic's frontmatter record and its Markdown body.

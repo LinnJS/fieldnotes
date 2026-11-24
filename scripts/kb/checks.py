@@ -405,9 +405,6 @@ def _blob_link(permalink: str) -> _BlobLink | None:
     repository, a percent-encoded name hides what the file is, and a parenthesis ends the
     Markdown link the site writes.
 
-    Args:
-        permalink: The recorded link.
-
     Returns:
         The repository, the ref, and the file's path, or ``None`` when the link is anything but
         ``https://github.com/<owner>/<name>/blob/<ref>/<path>`` with no query but ``plain=1``
@@ -442,8 +439,8 @@ _RECAPTURE_FIX = (
     "Capture the evidence again with scripts/evidence.py at the pinned commit, copy the "
     "permalink, the commit, and the blob id from its output, and have the owner review the record."
 )
-# scripts/evidence.py lists license files at any depth, so this fix does not send anyone back
-# to copy a permalink from its output.
+# scripts/evidence.py lists license files at any depth, so this fix does not tell anyone to
+# copy a permalink from its output.
 _EVIDENCE_FILE_FIX = (
     "A file below the root of the repository, or a file of another name, is not accepted "
     "evidence. Stop, leave the record as it is, and report the finding to the owner, who alone "
@@ -1180,9 +1177,6 @@ def _page_names(library: Library) -> dict[str, frozenset[str]]:
     the site write it, by its id, and by its file name. A topic is named by its title, its id,
     and its file name.
 
-    Args:
-        library: The loaded library.
-
     Returns:
         The names of each file, keyed by its path from the library root in POSIX form.
     """
@@ -1216,9 +1210,9 @@ def _is_pointer(paragraph: _Paragraph, page: Path, names: Mapping[str, frozenset
 
     A link alone points without a claim only when its text names the chapter file or the topic
     file it links to, whatever fragment or query follows the file. Any other text says
-    something about the page, so it needs a token. A
-    chapter file that is missing or did not load has no name to compare, and is a finding of
-    its own, so a link alone to it is taken as a pointer until that finding is fixed.
+    something about the page, so it needs a token. A chapter file that is missing or did not
+    load has no name to compare, and is a finding of its own, so a link alone to it is taken as
+    a pointer until that finding is fixed.
 
     Args:
         paragraph: The paragraph.
@@ -1516,8 +1510,8 @@ RECORD_URL_FIELDS: Mapping[SchemaName, frozenset[str]] = {
     # site pages link the repository.
     "catalog": frozenset({"library.base_url", "library.repository"}),
     # The site and the exports write each of these as the address of a link, except
-    # upstream.url, which no page shows today. It is an address all the same, so it is held to
-    # the rule for one.
+    # upstream.url, which no page shows. It is an address all the same, so it is held to the
+    # rule for one.
     "resource": frozenset(
         {
             "author.url",

@@ -174,9 +174,6 @@ def build_full_text(library: Library) -> dict[str, str]:
     a header line that carries its id and source pages, with its errata. A book whose text may
     not be quoted contributes nothing.
 
-    Args:
-        library: The loaded library.
-
     Returns:
         The text of each file by its path relative to the library root: ``dist/llms-full.txt``
         and one ``dist/llms-full/<resource-id>.txt`` per mirrored book.
@@ -207,9 +204,6 @@ def build_full_text(library: Library) -> dict[str, str]:
 
 def stale_files(library: Library) -> list[StaleFile]:
     """Compare the committed generated files with what the build would write now.
-
-    Args:
-        library: The loaded library.
 
     Returns:
         One entry per committed file that is missing or whose bytes differ, in a fixed order.

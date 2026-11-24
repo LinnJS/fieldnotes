@@ -80,11 +80,7 @@ class RateLimitedError(UpstreamError):
     """
 
     def __init__(self, reset_at: datetime) -> None:
-        """Build the error.
-
-        Args:
-            reset_at: When GitHub will accept requests again, in UTC.
-        """
+        """Build the error."""
         self.reset_at = reset_at
         super().__init__(
             f"The GitHub rate limit is used up until {reset_at.isoformat()}. Wait until then, "

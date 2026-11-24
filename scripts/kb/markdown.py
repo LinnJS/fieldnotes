@@ -135,9 +135,6 @@ def draft_chapters(resource: Resource, sections: Sequence[Section]) -> tuple[Cha
 def backtick_fence(text: str) -> str:
     """Return a code fence that no run of backticks in the text can close.
 
-    Args:
-        text: The text the fence will enclose.
-
     Returns:
         A run of backticks one longer than the longest run in the text, and at least three.
     """
@@ -147,9 +144,6 @@ def backtick_fence(text: str) -> str:
 
 def render_body(section: Section) -> str:
     """Render a section as the Markdown body of a chapter file.
-
-    Args:
-        section: The section.
 
     Returns:
         The title as a level-one heading and then each block, with one empty line between
@@ -161,9 +155,6 @@ def render_body(section: Section) -> str:
 
 def propose_slug(title: str) -> str:
     """Make a kebab-case slug from a section title.
-
-    Args:
-        title: The section title.
 
     Returns:
         The title in lowercase ASCII letters and digits with single hyphens between words.
@@ -219,9 +210,6 @@ def _run(run: Run) -> str:
 
 def link_target(target: str) -> str:
     """Write a link target of the source as the destination of a Markdown link.
-
-    Args:
-        target: The target as the source holds it.
 
     Returns:
         The destination. One that holds white space, a parenthesis, or an angle bracket is put

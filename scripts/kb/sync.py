@@ -246,11 +246,7 @@ class StateError(Exception):
     """The state file exists and is not one this module wrote."""
 
     def __init__(self, path: Path) -> None:
-        """Build the error.
-
-        Args:
-            path: The state file.
-        """
+        """Build the error."""
         self.path = path
         super().__init__(
             f"{path} is not a state file the upstream check wrote. Delete it and run the check "
@@ -343,9 +339,6 @@ def check_books(
 
 def load_state(path: Path) -> dict[str, BookState]:
     """Read the state file.
-
-    Args:
-        path: The state file.
 
     Returns:
         The entries by book id. The mapping is empty when the file does not exist.
@@ -441,9 +434,6 @@ def sync_library(root: Path, client: GitHubClient) -> SyncRun:
         root: The library root, which is the directory that holds ``catalog.yaml``.
         client: The client to read GitHub through.
 
-    Returns:
-        The run.
-
     Raises:
         LoadError: The catalog or a book's metadata cannot be read or is invalid.
         StateError: The state file exists and is not one this module wrote.
@@ -455,12 +445,7 @@ def sync_library(root: Path, client: GitHubClient) -> SyncRun:
 
 
 def write_run(root: Path, run: SyncRun) -> None:
-    """Write a run's state file and report under the library's ``upstream`` directory.
-
-    Args:
-        root: The library root.
-        run: The run to write.
-    """
+    """Write a run's state file and report under the library's ``upstream`` directory."""
     directory = root / UPSTREAM_DIR
     directory.mkdir(exist_ok=True)
     (directory / STATE_FILE).write_text(render_state(run.state), encoding="utf-8")

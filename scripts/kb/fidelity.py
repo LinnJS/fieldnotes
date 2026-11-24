@@ -157,9 +157,6 @@ class BookFidelity:
 def words(text: str) -> list[str]:
     """Reduce plain text to the words that the comparison counts.
 
-    Args:
-        text: Plain text.
-
     Returns:
         The words in order. Compatibility characters such as ligatures and non-breaking spaces
         are normalized, curly quotes and dashes become their plain forms, and punctuation at
@@ -373,11 +370,6 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
     A chapter is matched to a section through the book's extraction profile: the profile gives
     the title that belongs to the chapter's slug, and the extraction gives the section with that
     title.
-
-    Args:
-        root: The library root.
-        resource: The book.
-        chapters: The chapter files to compare.
 
     Returns:
         One result per chapter, the sections of the source that no chapter holds, and the

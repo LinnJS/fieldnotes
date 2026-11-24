@@ -23,11 +23,5 @@ def link_address(url: str) -> str:
     it stands, a closing parenthesis ends the link and whatever follows it is read as markup.
     Every character that is not part of a URL's own syntax is percent-encoded, which leaves
     an ordinary address unchanged.
-
-    Args:
-        url: The URL as the record holds it.
-
-    Returns:
-        The destination.
     """
     return quote(url, safe=_DESTINATION_SAFE)

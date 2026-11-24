@@ -34,13 +34,7 @@ class LoadError(Exception):
     """
 
     def __init__(self, path: Path, message: str, json_path: str | None = None) -> None:
-        """Build the error and its one-line description.
-
-        Args:
-            path: The file that failed.
-            message: What is wrong, without the file name.
-            json_path: JSON path of the failing value, when one value is at fault.
-        """
+        """Build the error and its one-line description."""
         self.path = path
         self.message = message
         self.json_path = json_path
@@ -63,9 +57,6 @@ class _Loader(yaml.SafeLoader):
         Args:
             node: The mapping node.
             deep: Whether to build the values at once, as PyYAML defines it.
-
-        Returns:
-            The mapping.
 
         Raises:
             yaml.constructor.ConstructorError: A key of the mapping is repeated, or the
@@ -112,12 +103,6 @@ def _validator(schema: SchemaName) -> Draft202012Validator:
 def read_text(path: Path) -> str:
     """Read a library file as UTF-8 text.
 
-    Args:
-        path: The file to read.
-
-    Returns:
-        The file's text.
-
     Raises:
         LoadError: The file is missing, unreadable, or not valid UTF-8.
     """
@@ -138,9 +123,6 @@ def parse_yaml(text: str, path: Path) -> object:
     Args:
         text: The YAML text.
         path: The file the text came from, used only in the error.
-
-    Returns:
-        The parsed value.
 
     Raises:
         LoadError: The text is not well-formed YAML.
@@ -178,13 +160,6 @@ def validate(document: object, schema: SchemaName, path: Path) -> dict[str, Any]
 
 def load_yaml_file(path: Path, schema: SchemaName) -> dict[str, Any]:
     """Read, parse, and validate a YAML file.
-
-    Args:
-        path: The YAML file.
-        schema: Which schema the file must satisfy.
-
-    Returns:
-        The validated document.
 
     Raises:
         LoadError: The file cannot be read, is not well-formed YAML, or breaks the schema.

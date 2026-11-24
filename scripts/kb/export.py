@@ -163,12 +163,7 @@ class ExportError(Exception):
     """
 
     def __init__(self, message: str, fix: str) -> None:
-        """Build the error.
-
-        Args:
-            message: What is wrong, on one line.
-            fix: What to do about it, on one line.
-        """
+        """Build the error."""
         self.message = message
         self.fix = fix
         super().__init__(message)
@@ -614,9 +609,6 @@ def bundle_files(library: Library) -> tuple[Path, ...]:
     ``llms.txt``, every Markdown file under ``topics/``, and the ``metadata.yaml`` of every
     cataloged book. For a mirrored book it also holds the chapters and the license file. It
     holds nothing else from a book directory, so a source file is never in it.
-
-    Args:
-        library: The loaded library.
 
     Returns:
         The files, relative to the library root and sorted by their POSIX path.

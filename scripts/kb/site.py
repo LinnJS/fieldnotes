@@ -180,8 +180,8 @@ _LINK = re.compile(r"\]\((?P<target>[^)\s#]+)(?P<rest>[^)]*)\)")
 _URL_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 _HEADING = "# "
 # Front matter that is an empty mapping. MkDocs reads it as the page's settings and then reads
-# no line after it as one, which closes the route for a chapter or a topic that opens with a
-# line such as ``template: ...``. The mapping is empty because the theme writes extra white
+# no line after it as one, so a chapter or a topic that opens with a line such as
+# ``template: ...`` sets nothing. The mapping is empty because the theme writes extra white
 # space into the content of a page whose settings are not.
 _FRONT_MATTER = "---\n{}\n---\n\n"
 # A control character other than a tab and the line ends. Python-Markdown deletes some of them
@@ -200,12 +200,7 @@ class SiteError(Exception):
     """
 
     def __init__(self, step: str, message: str) -> None:
-        """Build the error.
-
-        Args:
-            step: The step that failed, named for a person to read.
-            message: What is wrong and what to do about it.
-        """
+        """Build the error."""
         self.step = step
         self.message = message
         super().__init__(message)
@@ -412,9 +407,6 @@ def build_site(library: Library) -> Path:
     the books because it checks the library's own files, so a missing one stops the run before
     the slower exports start. A site that fails the strict build or the check, or whose
     canonical files cannot be copied, is removed.
-
-    Args:
-        library: The loaded library.
 
     Returns:
         The directory the built site is in, ``dist/site`` under the library root.

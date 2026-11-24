@@ -2,11 +2,11 @@
 
 The export builds a checked Pandoc document, and then Pandoc and the Typst compiler write the
 files. This module reads each written file whole and compares it with what the library's
-exports hold, so a route that passes the document check still cannot ship. The lists below
-were taken from the exports of the real book and of the test fixture library, and anything not
-on them is a problem: a member of another kind, an element or an attribute of another kind, a
-link that is neither a web address nor a file of the book, or a PDF action other than a web
-link or a jump inside the file.
+exports hold, so whatever the document check misses is still caught in the written file. The
+lists below were taken from the exports of the real book and of the test fixture library, and
+anything not on them is a problem: a member of another kind, an element or an attribute of
+another kind, a link that is neither a web address nor a file of the book, or a PDF action
+other than a web link or a jump inside the file.
 
 Two parts of a PDF are compared with what the library computed from the checked document: the
 titles of the outline, and the block elements of the structure tree, which are the headings,
@@ -303,9 +303,6 @@ def epub_problems(path: Path) -> list[OutputProblem]:
     elements and attributes listed for its kind. A page link is an address of ``LINK_SCHEMES``
     or a file of the book, and every other address is a file of the book. The manifest lists
     only the three media types the export writes.
-
-    Args:
-        path: The EPUB file.
 
     Returns:
         One problem per finding, in the order found. The list is empty for a file that holds

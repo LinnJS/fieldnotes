@@ -46,7 +46,7 @@ def _commit(value: str) -> str:
 
 
 def main(argv: Sequence[str] | None = None, fetch: Fetch = fetch_with_urllib) -> int:
-    """Run the command.
+    """Print the license evidence of one repository at one commit.
 
     Args:
         argv: The command-line arguments without the program name. ``sys.argv`` is used when it

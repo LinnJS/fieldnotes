@@ -209,9 +209,6 @@ def section_text(section: Section) -> str:
     The section label is left out, because a chapter file carries it in its frontmatter and not
     in its text.
 
-    Args:
-        section: The section.
-
     Returns:
         The title, then each paragraph, table row, and code line on a line of its own.
     """
@@ -229,9 +226,6 @@ def section_text(section: Section) -> str:
 
 def section_links(section: Section) -> tuple[str, ...]:
     """Return the target of every link a section holds, in reading order.
-
-    Args:
-        section: The section.
 
     Returns:
         One target per run of linked text in the section's paragraphs and table cells. A

@@ -36,8 +36,8 @@ _LIGATURES = {
 _REPLACEMENTS = str.maketrans({**_LIGATURES, "\u00ad": "", "\n": " ", "\r": " "})
 
 # A link's rectangle starts exactly where its text starts and ends exactly where the next span
-# starts. The margin lets rounding move the first start a hair outside, and keeps the span after
-# the link from counting as inside.
+# starts. The margin lets rounding move the first start slightly outside, and keeps the span
+# after the link from counting as inside.
 _LINK_MARGIN = 0.5
 
 
@@ -50,12 +50,7 @@ class PdfError(Exception):
     """
 
     def __init__(self, path: Path, reason: str) -> None:
-        """Build the error and its one-line description.
-
-        Args:
-            path: The file that failed.
-            reason: Why it failed, without the file name.
-        """
+        """Build the error and its one-line description."""
         self.path = path
         self.reason = reason
         super().__init__(f"{path}: {reason}")
@@ -115,12 +110,6 @@ def read_pdf(path: Path) -> PdfText:
     A link annotation is attached to each span that starts inside its rectangle. Only links to
     a URI are read. A link that covers the middle of a span is not attached, because pypdf does
     not report where a span ends.
-
-    Args:
-        path: The PDF file.
-
-    Returns:
-        The page count and the spans.
 
     Raises:
         PdfError: The file cannot be read or is not a PDF that pypdf can parse.

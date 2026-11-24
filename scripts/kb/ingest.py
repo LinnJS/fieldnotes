@@ -58,13 +58,7 @@ class IngestError(Exception):
     """
 
     def __init__(self, message: str, fix: str, file: Path | None = None) -> None:
-        """Build the error.
-
-        Args:
-            message: What is wrong, on one line.
-            fix: What to do about it, on one line.
-            file: The file at fault, relative to the library root.
-        """
+        """Build the error."""
         self.message = message
         self.fix = fix
         self.file = file
@@ -138,10 +132,6 @@ def check_gate(resource: Resource, allowlist: Sequence[str]) -> None:
 def verify_source(root: Path, resource: Resource) -> Path:
     """Find a book's committed source file and check its SHA-256 against the metadata.
 
-    Args:
-        root: The library root.
-        resource: The book.
-
     Returns:
         The source file, relative to the library root.
 
@@ -194,10 +184,6 @@ def verify_source(root: Path, resource: Resource) -> Path:
 def extract_book(root: Path, resource: Resource) -> ExtractedBook:
     """Verify a book's source file and read it into sections.
 
-    Args:
-        root: The library root.
-        resource: The book.
-
     Returns:
         The sections, the page count, and the spans that are in no section.
 
@@ -241,11 +227,6 @@ def extract_book(root: Path, resource: Resource) -> ExtractedBook:
 
 def write_drafts(root: Path, resource_id: str, drafts: Sequence[ChapterDraft]) -> Path:
     """Write chapter drafts to the book's draft directory, replacing the drafts of an earlier run.
-
-    Args:
-        root: The library root.
-        resource_id: Id of the book.
-        drafts: The drafts to write.
 
     Returns:
         The draft directory, relative to the library root.
@@ -319,16 +300,7 @@ def write_chapters(root: Path, resource_id: str, drafts: Sequence[ChapterDraft])
 def summary_lines(
     resource: Resource, book: ExtractedBook, drafts: Sequence[ChapterDraft]
 ) -> list[str]:
-    """Describe one extraction for a person: sections, pages, unmatched spans, proposed slugs.
-
-    Args:
-        resource: The book.
-        book: What was extracted.
-        drafts: The chapter drafts of the extracted sections.
-
-    Returns:
-        The lines to print.
-    """
+    """Describe one extraction for a person: sections, pages, unmatched spans, proposed slugs."""
     excluded = resource.extraction_profile.excluded_pages if resource.extraction_profile else ()
     left_out = ", ".join(str(page) for page in sorted(excluded)) or "none"
     lines = [

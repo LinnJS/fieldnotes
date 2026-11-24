@@ -38,7 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def main(argv: Sequence[str] | None = None, fetch: Fetch = fetch_with_urllib) -> int:
-    """Run the command.
+    """Check every cataloged repository against GitHub and write or print the report.
 
     Args:
         argv: The command-line arguments without the program name. ``sys.argv`` is used when it

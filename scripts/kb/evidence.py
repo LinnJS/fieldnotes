@@ -189,9 +189,6 @@ def license_lines(text: str) -> tuple[LicenseLine, ...]:
     those words outside such a section is returned too, with no heading. Text inside a fenced code
     block is never read as a heading.
 
-    Args:
-        text: The README's text.
-
     Returns:
         The matching lines in file order.
     """
@@ -231,9 +228,6 @@ def capture(client: GitHubClient, repository: str, ref: str | None = None) -> Ca
         repository: The repository as ``owner/name``.
         ref: The full SHA of the commit to read. The head of the default branch is read when it
             is omitted.
-
-    Returns:
-        The captured facts.
 
     Raises:
         NotFoundError: GitHub has no such repository, commit, or file.
@@ -297,9 +291,6 @@ def render(captured: Capture) -> str:
 
     Everything below the head commit line depends only on the evidence commit, so two captures of
     the same commit print the same text.
-
-    Args:
-        captured: The capture to write.
 
     Returns:
         The report, ending in a newline.

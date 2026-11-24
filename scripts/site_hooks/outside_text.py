@@ -1,7 +1,7 @@
 """The MkDocs hook that keeps the site's renderer from running text the library did not write.
 
 A page of the site holds other people's text: a chapter, a license, a record field. The site
-promises to show that text and never run it. This hook does not guess which characters the
+must show that text and never run it. This hook does not guess which characters the
 renderer will read as markup. It turns the features off instead, for every page, so that no
 pairing of characters can reach them:
 
@@ -201,11 +201,7 @@ class OutsideTextExtension(Extension):
         self.setConfigs({})
 
     def extendMarkdown(self, md: markdown.Markdown) -> None:  # noqa: N802
-        """Change the renderer of one page.
-
-        Args:
-            md: The renderer.
-        """
+        """Change the renderer of one page."""
         for name in _PREPROCESSORS:
             md.preprocessors.deregister(name)
         for name in _BLOCK_PROCESSORS:
@@ -245,9 +241,6 @@ def render(text: str) -> str:
 
 def on_config(config: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     """Add this module's changes to the renderer of every page, when MkDocs loads the config.
-
-    Args:
-        config: The MkDocs configuration.
 
     Returns:
         The same configuration.

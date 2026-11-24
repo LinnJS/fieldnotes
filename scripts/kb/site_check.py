@@ -4,7 +4,7 @@ A page of the site shows text that other people wrote, inside markup that the li
 Markdown and the pinned theme write around it. This module does not guess how that text could
 turn into markup. It reads every file MkDocs wrote and every file copied in beside it, and it
 refuses anything that is not on a list of what the library and the theme write. A site with
-one problem is not published, whatever route the problem took to get there.
+one problem is not published.
 
 A page is read in three zones, each with its own list:
 
@@ -306,8 +306,8 @@ _SVG_NAMESPACE = "http://www.w3.org/2000/svg"
 _PATH_DATA = re.compile(r"[MmLlHhVvCcSsQqTtAaZz0-9 .,eE+-]*")
 
 # Every element the site's Markdown extensions write for a page of this library. An image is
-# left out on purpose, because no page holds one and an image fetched from another host tells
-# that host who reads the page.
+# left out, because no page holds one and an image fetched from another host tells that host
+# who reads the page.
 _CONTENT_ELEMENTS = frozenset(
     {
         "a",
