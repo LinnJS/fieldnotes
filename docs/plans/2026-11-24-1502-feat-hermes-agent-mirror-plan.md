@@ -55,7 +55,7 @@ This milestone uses the existing PDF reader, schemas, license gate, and ingestio
 
 #### Deferred to Follow-Up Work
 
-- Issue #4 owns human review and behavioral evals.
+- Issue #4 owns human review and behavioral evals. Its refresh of `evals/prompts.yaml` covers the `cold-discovery` and `audit-honesty` cases, which expect one mirrored book and no Agent Security chapter. Those expectations are stale from this milestone's merge until #4 lands, so nobody runs the evals by hand in between.
 - Issue #5 owns 12-factor-agents and a second collection.
 - Issue #6 owns license evidence for the 17 reference-only books.
 - Chinese-edition ingestion remains deferred by the original plan.
@@ -75,7 +75,7 @@ This milestone uses the existing PDF reader, schemas, license gate, and ingestio
 - KTD2. **Use a book-specific extraction profile**. The 104-page PDF shares the existing pipeline's typography conventions, with an extra heading size and diagram text at the section-label size. The profile below separates them by indent. Governs R4.
 - KTD3. **Assign all slugs before writing chapters**. Match each assignment's `title` to the full title produced by extraction, including wrapped title lines. Obtain `part` from the PDF contents. The mapping below fixes the chosen slugs. Governs R4.
 - KTD4. **Record the section 03 erratum**. The affected passage is identifiable on PDF page 13. Related diagram, table, and concluding claims occur on pages 13–15 within section 03, whose source range is 12–16. Add an editorial `description` and a pinned README `source_url` to that chapter's `errata`. Retain the printed wording. Governs R6. [Upstream errata](https://github.com/alchaincyf/hermes-agent-orange-book/blob/b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692/README.md#errata)
-- KTD5. **Concentrate topic additions on ten chapters**. The topic mapping below selects two chapters per existing topic. Full chapter reads and citation validation precede publication of each reference. Governs R7.
+- KTD5. **Treat the ten topic picks as read candidates**. The topic mapping below names two candidate chapters per existing topic. Planning chose them before any full read, so a candidate gets a reference only after a full read shows that it covers the topic. A candidate that does not is replaced by another chapter that does, or dropped. Each topic is expected to gain at least one Hermes chapter reference, and the implementation PR names any topic that gains none. Citation validation precedes publication of each reference. Governs R7.
 - KTD6. **Keep delivery atomic**. Validation rejects extra files under an eligible book, so set `mirror_status: mirrored` with the source, LICENSE, profile, and chapters on the implementation branch. Preserve the recorded evidence, permissions, and allowlist. Governs R3.
 
 ### Extraction profile
@@ -135,9 +135,9 @@ Filenames retain source order as `NN-<slug>.md`. Assignments use exact extracted
 
 ### Topic assignments
 
-These are implementation read targets. Each reference uses `resource`, the resolved full chapter ID, and a one-sentence editorial `note`. Write notes from the full chapter, then check their citations. The topic's existing editorial scope paragraph remains the scope authority.
+These are read candidates under KTD5, not fixed references. Each reference uses `resource`, the resolved full chapter ID, and a one-sentence editorial `note`. Write notes from the full chapter, then check their citations. The topic's existing editorial scope paragraph remains the scope authority.
 
-| Read order | Topic file | Sections to read and reference |
+| Read order | Topic file | Candidate sections |
 | --- | --- | --- |
 | 1 | `topics/agent-security.md` | 19, 20 |
 | 2 | `topics/harness-engineering.md` | 04, 05 |
@@ -145,7 +145,7 @@ These are implementation read targets. Each reference uses `resource`, the resol
 | 4 | `topics/tool-use-and-integration.md` | 11, 12 |
 | 5 | `topics/agent-orchestration.md` | 15, 16 |
 
-Replace each Hermes resource-only pointer with the selected chapter references. Remove or replace Agent Security's obsolete no-coverage sentence. Preserve existing Loop references and other books' catalog-only pointers. Update the five hand-written counts in `topics/index.md` and the matching expectations in `tests/test_topics.py`.
+Replace each Hermes resource-only pointer with the chapter references that were added. The pointer appears twice in each topic file, once in the frontmatter `references` and once as a bullet under `## Where to read`. Replace the bullet with chapter links in the style of `topics/harness-engineering.md`, because no validator or test compares that list with the frontmatter. Remove or replace Agent Security's obsolete no-coverage sentence, which also says that its books are read at their official sources. Preserve existing Loop references and other books' catalog-only pointers. Set the five hand-written counts in `topics/index.md` and the matching expectations in `tests/test_topics.py` from the references actually added.
 
 ### Delivery flow
 
@@ -231,12 +231,12 @@ Exact structural repairs and accepted differences depend on the drafts. Record e
 
 **Files**. The five topic files above, `topics/index.md`, `tests/test_topics.py`, `README.md`, and the live Hermes status sentence in `MAINTAINING.md`.
 
-**Approach**. Read the ten selected chapters in order and add their references. Change existing topic-test expectations to book-qualified chapter IDs so they retain Loop coverage and include Hermes. Update only prose whose book count, eligibility, edition, or coverage claim becomes stale.
+**Approach**. Read the ten candidate chapters in order, and add a reference for each one that covers its topic. Apply KTD5 to a candidate that does not. Change existing topic-test expectations to book-qualified chapter IDs so they retain Loop coverage and include Hermes. Update only prose whose book count, eligibility, edition, or coverage claim becomes stale.
 
 **Test scenarios**.
 
-- The real topic index includes both existing Loop IDs and the selected Hermes IDs.
-- Agent Security resolves two mirrored chapters and its landing-page count agrees.
+- The real topic index includes both existing Loop IDs and the added Hermes IDs.
+- Agent Security resolves at least one mirrored chapter and its landing-page count agrees.
 - All five affected topic counts agree with actual chapter references.
 - Every topic citation resolves and source-reporting prose cites a chapter read in full.
 
@@ -277,7 +277,7 @@ These checks belong to implementation, after U1. Planning performs source inspec
 
 ## Definition of Done
 
-The implementation PR contains the verified PDF and LICENSE, 21 faithful chapters, the complete profile, the section 03 erratum, all required notices, ten chapter references across the five topics, matching hand-written counts and tests, and the four generated artifacts. Every verification outcome above holds. The diff contains only milestone 1 work and excludes abandoned extraction experiments.
+The implementation PR contains the verified PDF and LICENSE, 21 faithful chapters, the complete profile, the section 03 erratum, all required notices, a chapter reference for each candidate that a full read showed covers its topic, matching hand-written counts and tests, and the four generated artifacts. Every verification outcome above holds. The diff contains only milestone 1 work and excludes abandoned extraction experiments.
 
 The owner has completed U1 and receives the implementation PR for the final mirror decision. Human-reviewed status and behavioral evals remain issue #4 work.
 
