@@ -19,6 +19,17 @@ Two rules then apply:
 2. The order of the words scores ``SIMILARITY_FLOOR`` or higher on sequence similarity, which
    leaves room for a table or a callout that was repaired into reading order.
 
+A block that a person put back in the order its page prints can move more words than the floor
+leaves room for, as when the page prints two boxes side by side and the extraction reads across
+them. The extraction profile records such a block under ``accepted_reorders`` with its page and
+two readings: the block as the chapter holds it and the block as a fresh extraction reads it.
+The record applies when the chapter holds the first reading once, the source holds the second
+once, and the two differ by no word beyond what ``accepted_differences`` lists for the chapter.
+The second rule then scores the chapter with the extraction's reading in place of the block. The
+first rule always compares the chapter as written, and a record that does not apply fails the
+chapter. One record holds at most ``REORDER_WORD_LIMIT`` words, so no record can switch the
+second rule off for a whole chapter.
+
 Errata live in a chapter's frontmatter. They are not chapter text and take no part.
 """
 
@@ -31,7 +42,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 from kb.blocks import Section, section_links, section_text
-from kb.catalog import AcceptedDifference, ChapterFile, Resource
+from kb.catalog import AcceptedDifference, AcceptedReorder, ChapterFile, Resource
 from kb.frontmatter import Chapter
 from kb.ingest import IngestError, extract_book
 from kb.markdown import link_target
@@ -39,6 +50,7 @@ from kb.pdf_spans import Span
 from kb.readpath import CODE_FENCE, opening_fence
 
 __all__ = [
+    "REORDER_WORD_LIMIT",
     "SIMILARITY_FLOOR",
     "BookFidelity",
     "FidelityResult",
@@ -52,6 +64,13 @@ __all__ = [
 
 SIMILARITY_FLOOR = 0.98
 """Lowest sequence similarity between the words of a chapter and of its source that passes."""
+
+REORDER_WORD_LIMIT = 200
+"""Most words the block of one accepted reorder may hold, counted as the chapter holds it.
+
+A record scores its block as the extraction reads it, so a record with no limit could cover a
+whole chapter. The largest table of the mirrored books holds fewer words than this.
+"""
 
 _WORDS_NAMED = 8
 _CONTEXT_BEFORE = 2
@@ -108,7 +127,8 @@ class FidelityResult:
     Attributes:
         chapter: The chapter id.
         passed: Whether the chapter matches its source.
-        similarity: Sequence similarity of the two word lists, from 0.0 to 1.0.
+        similarity: Sequence similarity of the two word lists, from 0.0 to 1.0, with the
+            extraction's reading in place of each accepted reorder that applies.
         words_removed: Words the source has and the chapter lacks, beyond the accepted
             differences, in reading order.
         words_added: Words the chapter has and the source lacks, beyond the accepted
@@ -119,6 +139,8 @@ class FidelityResult:
             and the extracted section give. The indexes, the citation, and the edition notice
             are all written from the frontmatter, so a wrong field misleads a reader even when
             every word of the body matches.
+        similarity_as_written: Sequence similarity of the chapter as written, or ``None`` when
+            no accepted reorder applies to it.
     """
 
     chapter: str
@@ -128,6 +150,7 @@ class FidelityResult:
     words_added: tuple[str, ...]
     message: str
     frontmatter: tuple[str, ...] = ()
+    similarity_as_written: float | None = None
 
 
 @dataclass(frozen=True)
@@ -282,6 +305,7 @@ def compare(
     chapter_body: str,
     accepted: Sequence[AcceptedDifference] = (),
     source_links: Sequence[str] | None = None,
+    reorders: Sequence[AcceptedReorder] = (),
 ) -> FidelityResult:
     """Compare a chapter body with the plain text of its section in the source.
 
@@ -293,11 +317,13 @@ def compare(
         source_links: The link targets the section holds in reading order, as
             ``kb.blocks.section_links`` returns them. ``None`` leaves the destinations of the
             chapter unchecked, which is for a caller that has the plain text alone.
+        reorders: The book's accepted reorders. Entries for other chapters are ignored.
 
     Returns:
         The result. It fails when the words differ beyond the accepted differences, when an
-        accepted difference is listed that the chapter does not have, when the word order
-        scores below ``SIMILARITY_FLOOR``, or when the destinations of the chapter's links,
+        accepted difference is listed that the chapter does not have, when an accepted reorder
+        of the chapter does not apply, when the word order scores below ``SIMILARITY_FLOOR``
+        with each reorder that applies in place, or when the destinations of the chapter's links,
         in reading order and counted once per link, are not those of the section. A link
         reads the same whatever it points at, so the words alone cannot show a destination
         that was added, repeated, or swapped with another.
@@ -313,37 +339,38 @@ def compare(
             balance.update(word for listed in difference.words_removed for word in words(listed))
             balance.subtract(word for listed in difference.words_added for word in words(listed))
 
-    shared = next(
-        (
-            index
-            for index, (ours, theirs) in enumerate(zip(chapter, source, strict=False))
-            if ours != theirs
-        ),
-        min(len(chapter), len(source)),
-    )
+    shared = _first_difference(chapter, source)
     added = _in_reading_order(
         chapter[shared:], {word: count for word, count in balance.items() if count > 0}
     )
     removed = _in_reading_order(
         source[shared:], {word: -count for word, count in balance.items() if count < 0}
     )
-    similarity = SequenceMatcher(None, source, chapter, autojunk=False).ratio()
+    own = [reorder for reorder in reorders if reorder.chapter == chapter_id]
+    own_accepted = [difference for difference in accepted if difference.chapter == chapter_id]
+    scored, applied, problems = _apply_reorders(chapter_id, chapter, source, own, own_accepted)
+    similarity = SequenceMatcher(None, source, scored, autojunk=False).ratio()
+    as_written = SequenceMatcher(None, source, chapter, autojunk=False).ratio() if applied else None
 
+    parts: list[str] = []
     if added or removed:
-        message = (
+        parts.append(
             f"The chapter {chapter_id} does not have the words of its source. "
             f"Words only in the chapter: {_named(added)}. "
             f"Words only in the source: {_named(removed)}."
         )
-    elif similarity < SIMILARITY_FLOOR:
-        message = (
+    parts.extend(problems)
+    if not (added or removed) and similarity < SIMILARITY_FLOOR:
+        # The scored list is the one that failed, so the first difference is named there and
+        # never inside a block that a reorder already accounts for.
+        first = _first_difference(scored, source)
+        parts.append(
             f"The chapter {chapter_id} has the words of its source in a different order. The "
             f"similarity is {similarity:.3f} and must be at least {SIMILARITY_FLOOR}. They "
-            f'first differ where the chapter reads "{_context(chapter, shared)}" and the '
-            f'source reads "{_context(source, shared)}".'
+            f'first differ where the chapter reads "{_context(scored, first)}" and the '
+            f'source reads "{_context(source, first)}".'
         )
-    else:
-        message = ""
+    message = " ".join(parts)
     if source_links is not None:
         wanted = tuple(link_target(link) for link in source_links)
         found = link_destinations(chapter_body)
@@ -361,6 +388,145 @@ def compare(
         words_removed=removed,
         words_added=added,
         message=message,
+        similarity_as_written=as_written,
+    )
+
+
+def _apply_reorders(
+    chapter_id: str,
+    chapter: list[str],
+    source: list[str],
+    reorders: Sequence[AcceptedReorder],
+    accepted: Sequence[AcceptedDifference],
+) -> tuple[list[str], int, list[str]]:
+    """Check the accepted reorders of one chapter and put each one that applies in place.
+
+    Args:
+        chapter_id: Id of the chapter, used to name it in a message.
+        chapter: The chapter's words as written.
+        source: The words of the chapter's section in the source.
+        reorders: The accepted reorders of this chapter, in the order the profile lists them.
+        accepted: The accepted differences of this chapter.
+
+    Returns:
+        The chapter's words with the extraction's reading in place of each passage that
+        applies, how many applied, and one message for each reorder that does not apply.
+    """
+    # A word the two readings differ by must be listed, and two records cannot claim one
+    # listed word between them, so each record takes its words from what is left.
+    left_added = Counter(
+        word
+        for difference in accepted
+        for listed in difference.words_added
+        for word in words(listed)
+    )
+    left_removed = Counter(
+        word
+        for difference in accepted
+        for listed in difference.words_removed
+        for word in words(listed)
+    )
+    placed: list[tuple[range, range, int, list[str]]] = []
+    problems: list[str] = []
+    for reorder in reorders:
+        passage = words(markdown_text(reorder.passage))
+        extraction = words(markdown_text(reorder.extraction))
+        named = f"The accepted reorder of the chapter {chapter_id} on page {reorder.page}"
+        if not passage or not extraction:
+            problems.append(f"{named} has no words in its passage or in its extraction.")
+            continue
+        if len(passage) > REORDER_WORD_LIMIT:
+            problems.append(
+                f"{named} has a passage of {len(passage)} words, and a reorder may hold at "
+                f"most {REORDER_WORD_LIMIT}."
+            )
+            continue
+        in_chapter = _runs(chapter, passage)
+        if len(in_chapter) != 1:
+            problems.append(
+                f"{named} has a passage that the chapter does not hold. The chapter may have "
+                "changed since the reorder was recorded."
+                if not in_chapter
+                else f"{named} has a passage that the chapter holds {len(in_chapter)} times. "
+                "Lengthen the passage until the chapter holds it once."
+            )
+            continue
+        in_source = _runs(source, extraction)
+        if len(in_source) != 1:
+            problems.append(
+                f"{named} has an extraction that the source does not hold. Copy the block from "
+                "a fresh draft."
+                if not in_source
+                else f"{named} has an extraction that the source holds {len(in_source)} times. "
+                "Lengthen both readings until the source holds the extraction once."
+            )
+            continue
+        if passage == extraction:
+            problems.append(
+                f"{named} has a passage that reads as its extraction does, so there is no "
+                "reorder to record."
+            )
+            continue
+        needs_added = Counter(passage) - Counter(extraction)
+        needs_removed = Counter(extraction) - Counter(passage)
+        beyond_added = needs_added - left_added
+        beyond_removed = needs_removed - left_removed
+        if beyond_added or beyond_removed:
+            problems.append(
+                f"{named} has a passage that differs from its extraction by words that "
+                "accepted_differences does not list for the chapter. Words only in the passage: "
+                f"{_named(_in_reading_order(passage, dict(beyond_added)))}. Words only in the "
+                f"extraction: {_named(_in_reading_order(extraction, dict(beyond_removed)))}."
+            )
+            continue
+        span = range(in_chapter[0], in_chapter[0] + len(passage))
+        source_span = range(in_source[0], in_source[0] + len(extraction))
+        overlapped = next(
+            (
+                page
+                for taken, taken_source, page, _ in placed
+                if _overlap(span, taken) or _overlap(source_span, taken_source)
+            ),
+            None,
+        )
+        if overlapped is not None:
+            problems.append(f"{named} overlaps the accepted reorder on page {overlapped}.")
+            continue
+        left_added -= needs_added
+        left_removed -= needs_removed
+        placed.append((span, source_span, reorder.page, extraction))
+
+    scored = list(chapter)
+    # From the end, so that a replacement of another length leaves earlier positions in place.
+    for span, _, _, extraction in sorted(placed, key=lambda item: item[0].start, reverse=True):
+        scored[span.start : span.stop] = extraction
+    return scored, len(placed), problems
+
+
+def _runs(sequence: Sequence[str], run: Sequence[str]) -> list[int]:
+    """List every position where the words of a run stand unbroken in a sequence."""
+    width = len(run)
+    wanted = list(run)
+    return [
+        start
+        for start in range(len(sequence) - width + 1)
+        if sequence[start] == wanted[0] and list(sequence[start : start + width]) == wanted
+    ]
+
+
+def _overlap(first: range, second: range) -> bool:
+    return first.start < second.stop and second.start < first.stop
+
+
+def _first_difference(ours: Sequence[str], theirs: Sequence[str]) -> int:
+    """Return the position of the first word where two sequences differ."""
+    return next(
+        (
+            index
+            for index, (mine, other) in enumerate(zip(ours, theirs, strict=False))
+            if mine != other
+        ),
+        min(len(ours), len(theirs)),
     )
 
 
@@ -401,6 +567,7 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
     # extract_book refuses a book that has no profile, so these are never empty by default.
     assignments = () if profile is None else profile.sections
     accepted = () if profile is None else profile.accepted_differences
+    reorders = () if profile is None else profile.accepted_reorders
     titles = {assignment.slug: assignment.title for assignment in assignments}
     parts = {assignment.slug: assignment.part for assignment in assignments}
     sections = {section.title: section for section in book.sections}
@@ -418,10 +585,24 @@ def check_book(root: Path, resource: Resource, chapters: Sequence[ChapterFile]) 
                 chapter_file.body,
                 accepted,
                 section_links(section),
+                reorders,
             )
             differing = _frontmatter_differences(
                 chapter, resource, section, orders[section.title], parts[chapter.slug]
             )
+            pages = chapter.source.pages
+            # The check cannot tell which page a block of the source stands on, so the page a
+            # reorder names is held to the chapter's pages and the reviewer reads the rest.
+            outside = [
+                f"The accepted reorder of the chapter {chapter.id} names page {reorder.page}, "
+                f"and the chapter holds pages {pages.first} to {pages.last}."
+                for reorder in reorders
+                if reorder.chapter == chapter.id and not pages.first <= reorder.page <= pages.last
+            ]
+            if outside:
+                result = replace(
+                    result, passed=False, message=" ".join([result.message, *outside]).strip()
+                )
             results.append(replace(result, frontmatter=differing))
             continue
         reason = (
