@@ -750,6 +750,73 @@ def test_a_reorder_whose_extraction_is_over_the_word_limit_fails() -> None:
     )
 
 
+def test_a_reorder_with_no_words_in_a_reading_fails() -> None:
+    empty = dataclasses.replace(PANEL_REORDER, passage="| --- |")
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[empty])
+
+    assert not result.passed
+    assert "has no words in its passage or in its extraction" in result.message
+
+
+def test_two_reorders_of_one_chapter_both_apply_in_either_order() -> None:
+    # The row stands before the panel and its two readings differ in length, so the panel is
+    # found where the chapter holds it only if the row is put in place after it.
+    source = with_panel(
+        SOURCE_TEXT.replace("Waxed flax Twelve", "Waxed flaxTwelve"), PANEL_EXTRACTION
+    )
+    split = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=("flaxTwelve",),
+        words_added=("flax", "Twelve"),
+        reason="The extraction glues two cells of a row.",
+    )
+    row = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage="| Waxed flax | Twelve | Reef knot |",
+        extraction="Waxed flaxTwelve Reef knot",
+        reason="The extraction glues two cells of a row.",
+    )
+
+    forward = compare(CHAPTER_ID, source, PANEL_BODY, [split], reorders=[row, PANEL_REORDER])
+    backward = compare(CHAPTER_ID, source, PANEL_BODY, [split], reorders=[PANEL_REORDER, row])
+
+    for result in (forward, backward):
+        assert result.passed, result.message
+        assert result.similarity == 1.0
+
+
+def test_two_reorders_whose_extractions_overlap_in_the_source_fail() -> None:
+    source = with_panel(SOURCE_TEXT, "Alder Birch Cedar Dogwood")
+    body = with_panel(CHAPTER_BODY, "Birch Alder\n\nDogwood Cedar", "\n\n")
+    birch = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=("Birch",),
+        words_added=("Birch",),
+        reason="Listed so that the second record may claim the word.",
+    )
+    first = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage="Birch Alder",
+        extraction="Alder Birch",
+        reason="Page 4 prints the two trees in this order.",
+    )
+    second = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=5,
+        passage="Dogwood Cedar",
+        extraction="Birch Cedar Dogwood",
+        reason="Page 5 prints the two trees in this order.",
+    )
+
+    result = compare(CHAPTER_ID, source, body, [birch], reorders=[first, second])
+
+    assert not result.passed
+    assert "on page 5 overlaps the accepted reorder on page 4" in result.message
+
+
 def test_an_order_failure_with_a_reorder_in_place_says_the_record_is_in_place() -> None:
     moved = CHAPTER_BODY + "\n\n" + PANEL_TABLE
 
@@ -1008,6 +1075,15 @@ def test_a_reorder_that_names_a_page_outside_its_chapter_is_a_finding(library_co
     assert located(findings) == [("fidelity-chapter", SUNK.as_posix())]
     assert "page 5" in findings[0].message
     assert "pages 6 to 6" in findings[0].message
+
+
+def test_a_reorder_that_names_a_page_after_its_chapter_is_a_finding(library_copy: Path) -> None:
+    record_sunk_reorder(library_copy, page=7)
+
+    findings = fidelity_findings(library_copy)
+
+    assert located(findings) == [("fidelity-chapter", SUNK.as_posix())]
+    assert "page 7" in findings[0].message
 
 
 def test_source_text_that_fits_no_role_rule_is_a_finding(library_copy: Path) -> None:
