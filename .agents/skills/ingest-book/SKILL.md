@@ -52,7 +52,7 @@ Add an `extraction_profile` block to the metadata. `books/loop-engineering-orang
 - `roles` gives each font size a role, such as `section-label`, `section-title`, `heading`, `body`, `quote`, `table-header`, `table-cell`, or `code`. The rules are tried in order and the first match wins. `min_indent` and `max_indent` separate two roles that share a size.
 - `section_start` is a regular expression that a section label must match to open a section.
 - `excluded_pages` lists pages that hold no section text, such as the cover and the table of contents.
-- `sections` and `accepted_differences` start as empty lists.
+- `sections`, `accepted_differences`, and `accepted_reorders` start as empty lists.
 
 ### 5. Run the ingestion
 
@@ -84,7 +84,7 @@ You may change:
 
 - Markdown structure, which means heading levels, paragraph breaks, list markers, block quote markers, code fences, and emphasis markers,
 - a table, by rebuilding its rows and columns in the order the page shows,
-- the order of blocks that the extraction put out of reading order,
+- the order of blocks that the extraction put out of reading order, recorded as step 9 describes when the check then fails on order,
 - a word or a character that the extraction dropped or garbled, restored to what the page prints.
 
 You may not change:
@@ -109,6 +109,8 @@ uv run python scripts/validate.py
 The check compares each chapter with a fresh extraction of the source, word by word. It also compares the link destinations of the chapter with the links the source holds, and the frontmatter with the pinned source and the extracted section. Every chapter must pass. When a chapter fails, restore the wording, the destination, or the frontmatter value of the source in the chapter. Never add a link the source does not hold, and never give a link a title.
 
 When the chapter matches the page and the extraction is the one that is wrong, list the words under `extraction_profile.accepted_differences` with the chapter id, `words_removed`, `words_added`, and a reason that names the page. Use this only for words you compared with the page yourself.
+
+When a chapter fails on order after you put a block back in the order its page prints, record the block under `extraction_profile.accepted_reorders`. Record one whole block per entry, such as a whole panel or a whole table, and only after you compared it with the page. Copy `passage` from the repaired chapter and `extraction` from the draft under `build/ingest/<id>/`, give the `page` the block starts on, and write a `reason` that says what the page shows and how the extraction read it. A word that the block restores or splits still goes under `accepted_differences`. A block of more than 200 words cannot be recorded, so stop and report it.
 
 If a chapter cannot pass without rewording the source, stop and report it.
 
@@ -143,6 +145,7 @@ The description states:
 - the number of sections and the pages left out,
 - every repair you made and the page you compared it with,
 - every accepted difference and its reason,
+- every accepted reorder, its page, and its reason,
 - the output of the fidelity check and of validation,
 - that the chapters are machine-extracted and await a person's review.
 

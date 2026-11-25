@@ -52,6 +52,11 @@ You may:
 - Restore a word that the source page shows and the extraction lost or garbled.
   Record it in the book's `extraction_profile.accepted_differences` with the
   chapter, the words, and the reason.
+- Put a block back in the order its page prints when the extraction read it in
+  another order, such as two boxes printed side by side. Record it in the book's
+  `extraction_profile.accepted_reorders` with the chapter, the page, the block as
+  the chapter holds it (`passage`), the block as a fresh draft holds it
+  (`extraction`), and the reason. One record holds at most 200 words.
 - Change `extraction_status` to `human-reviewed` after you have read the whole
   chapter against the source pages.
 

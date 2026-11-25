@@ -22,7 +22,7 @@ Closes #
 
 <!-- Check every one that applies. -->
 
-- [ ] Chapter repair (structure or a restored word, recorded in `accepted_differences`)
+- [ ] Chapter repair (structure, a restored word recorded in `accepted_differences`, or a block put back in page order recorded in `accepted_reorders`)
 - [ ] Erratum
 - [ ] New resource record
 - [ ] Mirror a book, or upgrade a mirrored edition
