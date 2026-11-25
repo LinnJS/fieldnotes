@@ -257,7 +257,7 @@ extraction_profile:
     - chapter: hermes-agent-orange-book/commanding-a-swarm-of-agents
       words_removed: ["--", "--"]
       words_added: []
-      reason: "Page 46 prints the flags --max-iterations and --headless as single words. The extraction separates each -- at a line break."
+      reason: "Page 46 wraps each of the flags --max-iterations and --headless onto a new line right after its --. The chapter joins each flag into one word, and the extraction keeps each -- as a separate word."
     - chapter: hermes-agent-orange-book/tools-and-exposure-on-demand
       words_removed: ["推", "荐", "不推", "荐"]
       words_added: ["推荐", "不推荐"]
