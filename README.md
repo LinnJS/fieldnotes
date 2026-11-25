@@ -86,8 +86,7 @@ Three checks back what the library says about a book.
 
 ## What is in the library
 
-The catalog lists 19 books. One is mirrored, one is eligible to be mirrored, and
-17 are reference-only.
+The catalog lists 19 books. Two are mirrored, and 17 are reference-only.
 
 | Status | Meaning |
 | --- | --- |
@@ -98,7 +97,7 @@ The catalog lists 19 books. One is mirrored, one is eligible to be mirrored, and
 | Book | Id | Status | License evidence |
 | --- | --- | --- | --- |
 | [Loop Engineering: Stop Asking Me What It Is](https://github.com/alchaincyf/loop-engineering-orange-book) | `loop-engineering-orange-book` | mirrored | MIT (license file) |
-| [Hermes Agent 2.0: The Complete Guide](https://github.com/alchaincyf/hermes-agent-orange-book) | `hermes-agent-orange-book` | eligible | MIT (license file) |
+| [Hermes Agent 2.0: The Complete Guide](https://github.com/alchaincyf/hermes-agent-orange-book) | `hermes-agent-orange-book` | mirrored | MIT (license file) |
 | [OpenAI Codex: The Complete Guide](https://github.com/alchaincyf/codex-orange-book) | `codex-orange-book` | reference-only | CC-BY-NC-SA-4.0 (README statement, no license file) |
 | [Claude Code: The Complete Guide](https://github.com/alchaincyf/claude-code-orange-book) | `claude-code-orange-book` | reference-only | CC-BY-NC-SA-4.0 (README statement, no license file) |
 | [DeepSeek Harness: From First Boot to Teardown](https://github.com/alchaincyf/deepseek-harness-orange-book) | `deepseek-harness-orange-book` | reference-only | CC-BY-NC-SA-4.0 (README statement, no license file) |
@@ -123,7 +122,8 @@ library's translation of the original.
 Each book's full record, with the quoted license statement, the commit it was read
 at, and the date it was verified, is in `books/<id>/metadata.yaml`. Licenses were
 last verified on 2026-11-20. The mirrored English edition of Loop Engineering is
-v260615, which is older than the Chinese edition v261020.
+v260615, and the mirrored English edition of Hermes Agent is v260607. Each is
+older than its book's Chinese edition v261020.
 
 Eleven topics under [`topics/`](topics/index.md) give reading paths across the
 books. A topic is the library's own text, and each paragraph that reports what a
@@ -287,15 +287,19 @@ separate decision.
 
 ## Limitations
 
-- One book is mirrored. The library is useful as a catalog for the other 18, and
-  as a text source for one.
+- Two books are mirrored. The library is useful as a catalog for the other 17, and
+  as a text source for two.
 - Chapters are machine-extracted from the source PDF. Their words match the PDF,
   which a check enforces, but no person has read them against the pages yet.
   Emphasis inside paragraphs and the styling of callout boxes are not reproduced.
 - The mirrored English edition of Loop Engineering trails the Chinese edition. The
   author's note says the newer edition corrects errors in the June text, including
   a quote wrongly attributed to Addy Osmani. The passage has not been identified in
-  the English text, so no chapter carries an erratum.
+  the English text, so no chapter of that book carries an erratum.
+- The mirrored English edition of Hermes Agent trails the Chinese edition. The
+  author's README says the data-collection inference in the book's §03 is wrong
+  and that the Chinese edition corrects it. That chapter records the erratum in
+  its frontmatter and keeps the English text as printed.
 - The `Upstream sync` workflow starts only from the default branch on a weekly
   schedule and has not run on GitHub yet.
 - The check of the built site holds each page to a list of elements, attributes,

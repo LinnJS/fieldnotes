@@ -12,7 +12,11 @@ references:
     chapter: loop-engineering-orange-book/loops-that-run-while-you-sleep
     note: Shows the deterministic orchestrator and gates of Stripe's Minions, and compares local and cloud scheduling.
   - resource: hermes-agent-orange-book
-    note: Its README lists a part on multi-agent work and orchestration in Hermes Agent, from delegated tasks to a Kanban platform.
+    chapter: hermes-agent-orange-book/delegate-task-to-kanban
+    note: Traces multi-agent work in Hermes Agent from a blocking delegate call to a persistent Kanban board, and gives the rule for choosing between them.
+  - resource: hermes-agent-orange-book
+    chapter: hermes-agent-orange-book/dumb-core-userspace-decoration
+    note: Describes a Kanban dispatcher that only claims tasks and starts worker processes, leaves policy to userspace, and runs every worker as an OS process instead of an in-process subagent.
   - resource: claude-code-orange-book
     note: Its README lists multi-agent collaboration among its advanced practice chapters.
   - resource: harness-engineering-orange-book
@@ -38,7 +42,8 @@ references:
 - [§03 The Five Moves of One Loop](../books/loop-engineering-orange-book/chapters/03-five-moves-of-one-loop.md)
 - [§04 Six Parts: What a Loop Is Built From](../books/loop-engineering-orange-book/chapters/04-six-parts-of-a-loop.md)
 - [§06 Loops That Run While You Sleep: Three Real Ones](../books/loop-engineering-orange-book/chapters/06-loops-that-run-while-you-sleep.md)
-- `hermes-agent-orange-book`. Run `python3 scripts/resolve.py hermes-agent-orange-book` for its official URL.
+- [§15 From delegate_task to a Kanban Platform](../books/hermes-agent-orange-book/chapters/15-delegate-task-to-kanban.md)
+- [§16 Dumb Core, Userspace Decoration](../books/hermes-agent-orange-book/chapters/16-dumb-core-userspace-decoration.md)
 - `claude-code-orange-book`. Run `python3 scripts/resolve.py claude-code-orange-book` for its official URL.
 - `harness-engineering-orange-book`. Run `python3 scripts/resolve.py harness-engineering-orange-book` for its official URL.
 - `claude-code-source-analysis-orange-book`. Run `python3 scripts/resolve.py claude-code-source-analysis-orange-book` for its official URL.

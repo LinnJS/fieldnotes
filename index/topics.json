@@ -58,7 +58,7 @@
     },
     {
       "id": "agent-orchestration",
-      "mirrored_chapters": 3,
+      "mirrored_chapters": 5,
       "path": "topics/agent-orchestration.md",
       "references": [
         {
@@ -86,11 +86,19 @@
           "resource": "loop-engineering-orange-book"
         },
         {
-          "chapter": null,
+          "chapter": "hermes-agent-orange-book/delegate-task-to-kanban",
           "license_id": "MIT",
-          "mirror_status": "eligible",
-          "note": "Its README lists a part on multi-agent work and orchestration in Hermes Agent, from delegated tasks to a Kanban platform.",
-          "quote_permitted": false,
+          "mirror_status": "mirrored",
+          "note": "Traces multi-agent work in Hermes Agent from a blocking delegate call to a persistent Kanban board, and gives the rule for choosing between them.",
+          "quote_permitted": true,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": "hermes-agent-orange-book/dumb-core-userspace-decoration",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes a Kanban dispatcher that only claims tasks and starts worker processes, leaves policy to userspace, and runs every worker as an OS process instead of an in-process subagent.",
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -154,15 +162,23 @@
     },
     {
       "id": "agent-security",
-      "mirrored_chapters": 0,
+      "mirrored_chapters": 2,
       "path": "topics/agent-security.md",
       "references": [
         {
-          "chapter": null,
+          "chapter": "hermes-agent-orange-book/operating-system-boundary",
           "license_id": "MIT",
-          "mirror_status": "eligible",
-          "note": "Its README lists a part on deployment, security, and boundaries for Hermes Agent, including the operating system boundary and what it calls Promptware defense.",
-          "quote_permitted": false,
+          "mirror_status": "mirrored",
+          "note": "Argues that the operating system is the only real security boundary for an agent, treats in-process checks such as the approval gate and output redaction as heuristics, and describes sandbox backends and credential stripping.",
+          "quote_permitted": true,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": "hermes-agent-orange-book/promptware-defense-and-observability",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes how Hermes Agent scans memory recall, tool results, and skill installation for injected instructions, and how it records agent behavior for later audit.",
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -402,7 +418,7 @@
     },
     {
       "id": "harness-engineering",
-      "mirrored_chapters": 1,
+      "mirrored_chapters": 3,
       "path": "topics/harness-engineering.md",
       "references": [
         {
@@ -414,11 +430,19 @@
           "resource": "loop-engineering-orange-book"
         },
         {
-          "chapter": null,
+          "chapter": "hermes-agent-orange-book/three-engines-of-self-improvement",
           "license_id": "MIT",
-          "mirror_status": "eligible",
-          "note": "Its README presents Hermes Agent as a product built from the five harness components of instructions, constraints, feedback, memory, and orchestration.",
-          "quote_permitted": false,
+          "mirror_status": "mirrored",
+          "note": "Describes the three background mechanisms by which Hermes Agent builds its own harness. A post-turn review writes skills and memory, a curator maintains the skill library, and a goal loop keeps a session running until a judge finds the goal met.",
+          "quote_permitted": true,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": "hermes-agent-orange-book/curator-brakes-for-self-evolution",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes the curator that consolidates and archives the skills an agent wrote for itself. Its safeguards are that it archives instead of deleting, takes a snapshot before each run, offers a dry run, and acts only on agent-created skills.",
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -450,7 +474,7 @@
     },
     {
       "id": "memory-and-state-management",
-      "mirrored_chapters": 3,
+      "mirrored_chapters": 5,
       "path": "topics/memory-and-state-management.md",
       "references": [
         {
@@ -478,11 +502,19 @@
           "resource": "loop-engineering-orange-book"
         },
         {
-          "chapter": null,
+          "chapter": "hermes-agent-orange-book/three-layers-of-memory",
           "license_id": "MIT",
-          "mirror_status": "eligible",
-          "note": "Its README lists a part on the three-layer memory and session search of Hermes Agent.",
-          "quote_permitted": false,
+          "mirror_status": "mirrored",
+          "note": "Describes three layers of agent memory. Persistent memory is written to disk immediately, but the model sees a snapshot that is frozen for the session and scanned for injected content.",
+          "quote_permitted": true,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": "hermes-agent-orange-book/session-search",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes session search that returns stored messages from a full-text index instead of LLM summaries, and how it handles Chinese text.",
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -522,7 +554,7 @@
     },
     {
       "id": "tool-use-and-integration",
-      "mirrored_chapters": 2,
+      "mirrored_chapters": 4,
       "path": "topics/tool-use-and-integration.md",
       "references": [
         {
@@ -542,11 +574,19 @@
           "resource": "loop-engineering-orange-book"
         },
         {
-          "chapter": null,
+          "chapter": "hermes-agent-orange-book/tools-and-exposure-on-demand",
           "license_id": "MIT",
-          "mirror_status": "eligible",
-          "note": "Its README lists a part on the tools, MCP support, and messaging platforms of Hermes Agent.",
-          "quote_permitted": false,
+          "mirror_status": "mirrored",
+          "note": "Describes how Hermes Agent keeps a large tool set from crowding the model's context, through toolsets, conditional tool exposure, on-demand tool discovery, and plugin-based providers.",
+          "quote_permitted": true,
+          "resource": "hermes-agent-orange-book"
+        },
+        {
+          "chapter": "hermes-agent-orange-book/mcp-in-two-directions",
+          "license_id": "MIT",
+          "mirror_status": "mirrored",
+          "note": "Describes Hermes Agent as an MCP client, with its transports, OAuth, and a reviewed catalog, and as an MCP server that other agents call. It also says when to choose MCP over a native tool.",
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {

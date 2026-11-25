@@ -22,11 +22,36 @@ The text of a book is in this library only when the book has a "Mirrored book" s
 - [§08 Stay the Engineer, Not Just the One Who Presses Go](books/loop-engineering-orange-book/chapters/08-stay-the-engineer.md): `loop-engineering-orange-book/stay-the-engineer`, source PDF pp. 29-31.
 - [§09 Build Your First Loop Today](books/loop-engineering-orange-book/chapters/09-build-your-first-loop.md): `loop-engineering-orange-book/build-your-first-loop`, source PDF pp. 32-35.
 
+## Mirrored book: Hermes Agent 2.0: The Complete Guide
+
+- [Book record](books/hermes-agent-orange-book/metadata.yaml): `hermes-agent-orange-book`, by HuaShu. English edition v260607, which is behind the newest Chinese edition v261020. License MIT.
+- [License](books/hermes-agent-orange-book/LICENSE): The author's license text and copyright notice, which cover this book.
+- [§01 Meet Hermes: An Agent That Grows Its Own Skills](books/hermes-agent-orange-book/chapters/01-meet-hermes.md): `hermes-agent-orange-book/meet-hermes`, source PDF pp. 4-7.
+- [§02 60-Second Overview: One Brain, Many Faces](books/hermes-agent-orange-book/chapters/02-one-brain-many-faces.md): `hermes-agent-orange-book/one-brain-many-faces`, source PDF pp. 8-11.
+- [§03 Why Nous Built This](books/hermes-agent-orange-book/chapters/03-why-nous-built-this.md): `hermes-agent-orange-book/why-nous-built-this`, source PDF pp. 12-16.
+- [§04 Build, Repair, Continue: Three Engines of Self-Improvement](books/hermes-agent-orange-book/chapters/04-three-engines-of-self-improvement.md): `hermes-agent-orange-book/three-engines-of-self-improvement`, source PDF pp. 17-21.
+- [§05 Curator: Brakes for Self-Evolution](books/hermes-agent-orange-book/chapters/05-curator-brakes-for-self-evolution.md): `hermes-agent-orange-book/curator-brakes-for-self-evolution`, source PDF pp. 22-26.
+- [§06 The Most Important Lesson Is What Not to Learn](books/hermes-agent-orange-book/chapters/06-what-not-to-learn.md): `hermes-agent-orange-book/what-not-to-learn`, source PDF pp. 27-30.
+- [§07 Three Layers of Memory: From Goldfish to Old Friend](books/hermes-agent-orange-book/chapters/07-three-layers-of-memory.md): `hermes-agent-orange-book/three-layers-of-memory`, source PDF pp. 31-35.
+- [§08 Session Search: Taking Back the Work LLMs Should Not Do](books/hermes-agent-orange-book/chapters/08-session-search.md): `hermes-agent-orange-book/session-search`, source PDF pp. 36-39.
+- [§09 The Skill System and the Open-Standard Dividend](books/hermes-agent-orange-book/chapters/09-skill-system-and-open-standards.md): `hermes-agent-orange-book/skill-system-and-open-standards`, source PDF pp. 40-44.
+- [§10 One Agent Commanding a Swarm of Agents](books/hermes-agent-orange-book/chapters/10-commanding-a-swarm-of-agents.md): `hermes-agent-orange-book/commanding-a-swarm-of-agents`, source PDF pp. 45-48.
+- [§11 64 Tools and Exposure on Demand](books/hermes-agent-orange-book/chapters/11-tools-and-exposure-on-demand.md): `hermes-agent-orange-book/tools-and-exposure-on-demand`, source PDF pp. 49-54.
+- [§12 MCP in Two Directions](books/hermes-agent-orange-book/chapters/12-mcp-in-two-directions.md): `hermes-agent-orange-book/mcp-in-two-directions`, source PDF pp. 55-59.
+- [§13 23 Platforms and a Self-Growing Gateway](books/hermes-agent-orange-book/chapters/13-platforms-and-self-growing-gateway.md): `hermes-agent-orange-book/platforms-and-self-growing-gateway`, source PDF pp. 60-64.
+- [§14 Three Ways to Talk to It](books/hermes-agent-orange-book/chapters/14-three-ways-to-talk.md): `hermes-agent-orange-book/three-ways-to-talk`, source PDF pp. 65-68.
+- [§15 From delegate_task to a Kanban Platform](books/hermes-agent-orange-book/chapters/15-delegate-task-to-kanban.md): `hermes-agent-orange-book/delegate-task-to-kanban`, source PDF pp. 69-72.
+- [§16 Dumb Core, Userspace Decoration](books/hermes-agent-orange-book/chapters/16-dumb-core-userspace-decoration.md): `hermes-agent-orange-book/dumb-core-userspace-decoration`, source PDF pp. 73-76.
+- [§17 Eight Collaboration Patterns and Per-Card Cost Control](books/hermes-agent-orange-book/chapters/17-collaboration-patterns-and-cost-control.md): `hermes-agent-orange-book/collaboration-patterns-and-cost-control`, source PDF pp. 77-82.
+- [§18 Deploy: From Sending Commands to Sending Installers](books/hermes-agent-orange-book/chapters/18-deployment.md): `hermes-agent-orange-book/deployment`, source PDF pp. 83-88.
+- [§19 The Only Boundary Is the Operating System](books/hermes-agent-orange-book/chapters/19-operating-system-boundary.md): `hermes-agent-orange-book/operating-system-boundary`, source PDF pp. 89-93.
+- [§20 Promptware Defense and Observability](books/hermes-agent-orange-book/chapters/20-promptware-defense-and-observability.md): `hermes-agent-orange-book/promptware-defense-and-observability`, source PDF pp. 94-98.
+- [§21 How Far Can a Self-Improving Agent Go](books/hermes-agent-orange-book/chapters/21-limits-of-self-improvement.md): `hermes-agent-orange-book/limits-of-self-improvement`, source PDF pp. 99-103.
+
 ## Books that are not mirrored
 
 These books are cataloged with their license evidence. Read them at the author's official source, and do not quote them from this library.
 
-- [Hermes Agent 2.0: The Complete Guide](https://www.huasheng.ai/orange-books/hermes-agent/): `hermes-agent-orange-book`, eligible, license MIT. Original title: Hermes Agent橙皮书2.0. Its text is not in this library.
 - [OpenAI Codex: The Complete Guide](https://www.huasheng.ai/orange-books/codex/): `codex-orange-book`, reference-only, license CC-BY-NC-SA-4.0. Original title: OpenAI Codex 从入门到精通. Its text is not in this library.
 - [Claude Code: The Complete Guide](https://www.huasheng.ai/orange-books/claude-code/): `claude-code-orange-book`, reference-only, license CC-BY-NC-SA-4.0. Original title: Claude Code 从入门到精通. Its text is not in this library.
 - [DeepSeek Harness: From First Boot to Teardown](https://www.huasheng.ai/orange-books/deepseek-harness/): `deepseek-harness-orange-book`, reference-only, license CC-BY-NC-SA-4.0. Original title: DeepSeek Harness：从开机到拆开. Its text is not in this library.
@@ -48,16 +73,16 @@ These books are cataloged with their license evidence. Read them at the author's
 ## Topics
 
 - [Agent Architecture](topics/agent-architecture.md): `agent-architecture`, 6 references.
-- [Agent Orchestration](topics/agent-orchestration.md): `agent-orchestration`, 7 references.
+- [Agent Orchestration](topics/agent-orchestration.md): `agent-orchestration`, 8 references.
 - [Agent Reliability](topics/agent-reliability.md): `agent-reliability`, 3 references.
-- [Agent Security](topics/agent-security.md): `agent-security`, 4 references.
+- [Agent Security](topics/agent-security.md): `agent-security`, 5 references.
 - [Coding Agents](topics/coding-agents.md): `coding-agents`, 6 references.
 - [Context Engineering](topics/context-engineering.md): `context-engineering`, 4 references.
 - [Development Workflows](topics/development-workflows.md): `development-workflows`, 8 references.
 - [Evaluation and Testing](topics/evaluation-and-testing.md): `evaluation-and-testing`, 4 references.
-- [Harness Engineering](topics/harness-engineering.md): `harness-engineering`, 5 references.
-- [Memory and State Management](topics/memory-and-state-management.md): `memory-and-state-management`, 8 references.
-- [Tool Use and Integration](topics/tool-use-and-integration.md): `tool-use-and-integration`, 9 references.
+- [Harness Engineering](topics/harness-engineering.md): `harness-engineering`, 6 references.
+- [Memory and State Management](topics/memory-and-state-management.md): `memory-and-state-management`, 9 references.
+- [Tool Use and Integration](topics/tool-use-and-integration.md): `tool-use-and-integration`, 10 references.
 
 ## Indexes
 

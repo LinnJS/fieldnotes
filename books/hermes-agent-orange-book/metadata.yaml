@@ -106,7 +106,7 @@ permissions:
   share_alike: false
   third_party_rights: false
 
-mirror_status: eligible
+mirror_status: mirrored
 
 pinned_source:
   repository: alchaincyf/hermes-agent-orange-book
@@ -115,9 +115,189 @@ pinned_source:
   sha256: 250eaee552121313db913893404b9b1574c7f2ea7b06d25e8641054a51642d59
   edition: v260607
   language: en
-  local_path: null
+  local_path: source/Hermes-Agent-The-Complete-Guide-v260607.pdf
 
-extraction_profile: null
+extraction_profile:
+  roles:
+    - role: section-label
+      font_size: 24.0
+      max_indent: 48.0
+    - role: body
+      font_size: 24.0
+      min_indent: 48.0
+    - role: section-title
+      font_size: 26.7
+    - role: lede
+      font_size: 15.3
+    - role: heading
+      font_size: 17.3
+    - role: heading
+      font_size: 14.7
+    - role: body
+      font_size: 14.0
+    - role: kicker
+      font_size: 13.3
+      max_indent: 48.0
+    - role: quote
+      font_size: 13.3
+      min_indent: 48.0
+    - role: table-header
+      font_size: 11.3
+    - role: table-cell
+      font_size: 12.7
+    - role: code
+      font_size: 12.0
+  section_start: '^§\d{2}$'
+  excluded_pages:
+    - 1
+    - 2
+    - 3
+    - 104
+  sections:
+    - title: "Meet Hermes: An Agent That Grows Its Own Skills"
+      slug: meet-hermes
+      part: "Part 1: What It Is"
+    - title: "60-Second Overview: One Brain, Many Faces"
+      slug: one-brain-many-faces
+      part: "Part 1: What It Is"
+    - title: "Why Nous Built This"
+      slug: why-nous-built-this
+      part: "Part 1: What It Is"
+    - title: "Build, Repair, Continue: Three Engines of Self-Improvement"
+      slug: three-engines-of-self-improvement
+      part: "Part 2: The Reins Grow Themselves"
+    - title: "Curator: Brakes for Self-Evolution"
+      slug: curator-brakes-for-self-evolution
+      part: "Part 2: The Reins Grow Themselves"
+    - title: "The Most Important Lesson Is What Not to Learn"
+      slug: what-not-to-learn
+      part: "Part 2: The Reins Grow Themselves"
+    - title: "Three Layers of Memory: From Goldfish to Old Friend"
+      slug: three-layers-of-memory
+      part: "Part 3: How It Remembers You"
+    - title: "Session Search: Taking Back the Work LLMs Should Not Do"
+      slug: session-search
+      part: "Part 3: How It Remembers You"
+    - title: "The Skill System and the Open-Standard Dividend"
+      slug: skill-system-and-open-standards
+      part: "Part 3: How It Remembers You"
+    - title: "One Agent Commanding a Swarm of Agents"
+      slug: commanding-a-swarm-of-agents
+      part: "Part 3: How It Remembers You"
+    - title: "64 Tools and Exposure on Demand"
+      slug: tools-and-exposure-on-demand
+      part: "Part 4: Connecting Everything"
+    - title: "MCP in Two Directions"
+      slug: mcp-in-two-directions
+      part: "Part 4: Connecting Everything"
+    - title: "23 Platforms and a Self-Growing Gateway"
+      slug: platforms-and-self-growing-gateway
+      part: "Part 4: Connecting Everything"
+    - title: "Three Ways to Talk to It"
+      slug: three-ways-to-talk
+      part: "Part 4: Connecting Everything"
+    - title: "From delegate_task to a Kanban Platform"
+      slug: delegate-task-to-kanban
+      part: "Part 5: Multi-Agent & Orchestration"
+    - title: "Dumb Core, Userspace Decoration"
+      slug: dumb-core-userspace-decoration
+      part: "Part 5: Multi-Agent & Orchestration"
+    - title: "Eight Collaboration Patterns and Per-Card Cost Control"
+      slug: collaboration-patterns-and-cost-control
+      part: "Part 5: Multi-Agent & Orchestration"
+    - title: "Deploy: From Sending Commands to Sending Installers"
+      slug: deployment
+      part: "Part 6: Deployment, Security & Boundaries"
+    - title: "The Only Boundary Is the Operating System"
+      slug: operating-system-boundary
+      part: "Part 6: Deployment, Security & Boundaries"
+    - title: "Promptware Defense and Observability"
+      slug: promptware-defense-and-observability
+      part: "Part 6: Deployment, Security & Boundaries"
+    - title: "How Far Can a Self-Improving Agent Go"
+      slug: limits-of-self-improvement
+      part: "Part 6: Deployment, Security & Boundaries"
+  accepted_differences:
+    - chapter: hermes-agent-orange-book/meet-hermes
+      words_removed: ["女", "娲", "skill", "达", "尔", "文", "skill", "核", "心", "建议"]
+      words_added: ["女娲.skill", "达尔文.skill", "核心建议"]
+      reason: "Page 6 prints the project names 女娲.skill and 达尔文.skill as single words, and page 7 prints the callout label 核心建议 as one word. The extraction splits each into separate words."
+    - chapter: hermes-agent-orange-book/one-brain-many-faces
+      words_removed: ["6grant", "backendswhat", "Curatorstale", "memorystored", "providersessions", "OrchestrationSub-agent", "scheduledone", "layertasks", "boarddo", "推", "荐", "不推", "荐"]
+      words_added: ["layer", "+", "6", "backends", "grant", "what", "Curator", "stale", "memory", "provider", "stored", "sessions", "Orchestration", "Sub-agent", "scheduled", "tasks", "board", "one", "do", "推荐", "不推荐"]
+      reason: "The mapping table on page 9 prints its three columns as separate cells, and the extraction joins words across the column edges. Page 10 prints the panel labels 推荐 and 不推荐 as single words, which the extraction splits."
+    - chapter: hermes-agent-orange-book/why-nous-built-this
+      words_removed: ["推", "荐", "不推", "荐", "核", "心", "建议"]
+      words_added: ["推荐", "不推荐", "核心建议"]
+      reason: "Page 15 prints the panel labels 推荐 and 不推荐 and page 16 prints the callout label 核心建议, each as one word. The extraction splits each label into separate words."
+    - chapter: hermes-agent-orange-book/three-engines-of-self-improvement
+      words_removed: ["BuildRepairContinue", "ReviewCuratorGoals", "activestale", "activestale", "核", "心", "建议"]
+      words_added: ["Build", "Review", "Repair", "Curator", "Continue", "Goals", "active", "active", "stale", "stale", "核心建议"]
+      reason: "The diagram on page 17 and the lifecycle diagram on page 20 print each box's words separately, and the extraction joins words across the boxes. Page 21 prints the callout label 核心建议 as one word, which the extraction splits."
+    - chapter: hermes-agent-orange-book/curator-brakes-for-self-evolution
+      words_removed: ["核", "心", "建议", "推", "荐", "不推", "荐"]
+      words_added: ["核心建议", "推荐", "不推荐"]
+      reason: "Page 25 prints the callout label 核心建议 and page 26 prints the panel labels 推荐 and 不推荐, each as one word. The extraction splits each label into separate words."
+    - chapter: hermes-agent-orange-book/what-not-to-learn
+      words_removed: ["推", "荐", "不推", "荐"]
+      words_added: ["推荐", "不推荐"]
+      reason: "Page 28 prints the panel labels 推荐 and 不推荐 as single words, which the extraction splits."
+    - chapter: hermes-agent-orange-book/three-layers-of-memory
+      words_removed: ["startsMid-session", "writeSystem", "snapshothits", "immediatelystays", "核", "心", "建议"]
+      words_added: ["starts", "snapshot", "Mid-session", "write", "hits", "immediately", "System", "stays", "核心建议"]
+      reason: "The diagram on page 33 prints each box's words separately, and the extraction joins words across the boxes. Page 34 prints the callout label 核心建议 as one word, which the extraction splits."
+    - chapter: hermes-agent-orange-book/session-search
+      words_removed: ["DISCOVERYkeyword", "search)snippet", "messagemax", "sessionthe", "BROWSEnothing", "browse)sessions", "大", "别", "山项", "目", "桂", "林", "漓", "江"]
+      words_added: ["DISCOVERY", "search", "keyword", "session", "snippet", "the", "+", "message", "max", "BROWSE", "browse", "nothing", "sessions", "大别山项目", "桂林", "漓江"]
+      reason: "The table on page 38 prints its four columns as separate cells, and the extraction joins words across the column edges. Pages 38 and 39 print 大别山项目, 桂林, and 漓江 as single words, which the extraction splits."
+    - chapter: hermes-agent-orange-book/skill-system-and-open-standards
+      words_removed: ["0Level", "1Level", "onlyexpand", "textfetch", "推", "荐", "不推", "荐", "核", "心", "建议"]
+      words_added: ["0", "only", "Level", "1", "expand", "text", "Level", "fetch", "推荐", "不推荐", "核心建议"]
+      reason: "The diagram on page 42 prints each box's words separately, and the extraction joins words across the boxes. Page 43 prints the panel labels 推荐 and 不推荐 and page 44 the callout label 核心建议, each as one word, which the extraction splits."
+    - chapter: hermes-agent-orange-book/commanding-a-swarm-of-agents
+      words_removed: ["--", "--"]
+      words_added: []
+      reason: "Page 46 wraps each of the flags --max-iterations and --headless onto a new line right after its --. The chapter joins each flag into one word, and the extraction keeps each -- as a separate word."
+    - chapter: hermes-agent-orange-book/tools-and-exposure-on-demand
+      words_removed: ["推", "荐", "不推", "荐"]
+      words_added: ["推荐", "不推荐"]
+      reason: "Page 49 prints the panel labels 推荐 and 不推荐 as single words, which the extraction splits."
+    - chapter: hermes-agent-orange-book/mcp-in-two-directions
+      words_removed: ["1Direction", "protocolHermes", "servercalled", "gitExposes", "venv)(activate/deactivate", "核", "心", "建议"]
+      words_added: ["1", "Hermes", "server", "protocol", "Direction", "called", "+", "git", "venv", "Exposes", "activate/deactivate", "核心建议"]
+      reason: "The diagram on page 55 and the table on page 57 print each box and cell separately, and the extraction joins words across them. Page 58 prints the callout label 核心建议 as one word, which the extraction splits."
+    - chapter: hermes-agent-orange-book/three-ways-to-talk
+      words_removed: ["核", "心", "建议"]
+      words_added: ["核心建议"]
+      reason: "Page 67 prints the callout label 核心建议 as one word, which the extraction splits."
+    - chapter: hermes-agent-orange-book/delegate-task-to-kanban
+      words_removed: ["推", "荐", "不推", "荐", "核", "心", "建议", "delegate_taskv1", "spec104", "functionminimalist", "manifestofed"]
+      words_added: ["推荐", "不推荐", "104", "minimalist", "manifesto", "fed", "核心建议", "delegate_task", "function", "v1", "spec"]
+      reason: "Page 70 prints the panel labels 推荐 and 不推荐 and page 71 the callout label 核心建议, each as one word, which the extraction splits. The diagram on page 72 prints each box's words separately, and the extraction joins words across the boxes."
+    - chapter: hermes-agent-orange-book/dumb-core-userspace-decoration
+      words_removed: ["推", "荐", "不推", "荐"]
+      words_added: ["推荐", "不推荐"]
+      reason: "Page 75 prints the panel labels 推荐 and 不推荐 as single words, which the extraction splits."
+    - chapter: hermes-agent-orange-book/collaboration-patterns-and-cost-control
+      words_removed: ["推", "荐", "不推", "荐", "核", "心", "建议", "HardEach", "boundaryworkspace", "viewinvisible", "SoftA", "softOne", "namespacefilteringbusinesses", "runningDifferent", "thetheir", "schedulerload"]
+      words_added: ["推荐", "不推荐", "running", "the", "核心建议", "Hard", "boundary", "Each", "+", "workspace", "view", "invisible", "Soft", "namespace", "A", "soft", "filtering", "One", "businesses", "scheduler", "Different", "their", "load"]
+      reason: "Page 80 prints the panel labels 推荐 and 不推荐 and the callout label 核心建议 as single words, which the extraction splits. The table on page 81 prints its four columns as separate cells, and the extraction joins words across the column edges."
+    - chapter: hermes-agent-orange-book/deployment
+      words_removed: ["https:-/hermes-agent.nousresearch.com/install.sh", "https:-/hermes-agent.nousresearch.com/install.ps1", "核", "心", "建议", "https:-/github.com/NousResearch/hermes-agent.git"]
+      words_added: ["https://hermes-agent.nousresearch.com/install.sh", "https://hermes-agent.nousresearch.com/install.ps1", "核心建议", "https://github.com/NousResearch/hermes-agent.git"]
+      reason: "Page 84 prints the callout label 核心建议 as one word, which the extraction splits. The code blocks on pages 84 and 85 print https:// in each URL, which the extraction reads as https:-/."
+    - chapter: hermes-agent-orange-book/operating-system-boundary
+      words_removed: ["shellThe", "ais", "confirmexhaustive", "OutputStrips", "theA", "redactiondisplay", "layerwork", "forA", "patternstime", "核", "心", "建议"]
+      words_added: ["a", "shell", "for", "confirm", "The", "is", "exhaustive", "Output", "redaction", "Strips", "the", "display", "layer", "A", "work", "patterns", "A", "time", "核心建议"]
+      reason: "The table on page 90 prints its three columns as separate cells, and the extraction joins words across the column edges. Page 90 prints the callout label 核心建议 as one word, which the extraction splits."
+    - chapter: hermes-agent-orange-book/promptware-defense-and-observability
+      words_removed: ["推", "荐", "不推", "荐", "核", "心", "建议"]
+      words_added: ["推荐", "不推荐", "核心建议"]
+      reason: "Page 97 prints the panel labels 推荐 and 不推荐 and page 98 the callout label 核心建议, each as one word, which the extraction splits."
+    - chapter: hermes-agent-orange-book/limits-of-self-improvement
+      words_removed: ["推", "荐", "不推", "荐"]
+      words_added: ["推荐", "不推荐"]
+      reason: "Page 101 prints the panel labels 推荐 and 不推荐 as single words, which the extraction splits."
 
 notices:
   - >-
@@ -137,3 +317,6 @@ notices:
     v261020. The README's errata section says the data-collection inference in section 03 is
     wrong, that the Chinese edition v261020 corrects it, and that the English edition v260607 has
     not been regenerated.
+  - >-
+    The chapters are machine-extracted from the pinned PDF. No person has read them against the
+    source yet.

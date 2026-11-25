@@ -29,47 +29,67 @@ NO_COVERAGE = (
 )
 
 LOOP = "loop-engineering-orange-book"
+HERMES = "hermes-agent-orange-book"
 
 # The mirrored chapters each topic of the real library references, in the order the topic lists
 # them. A chapter belongs here only after it was read and found to cover the topic.
 MIRRORED_CHAPTERS = {
     "agent-architecture": [
-        "from-prompt-to-context-to-loop",
-        "five-moves-of-one-loop",
-        "six-parts-of-a-loop",
+        f"{LOOP}/from-prompt-to-context-to-loop",
+        f"{LOOP}/five-moves-of-one-loop",
+        f"{LOOP}/six-parts-of-a-loop",
     ],
     "agent-orchestration": [
-        "five-moves-of-one-loop",
-        "six-parts-of-a-loop",
-        "loops-that-run-while-you-sleep",
+        f"{LOOP}/five-moves-of-one-loop",
+        f"{LOOP}/six-parts-of-a-loop",
+        f"{LOOP}/loops-that-run-while-you-sleep",
+        f"{HERMES}/delegate-task-to-kanban",
+        f"{HERMES}/dumb-core-userspace-decoration",
     ],
-    "agent-reliability": ["loops-that-run-while-you-sleep", "costs"],
-    "agent-security": [],
+    "agent-reliability": [f"{LOOP}/loops-that-run-while-you-sleep", f"{LOOP}/costs"],
+    "agent-security": [
+        f"{HERMES}/operating-system-boundary",
+        f"{HERMES}/promptware-defense-and-observability",
+    ],
     "coding-agents": [
-        "generator-and-evaluator",
-        "loops-that-run-while-you-sleep",
-        "build-your-first-loop",
+        f"{LOOP}/generator-and-evaluator",
+        f"{LOOP}/loops-that-run-while-you-sleep",
+        f"{LOOP}/build-your-first-loop",
     ],
-    "context-engineering": ["from-prompt-to-context-to-loop", "loops-that-run-while-you-sleep"],
+    "context-engineering": [
+        f"{LOOP}/from-prompt-to-context-to-loop",
+        f"{LOOP}/loops-that-run-while-you-sleep",
+    ],
     "development-workflows": [
-        "what-loop-engineering-really-is",
-        "five-moves-of-one-loop",
-        "stay-the-engineer",
-        "build-your-first-loop",
+        f"{LOOP}/what-loop-engineering-really-is",
+        f"{LOOP}/five-moves-of-one-loop",
+        f"{LOOP}/stay-the-engineer",
+        f"{LOOP}/build-your-first-loop",
     ],
     "evaluation-and-testing": [
-        "five-moves-of-one-loop",
-        "generator-and-evaluator",
-        "costs",
-        "build-your-first-loop",
+        f"{LOOP}/five-moves-of-one-loop",
+        f"{LOOP}/generator-and-evaluator",
+        f"{LOOP}/costs",
+        f"{LOOP}/build-your-first-loop",
     ],
-    "harness-engineering": ["from-prompt-to-context-to-loop"],
+    "harness-engineering": [
+        f"{LOOP}/from-prompt-to-context-to-loop",
+        f"{HERMES}/three-engines-of-self-improvement",
+        f"{HERMES}/curator-brakes-for-self-evolution",
+    ],
     "memory-and-state-management": [
-        "five-moves-of-one-loop",
-        "six-parts-of-a-loop",
-        "build-your-first-loop",
+        f"{LOOP}/five-moves-of-one-loop",
+        f"{LOOP}/six-parts-of-a-loop",
+        f"{LOOP}/build-your-first-loop",
+        f"{HERMES}/three-layers-of-memory",
+        f"{HERMES}/session-search",
     ],
-    "tool-use-and-integration": ["six-parts-of-a-loop", "generator-and-evaluator"],
+    "tool-use-and-integration": [
+        f"{LOOP}/six-parts-of-a-loop",
+        f"{LOOP}/generator-and-evaluator",
+        f"{HERMES}/tools-and-exposure-on-demand",
+        f"{HERMES}/mcp-in-two-directions",
+    ],
 }
 
 
@@ -535,7 +555,7 @@ def test_the_committed_topic_index_lists_each_topic_with_its_references_and_chap
 
     assert [topic["id"] for topic in topics] == list(MIRRORED_CHAPTERS)
     for topic in topics:
-        expected = [f"{LOOP}/{slug}" for slug in MIRRORED_CHAPTERS[topic["id"]]]
+        expected = MIRRORED_CHAPTERS[topic["id"]]
         chapters = [ref["chapter"] for ref in topic["references"] if ref["chapter"]]
         assert chapters == expected, topic["id"]
         assert topic["mirrored_chapters"] == len(expected), topic["id"]
@@ -547,6 +567,6 @@ def test_the_landing_page_links_every_topic_and_gives_its_mirrored_chapter_count
 ) -> None:
     rows = (repo_root / "topics" / "index.md").read_text(encoding="utf-8").splitlines()
 
-    for topic_id, slugs in MIRRORED_CHAPTERS.items():
+    for topic_id, chapters in MIRRORED_CHAPTERS.items():
         [row] = [line for line in rows if f"]({topic_id}.md)" in line]
-        assert row.endswith(f"| {len(slugs)} |"), topic_id
+        assert row.endswith(f"| {len(chapters)} |"), topic_id

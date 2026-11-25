@@ -12,7 +12,11 @@ references:
     chapter: loop-engineering-orange-book/build-your-first-loop
     note: Shows how to give a first loop a state file so that unfinished work carries over to the next run.
   - resource: hermes-agent-orange-book
-    note: Its README lists a part on the three-layer memory and session search of Hermes Agent.
+    chapter: hermes-agent-orange-book/three-layers-of-memory
+    note: Describes three layers of agent memory. Persistent memory is written to disk immediately, but the model sees a snapshot that is frozen for the session and scanned for injected content.
+  - resource: hermes-agent-orange-book
+    chapter: hermes-agent-orange-book/session-search
+    note: Describes session search that returns stored messages from a full-text index instead of LLM summaries, and how it handles Chinese text.
   - resource: harness-engineering-orange-book
     note: Its README names memory systems among the things a harness designer builds, and lists a hands-on section on capability and memory.
   - resource: obsidian-ai-orange-book
@@ -40,7 +44,8 @@ references:
 - [§03 The Five Moves of One Loop](../books/loop-engineering-orange-book/chapters/03-five-moves-of-one-loop.md)
 - [§04 Six Parts: What a Loop Is Built From](../books/loop-engineering-orange-book/chapters/04-six-parts-of-a-loop.md)
 - [§09 Build Your First Loop Today](../books/loop-engineering-orange-book/chapters/09-build-your-first-loop.md)
-- `hermes-agent-orange-book`. Run `python3 scripts/resolve.py hermes-agent-orange-book` for its official URL.
+- [§07 Three Layers of Memory: From Goldfish to Old Friend](../books/hermes-agent-orange-book/chapters/07-three-layers-of-memory.md)
+- [§08 Session Search: Taking Back the Work LLMs Should Not Do](../books/hermes-agent-orange-book/chapters/08-session-search.md)
 - `harness-engineering-orange-book`. Run `python3 scripts/resolve.py harness-engineering-orange-book` for its official URL.
 - `obsidian-ai-orange-book`. Run `python3 scripts/resolve.py obsidian-ai-orange-book` for its official URL.
 - `openclaw-orange-book`. Run `python3 scripts/resolve.py openclaw-orange-book` for its official URL.
