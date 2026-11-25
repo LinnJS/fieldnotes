@@ -91,7 +91,7 @@ Never attribute editorial text or a catalog note to the author.
 - No agent merges a pull request or pushes to the default branch.
 - `scripts/kb/gate.py` decides the highest status a book's recorded evidence allows. Never set a status above it, and never edit the allowlist to make a book pass.
 - A chapter is a faithful copy of its pinned source. An edit may restore what the source says. It may never reword, correct, shorten, or improve the text.
-- A block that the extraction read out of order may be put back in the order its page prints, after you compare it with the page. Record it under `extraction_profile.accepted_reorders` with the chapter id, the page, the block as the chapter holds it, the block as a fresh draft holds it, and a reason.
+- A block that the extraction read out of order may be put back in the order its page prints, after you compare it with the page. Record it under `extraction_profile.accepted_reorders` with the chapter id, the page, the block as the chapter holds it, the block as a fresh draft holds it, and a reason. A word that the block restores still goes under `extraction_profile.accepted_differences`.
 - `index/catalog.json`, `index/topics.json`, `index/chapters.jsonl`, and `llms.txt` are generated. Rebuild them with `scripts/build.py` and never edit them by hand.
 - Only a mirrored book may hold files besides `metadata.yaml` in its directory.
 - Never print, log, or commit a token or a credential.
