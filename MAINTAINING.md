@@ -211,7 +211,7 @@ from its collections, so a rename needs no structural change.
 These steps are yours. A ticked step was confirmed against GitHub on 2026-11-24.
 The others have not been done.
 
-- [ ] Read the two MIT license records against their permalinks, and confirm you
+- [x] Read the two MIT license records against their permalinks, and confirm you
       accept the adapted MIT text as MIT for this library's purposes.
 - [x] Create the GitHub repository as `fieldnotes` and push. The repository is
       public, and `main` holds the first plan.
