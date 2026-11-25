@@ -27,11 +27,9 @@ You think you're looking at several products: a command line, a desktop app, a w
 
 Draw out Hermes's architecture and you get a lone circle in the middle called AIAgent. Around it sits a ring of boxes: the CLI, a TUI built with Ink, an Electron desktop app, a browser-based admin panel, plus twenty-some IM platform adapters. Every box has a line running back to that circle.
 
-> CLI Ink TUI Desktop App AIAgent Web Panel
+CLI Ink TUI Desktop App → AIAgent ← Web Panel
 
-→ ←
-
-> 23 IM Platforms
+23 IM Platforms
 
 The entire takeaway from this diagram is one sentence: none of the boxes on the outside is "another Hermes"—they're all different shells over the same core.
 
@@ -45,7 +43,7 @@ Credentials, routing, all sorts of callbacks, session context, budgets, credenti
 
 But it's deliberately designed this way. Later on we'll get into why they'd rather wear that label than break it apart.
 
-This brain exposes only two openings to the outside world. One is `chat(message)` : throw in a sentence, get back a reply—blunt and simple. The other is `run_conversation()` , the full interface, which returns the final reply plus the message list for the entire turn. Every feature you use day to day ultimately funnels down to these two methods.
+This brain exposes only two openings to the outside world. One is `chat(message)`: throw in a sentence, get back a reply—blunt and simple. The other is `run_conversation()`, the full interface, which returns the final reply plus the message list for the entire turn. Every feature you use day to day ultimately funnels down to these two methods.
 
 Internally it runs a synchronous loop—not the trendy async. It comes with interrupt checks, budget tracking, and a one-time grace call. If the model says it wants to call a tool, the loop calls it, stuffs the result back into the message list, and asks the model again; once the model is done talking, the loop ends. By default it runs at most 90 rounds, and that 90-round budget is shared between the main Agent and any sub-agents it spawns.
 
@@ -55,17 +53,17 @@ If you read the Harness Engineering orange book, you'll remember the reins frame
 
 What's interesting about Hermes is that it ships all five components as built-in systems out of the box. You don't configure them in—they're already part of its body. Here's the one-to-one mapping:
 
-| Harness What It Is in Hermes In One Line Component |
-| --- |
-| Instruction layer Skill system markdown skill files, injected as a user message rather than a system prompt |
-| Constraint layer Tool-set toggles + sandbox + 6grant the permissions it should have, lock down terminal backendswhat it shouldn't touch |
-| Feedback layer Self-improving learning loop +the more it's used the better it gets, and it prunes Curatorstale skills on its own |
-| Memory layer SQLite + FTS5 + swappable memorystored locally, full-text indexed, findable across providersessions |
-| OrchestrationSub-agent delegation + scheduledone Agent can direct a whole crew of Agents to layertasks + Kanban boarddo the work |
+| Harness Component | What It Is in Hermes | In One Line |
+| --- | --- | --- |
+| Instruction layer | Skill system | markdown skill files, injected as a user message rather than a system prompt |
+| Constraint layer | Tool-set toggles + sandbox + 6 terminal backends | grant the permissions it should have, lock down what it shouldn't touch |
+| Feedback layer | Self-improving learning loop + Curator | the more it's used the better it gets, and it prunes stale skills on its own |
+| Memory layer | SQLite + FTS5 + swappable memory provider | stored locally, full-text indexed, findable across sessions |
+| Orchestration layer | Sub-agent delegation + scheduled tasks + Kanban board | one Agent can direct a whole crew of Agents to do the work |
 
 The later chapters of this book basically dig down along these five rows. Each row has its own source code, its own design trade-offs, its own pitfalls. This section just lays out the map so you know roughly where each piece of the puzzle sits.
 
-> Remember this mapping. It's the skeleton of the whole book. Whenever a system later on feels confusing, come back to this table and ask yourself "which reins component is this?"—and it'll usually fall into place.
+> **Remember this mapping.** It's the skeleton of the whole book. Whenever a system later on feels confusing, come back to this table and ask yourself "which reins component is this?"—and it'll usually fall into place.
 
 ## Why wear a god object rather than break it into microservices
 
@@ -79,9 +77,9 @@ Because all the faces share the same brain, the preferences you tuned in the des
 
 And what really nails this trade-off down are two hard constraints that can't be touched.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| The prompt cache must not break. Mid-conversation you absolutely cannot alter the past context, can't swap the tool set, can't rebuild the system prompt—one change and the whole cache is void, and every request has to re-burn tokens. This constraint is even why a Skill gets injected as a user message instead of a system prompt. |  | Tens of thousands of tests can't move. The whole project sits on close to seventeen thousand tests. Restructuring the architecture means moving the foundation, and all those tests get dragged down with it—the engineering cost is unrealistically high. |  |
+| 推荐 | 不推荐 |
+| --- | --- |
+| The prompt cache must not break. Mid-conversation you absolutely cannot alter the past context, can't swap the tool set, can't rebuild the system prompt—one change and the whole cache is void, and every request has to re-burn tokens. This constraint is even why a Skill gets injected as a user message instead of a system prompt. | Tens of thousands of tests can't move. The whole project sits on close to seventeen thousand tests. Restructuring the architecture means moving the foundation, and all those tests get dragged down with it—the engineering cost is unrealistically high. |
 
 Put these two constraints side by side and the answer is clear. This really isn't a matter of technical taste —it's engineering realism. When a god object buys you "consistent behavior across every platform," and tearing it out would cost you "a broken cache + tens of thousands of rewritten tests," carrying that weight is actually the smart move.
 

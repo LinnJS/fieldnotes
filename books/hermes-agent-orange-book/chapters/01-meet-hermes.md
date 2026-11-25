@@ -59,13 +59,13 @@ Now that we've covered what it is, here's a tangent that's hard to skip: the buz
 
 Its GitHub stars have already crossed one hundred and eighty thousand. It made Dealroom's list of the fastest-growing open-source Agent frameworks of 2026. Every time you open the repo, the number is still climbing.
 
-> One number to feel the pace of iteration: the latest version, v0.16.0, is backed by over eight hundred commits, more than five hundred merged PRs, and over a hundred and seventy contributors. And this is just a minor release. Once an open-source community's flywheel starts spinning, the acceleration is frightening.
+> **One number to feel the pace of iteration:** the latest version, v0.16.0, is backed by over eight hundred commits, more than five hundred merged PRs, and over a hundred and seventy contributors. And this is just a minor release. Once an open-source community's flywheel starts spinning, the acceleration is frightening.
 
 I've felt firsthand just how fast it iterates. Two months ago I wrote the first edition of this book, and back then Hermes was still a geek toy that ran in your terminal and was operated remotely over Telegram. Two months and nine versions later, it has grown a native desktop App, a full browser-based management panel, and Simplified Chinese support, with the team calling this version "The Surface Release." In one line: the core hasn't changed, but it went from something only command-line veterans could touch into a product where you send a friend an installer and they double-click to use it.
 
 But let me be clear: fast updates are just the surface, not the point of this book. Every month the AI world has products sprinting ahead; fast on its own isn't interesting. What makes Hermes worth a whole book is the stable core behind that speed—an Agent that builds its own harness, and a harness that grows on its own. We'll get into that bit by bit later.
 
-Let me also place myself here, so you don't think this is something I crammed together by looking things up. These past two years I've poured almost everything into AI Agents and skills: my open-source 女 娲 .skill now has over twenty thousand stars, huashu-design for design work has sixteen thousand, the self-evolving 达 尔 文 .skill has over three thousand, and the first edition of this book itself racked up over four thousand stars on GitHub. Self-improving Agents and self-evolving skills are what I work on and play with every single day. So I've basically been watching every step Hermes took over these two months, live, on the ground.
+Let me also place myself here, so you don't think this is something I crammed together by looking things up. These past two years I've poured almost everything into AI Agents and skills: my open-source 女娲.skill now has over twenty thousand stars, huashu-design for design work has sixteen thousand, the self-evolving 达尔文.skill has over three thousand, and the first edition of this book itself racked up over four thousand stars on GitHub. Self-improving Agents and self-evolving skills are what I work on and play with every single day. So I've basically been watching every step Hermes took over these two months, live, on the ground.
 
 ## Should you migrate off OpenClaw
 
@@ -73,11 +73,10 @@ If you're currently using OpenClaw, read this section on its own, because it mig
 
 Something big happened with OpenClaw these past two months. Its founder, Peter Steinberger, announced he was joining OpenAI, and the project itself was handed over to a non-profit foundation to steward. By sheer size, OpenClaw is still bigger than Hermes right now—stars are roughly double. But with the soul of the project gone and the project itself folded into a foundation, you can visibly see the community's growth momentum weakening.
 
-And over on the Hermes side, they made a pretty interesting move. They didn't stop at the verbal sparring of "I'm better than OpenClaw"; instead, they rolled out the moving-day carpet right inside the product. There's a command in the source code called `hermes claw migrate` , and the README has a whole section teaching you how to migrate over from OpenClaw: persona settings, memory, user profile, custom skills, command allowlist, per-platform config, API keys—it auto-detects your local OpenClaw directory and moves everything over in one shot.
+And over on the Hermes side, they made a pretty interesting move. They didn't stop at the verbal sparring of "I'm better than OpenClaw"; instead, they rolled out the moving-day carpet right inside the product. There's a command in the source code called `hermes claw migrate`, and the README has a whole section teaching you how to migrate over from OpenClaw: persona settings, memory, user profile, custom skills, command allowlist, per-platform config, API keys—it auto-detects your local OpenClaw directory and moves everything over in one shot.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > Whether to migrate—my advice is don't rush to a conclusion. Later in this book I'll walk through Hermes's memory, skills, and security mechanisms in depth; deciding whether it's worth migrating after you've read that beats guessing on a whim now. But one thing you can note already: Hermes has already pushed the technical cost of migrating down to almost nothing, and that in itself is a signal.
 
 ## What this book takes you to see is the core beneath the face

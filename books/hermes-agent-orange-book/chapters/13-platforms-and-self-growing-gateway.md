@@ -46,17 +46,11 @@ Five conversational platforms added in two months. Back when the old edition was
 
 In that old edition, adding a platform was a heavy lift. You had to go into the core code and edit a pile of if/elif branches: an incoming message had to be checked for which platform it came from, an outgoing message had to be routed to the right platform, and config parsing, user authorization, and status display each needed a line changed for the new platform. The more platforms there were, the more bloated the core got, and editing one spot risked breaking another.
 
-v0.16.0 does it differently. The core has a registry called `PlatformRegistry` (in `gateway/platform_registry.py` ). It's a singleton: whoever wants to add a platform just registers themselves with it. When the Gateway receives a message, it checks the registry first, and only falls back to the old built-in path if it finds nothing there.
+v0.16.0 does it differently. The core has a registry called `PlatformRegistry` (in `gateway/platform_registry.py`). It's a singleton: whoever wants to add a platform just registers themselves with it. When the Gateway receives a message, it checks the registry first, and only falls back to the old built-in path if it finds nothing there.
 
-New platforms no longer get written into the core; instead they live in the `plugins/platforms/` directory — one folder per platform, each holding a `plugin.yaml` and an `adapter.py` . When the plugin starts up, it calls `ctx.register_platform()` to register itself.
+New platforms no longer get written into the core; instead they live in the `plugins/platforms/` directory — one folder per platform, each holding a `plugin.yaml` and an `adapter.py`. When the plugin starts up, it calls `ctx.register_platform()` to register itself.
 
-> Create a new folder Write adapter + plugin.yaml Self-register into the Registry
-
-→ →
-
-> Not a single line of core code changes
-
-→
+Create a new folder → Write adapter + plugin.yaml → Self-register into the Registry → Not a single line of core code changes
 
 The official docs put it bluntly: the plugin path "requires zero changes to core Hermes code." Adapter creation, config parsing, user authorization, cron delivery, message routing, system prompts, status display, the install wizard — this entire set is taken over automatically by the plugin system.
 
@@ -74,7 +68,7 @@ Look at that last field and the whole design clicks. The core code deliberately 
 
 This line of thinking rhymes with the book's main thread, "the harness grows itself." The Agent's capabilities grow themselves (skill self-improvement), and so does its access layer — one more platform, and the core doesn't move a hair. The Gateway has grown from "one big process with a bunch of platforms baked in" into "a platform host with a registry."
 
-> A detail: Discord, Home Assistant, and Mattermost appear in the old built-in enum and also show up under the same names in the new plugins directory. That's not a bug — it's the trail of the historical built-in platforms being migrated to plugins one by one. The new architecture left a compatibility path: if it's not in the registry, fall back to the old route.
+> **A detail:** Discord, Home Assistant, and Mattermost appear in the old built-in enum and also show up under the same names in the new plugins directory. That's not a bug — it's the trail of the historical built-in platforms being migrated to plugins one by one. The new architecture left a compatibility path: if it's not in the registry, fall back to the old route.
 
 ## The more platforms you add, the faster it starts
 
@@ -103,29 +97,22 @@ So where does the continuity come from? From another mechanism, called session m
 
 So what really holds up the "cross-platform continuity" experience is three things layered together.
 
-The same Agent, the same memory and Skills
+1. The same Agent, the same memory and Skills
 
-```text
-1
-```
+   All 23 platforms share the same Agent instance. Whatever preference you state on any platform goes into the same memory store. Switch platforms, and its understanding of you doesn't reset to zero.
 
-All 23 platforms share the same Agent instance. Whatever preference you state on any platform goes into the same memory store. Switch platforms, and its understanding of you doesn't reset to zero.
+2. Transcript mirroring when messages cross platforms
 
-Transcript mirroring when messages cross platforms
+   As a message flows across platforms, its content gets mirrored into the target session's log, so the Agent on the other side has context and isn't left dumbfounded.
 
-```text
-2
-```
+3. The desktop App can reference sessions across profiles
 
-As a message flows across platforms, its content gets mirrored into the target session's log, so the Agent on the other side has context and isn't left dumbfounded.
-
-`3` The desktop App can reference sessions across profiles In the new desktop App you can use `@session` to directly reference another session, stringing conversations from different sources together.
+   In the new desktop App you can use `@session` to directly reference another session, stringing conversations from different sources together.
 
 I'm spelling out this layer not to seem rigorous. It's because once you start using it under the assumption that "the same session continues seamlessly," edge cases will leave you confused: why does it sometimes seem to "forget"? Understand the real truth — "shared memory + mirroring" — and you'll know where its capability boundaries actually lie.
 
-| 注意 |
-| --- |
-
+> **注意**
+>
 > While writing this chapter I made a point of listing a few easy traps: don't copy "start on Telegram, continue on Discord" literally; "23" is an official round number, the boundary includes web but not IRC; for a highly volatile figure like GitHub stars, only state the order of magnitude and note the date — don't pin it down. For any outward-facing claim you're unsure of, write conservatively, write the mechanism, but don't write a number you haven't verified.
 
 ## What this means

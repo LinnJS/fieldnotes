@@ -29,17 +29,15 @@ The heart of the Kanban board system is a process called the dispatcher. The nam
 
 You can count the things it's able to do on one hand. Three, total.
 
-> Recompute who's ready Atomically claim a task Spawn a worker process
+Recompute who's ready → Atomically claim a task → Spawn a worker process
 
-→ →
-
-Recompute ready means checking which tasks have all their upstream dependencies done and can start. Atomic claim means grabbing the lock on a task with a single line of SQL, `WHERE status='ready' AND claim_lock IS NULL` , relying on the database's row-level contention to guarantee that at most one claimant wins the same task. Spawn worker means launching an OS process to execute it.
+Recompute ready means checking which tasks have all their upstream dependencies done and can start. Atomic claim means grabbing the lock on a task with a single line of SQL, `WHERE status='ready' AND claim_lock IS NULL`, relying on the database's row-level contention to guarantee that at most one claimant wins the same task. Spawn worker means launching an OS process to execute it.
 
 That's the three. Nothing more.
 
 All those fancy tricks you'd expect from multi-agent collaboration, smart routing, budget allocation, approval governance, who-goes-first, the dispatcher handles none of them. It doesn't know which task matters more, doesn't know whether to hand work to the cheapest model or the most expensive, doesn't fret about what happens if two workers butt heads. All of that judgment gets pushed somewhere it has no reach: into the profile's system prompt, into the plugins the user installs, into the config the card carries with itself.
 
-> That's the whole meaning of "dumb core": the core only guarantees that the mechanism is correct (a task won't be claimed by two processes at once, a dead worker gets reclaimed), while policy, who to dispatch, how much to spend, whether a human needs to approve, is all handed off to userspace. Separating mechanism from policy is a rule Unix has lived by for fifty years.
+> **That's the whole meaning of "dumb core":** the core only guarantees that the mechanism is correct (a task won't be claimed by two processes at once, a dead worker gets reclaimed), while policy, who to dispatch, how much to spend, whether a human needs to approve, is all handed off to userspace. Separating mechanism from policy is a rule Unix has lived by for fifty years.
 
 ## Why keep the core dumb on purpose
 
@@ -51,19 +49,13 @@ Interestingly, Nous set this philosophy against a contemporary system for contra
 
 ## swarm: a "combinator sugar" with no new runtime
 
-Hermes has a one-shot command for spinning up multiple agents, `hermes kanban swarm` . You give it a goal, pick a few roles, and it lays out a collaboration web: several expert workers running in parallel, a verifier as gatekeeper, a synthesizer to wrap up.
+Hermes has a one-shot command for spinning up multiple agents, `hermes kanban swarm`. You give it a goal, pick a few roles, and it lays out a collaboration web: several expert workers running in parallel, a verifier as gatekeeper, a synthesizer to wrap up.
 
 First-timers assume there must be a dedicated swarm engine hiding behind this. There isn't.
 
 The swarm module opens by stating it outright: deliberately no second scheduler. All it does is write a fixed-shape task graph into the existing Kanban core.
 
-> Planning root task (done the moment it's built) Parallel expert workers
-
-→ →
-
-> Verifier gate Synthesizer wrap-up
-
-→
+Planning root task (done the moment it's built) → Parallel expert workers → Verifier gate → Synthesizer wrap-up
 
 Every line and every state in that graph is a primitive the board already had: fan-out parallelism, pipeline serialization, dependency links between tasks. Even the "blackboard" where workers share information is no new storage, it's just a structured JSON comment on the root task, later writes overwrite earlier ones, with a note of who wrote it. The dashboard, the notifications, the command line, not one component needs new code for swarm, because it never built anything new.
 
@@ -83,9 +75,9 @@ Hermes carved this lesson into a heading in its design doc, "Key invariant: no i
 
 That line, "not a single lifecycle that we don't own," is the keystone of the whole philosophy. Hermes would rather bear the clunky costs of inter-process communication, heartbeat checks, and crash recovery than hand a worker's life to an upstream SDK it can't control.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| Hermes: each worker is an independent OS process. A worker dies (crash / killed / clean exit), the claim lock expires automatically, and the task is reassigned. Lifecycle fully in your own hands; the worst case is rerunning once, never silently losing results. |  | NanoClaw-style in-process swarm: a subagent's life hangs on the upstream SDK's query lifecycle. The moment that round of the team-lead ends, the subagent is killed silently, half-finished work just evaporates, "looks like it succeeded, produced zero." |  |
+| 推荐 | 不推荐 |
+| --- | --- |
+| Hermes: each worker is an independent OS process. A worker dies (crash / killed / clean exit), the claim lock expires automatically, and the task is reassigned. Lifecycle fully in your own hands; the worst case is rerunning once, never silently losing results. | NanoClaw-style in-process swarm: a subagent's life hangs on the upstream SDK's query lifecycle. The moment that round of the team-lead ends, the subagent is killed silently, half-finished work just evaporates, "looks like it succeeded, produced zero." |
 
 The OpenClaw family of designs that emphasize in-process agent swarms share the same fragility. It's not that in-process is necessarily wrong. What I'm getting at is this: when your agent's life and death depend on a lifecycle you don't own, you've buried a time bomb. Hermes chose the path that looks clunkier but is actually more honest: the boundary is the OS process, and that's all.
 

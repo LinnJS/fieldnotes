@@ -29,11 +29,7 @@ When the last edition of the Hermes Orange Book wrote up the learning loop, the 
 
 In these two months it jumped eight versions, all the way to v0.16.0. I read the source line by line and found that the idea had been engineered into real infrastructure. The cleanest way to split it is three verbs: build, repair, continue.
 
-> BuildRepairContinue
-
-→ →
-
-> Background ReviewCuratorGoals / Ralph Loop
+Build Background Review → Repair Curator → Continue Goals / Ralph Loop
 
 Build is when, after each turn of conversation, it quietly forks a sub-agent to do a retrospective and decide what was learned this time and which skill to write it into. Repair is a maintainer that wakes itself up once every seven days to merge, archive, and package the skill library the agent has built. Continue is when a goal isn't finished and the agent gives itself an extension, running several turns in a row instead of answering once and stopping.
 
@@ -66,7 +62,7 @@ Why memory by "turns" and skill by "tool iterations"? I thought about it, and th
 
 The most quote-worthy part of this engine is the prompt it uses when reviewing skills. I've pulled out the core lines, and this is almost a piece of engineering methodology on "how an AI should write rules for itself."
 
-> Learning should be the default: the prompt literally says, "Be ACTIVE, most sessions should produce at least one skill update… A retrospective that does nothing is a missed learning opportunity, not a neutral outcome." It defines "not learning" as a dereliction of duty, not the safe default option.
+> **Learning should be the default:** the prompt literally says, "Be ACTIVE, most sessions should produce at least one skill update… A retrospective that does nothing is a missed learning opportunity, not a neutral outcome." It defines "not learning" as a dereliction of duty, not the safe default option.
 
 More interesting is how it defines a learning signal. Mitchell Hashimoto has a habit when using Claude Code: every time the agent makes a mistake, he adds a rule to CLAUDE.md. Hermes automated this, and made "mistake" concrete as the user's tone of displeasure—"stop doing X," "this is too verbose," "don't format it this way," "why are you explaining again," "just give me the answer." It lists these frustration signals as first-class learning signals and requires that they be encoded on the spot into a pitfall or step inside a skill.
 
@@ -74,7 +70,7 @@ It also has a priority gradient for editing skills, rather than creating a new o
 
 ## Engine Two · Repair: the Curator, the maintainer that wakes once every seven days
 
-The second engine is the Curator, with source in `agent/curator.py` . This thing didn't exist at all in the old book; it was born in v0.12.0, a version the team named The Curator release, whose release notes opened with: Hermes can now maintain itself.
+The second engine is the Curator, with source in `agent/curator.py`. This thing didn't exist at all in the old book; it was born in v0.12.0, a version the team named The Curator release, whose release notes opened with: Hermes can now maintain itself.
 
 What it does is exactly the "apoptosis" half mentioned above: merging, archiving, and packaging the skill library the agent created itself, pure maintenance, learning nothing new. If background review notices two overlapping skills during a retrospective, it won't merge them itself; it just "makes a note and hands it to the curator for bulk processing." The two engines' duties are drawn very clearly in the source.
 
@@ -82,13 +78,7 @@ The Curator's trigger rhythm is completely different from the first engine. It d
 
 It does its work in two stages, and the first stage uses no large model at all. A pure-function state machine that mechanically advances each skill's lifecycle by its "last activity time":
 
-> activestale
-
-→ 30 days unused → → 90 days unused →
-
-> activestale
-
-> archived archived
+active active → 30 days unused → stale stale → 90 days unused → archived archived
 
 Once a stale skill is used again, it automatically revives back to active. A pinned skill never participates in automatic transitions. This stage doesn't burn a single token; it's pure timestamp pushing. The second stage is the large-model retrospective, forking an agent to actually judge which skills should be merged and which archived.
 
@@ -96,15 +86,14 @@ The Curator has the most details and the heaviest brakes of all three engines, a
 
 ## Engine Three · Continue: the Goals Ralph Loop
 
-The first two engines change the agent's cross-session capability. The third is different; it changes the agent's persistence within a single session. The source is in `hermes_cli/goals.py` , and the comments call it "Hermes's Ralph loop."
+The first two engines change the agent's cross-session capability. The third is different; it changes the agent's persistence within a single session. The source is in `hermes_cli/goals.py`, and the comments call it "Hermes's Ralph loop."
 
 The mechanism isn't complicated: a goal is a user-given objective that stays in effect across multiple turns. After each turn ends, a tiny judge call asks an auxiliary model one question: was this goal satisfied by the reply just now? If not, Hermes feeds a "keep going" prompt back into the same session and continues running, until the goal is done, the turn budget is exhausted, the user calls a halt, or the user sends a new message.
 
 It has a few restrained designs I quite admire. The extension prompt is just an ordinary user message appended in—it doesn't touch the system prompt, doesn't swap the toolset—so the prefix cache doesn't get invalidated, saving money. If the judge ever breaks, it chooses to fail-open, that is, "continue," because a broken judge can't be allowed to jam progress, and the turn budget backstops it anyway. Any real message you send at any time preempts the extension prompt.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > The first two engines make the agent "understand you better the more you use it"; the third makes it "lock onto a goal and not let go." Building capability, repairing capability, continuing drive—the three together are what makes a complete "agent that builds its own harness."
 
 ## Three engines, one panorama

@@ -39,9 +39,7 @@ Hermes doesn't cast a wide net everywhere. It picks the three positions that mos
 
 Which three positions? They map exactly onto the three intake ports from §07.
 
-> Memory Recall Tool Results Skill Installation
-
-→ →
+Memory Recall → Tool Results → Skill Installation
 
 | Chokepoint | Risk | How Hermes intercepts |
 | --- | --- | --- |
@@ -49,7 +47,7 @@ Which three positions? They map exactly onto the three intake ports from §07.
 | Tool Results | A web page, file, or MCP response impersonates Hermes's own system instructions | Wrap tool results in delimiter markers so they can't pose as system content |
 | Skill Installation | A third-party Skill hides injection instructions in its description | Skills Guard scans the installed content; multi-word bypasses are hardened |
 
-The scanning logic for all three lives in one file, `tools/threat_patterns.py` , and it's the piece of this whole chapter I think is most worth a close look. It's under three hundred lines, but inside it hides a design call I particularly admire.
+The scanning logic for all three lives in one file, `tools/threat_patterns.py`, and it's the piece of this whole chapter I think is most worth a close look. It's under three hundred lines, but inside it hides a design call I particularly admire.
 
 ## Anchor on the bad guys' jargon, not on imperative sentences
 
@@ -59,7 +57,7 @@ But Hermes explicitly refuses to do this. The reason is written right in the cod
 
 So it switched anchors: don't anchor on imperative English; anchor on C2-specific vocabulary and unambiguous attack behaviors. C2 is short for command-and-control, the jargon attackers use to remotely control a compromised machine. These words almost never show up in normal technical documentation, and when they do, the suspicion level is extremely high.
 
-> This distinction matters: a single false positive on a legitimate instruction and the user turns off the whole defense; a single missed attack and you've only lost this one layer. So it's better to anchor on "words only a bad guy would say" than on "phrasing that good guys and bad guys both use." This trades off precision against recall, leaning toward "don't bother the good guys."
+> **This distinction matters:** a single false positive on a legitimate instruction and the user turns off the whole defense; a single missed attack and you've only lost this one layer. So it's better to anchor on "words only a bad guy would say" than on "phrasing that good guys and bad guys both use." This trades off precision against recall, leaning toward "don't bother the good guys."
 
 What words does it actually catch? A few examples make it clear:
 
@@ -94,9 +92,9 @@ No matter how good the defense, it only lowers the probability; it can't get to 
 
 This is a subsystem entirely new in v0.16 relative to the old book. Its architecture has a part I find very cleanly designed: it splits "watching" and "changing" into two completely separate contracts.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| Observer Hooks: read-only telemetry. They only report "what happened" and never, ever touch runtime behavior. Used for traces, metrics, audits, and replays. Every hook is fail-open: if your telemetry plugin crashes, Hermes swallows the exception, logs a warning, and the Agent keeps running. Monitoring must not drag down the main flow in return. |  | Middleware: can change behavior. It can change "what's about to happen": swap model parameters before execution, swap tool parameters, wrap the actual call. It's a double-edged sword, which is why it's kept as a separate thing from the read-only observers, never mixed. |  |
+| 推荐 | 不推荐 |
+| --- | --- |
+| Observer Hooks: read-only telemetry. They only report "what happened" and never, ever touch runtime behavior. Used for traces, metrics, audits, and replays. Every hook is fail-open: if your telemetry plugin crashes, Hermes swallows the exception, logs a warning, and the Agent keeps running. Monitoring must not drag down the main flow in return. | Middleware: can change behavior. It can change "what's about to happen": swap model parameters before execution, swap tool parameters, wrap the actual call. It's a double-edged sword, which is why it's kept as a separate thing from the read-only observers, never mixed. |
 
 Why insist on drawing the line this sharply? Because the risk levels of these two things aren't even in the same order of magnitude. The read-only stuff you can install freely; worst case, you lose a bit of telemetry data. The behavior-changing stuff you have to be careful with, because it can reach into the actual commands the Agent is about to run.
 
@@ -106,9 +104,13 @@ There's one point that has to make it into the book, because it's exactly the ed
 
 This observer contract isn't reinventing the wheel; it exposes a standard interface that can feed straight into off-the-shelf monitoring platforms. Hermes ships two built-in consumers, both opt-in, so they don't load unless you turn them on, consistent with the plugin trust model from the last chapter.
 
-`1` Langfuse An open-source LLM observability platform. Hermes hooks directly into every conversation turn, every API request, and every tool call; configure the public and private keys and it starts reporting. Good for anyone who wants a ready-made dashboard for watching Agent behavior.
+1. Langfuse
 
-`2` NeMo Relay NVIDIA's runtime layer for Agent execution boundaries. It maps Hermes's observer events into its own scopes, LLM spans, and tool spans, exporting them as standard event streams and trace formats, purpose-built for replay, evaluation, and harness analysis. If the corresponding package isn't installed it doesn't error out either, also fail-open.
+   An open-source LLM observability platform. Hermes hooks directly into every conversation turn, every API request, and every tool call; configure the public and private keys and it starts reporting. Good for anyone who wants a ready-made dashboard for watching Agent behavior.
+
+2. NeMo Relay
+
+   NVIDIA's runtime layer for Agent execution boundaries. It maps Hermes's observer events into its own scopes, LLM spans, and tool spans, exporting them as standard event streams and trace formats, purpose-built for replay, evaluation, and harness analysis. If the corresponding package isn't installed it doesn't error out either, also fail-open.
 
 You can see a trend here. Agent behavior is being recorded in a standardized way and consumed by external tools, just like the road backend services have walked over the years, from "running bare" to "fully observable end to end." The Agent is growing its own APM.
 
@@ -122,9 +124,8 @@ Intercept once at the entrance (threat_patterns, knowing it can't catch everythi
 
 This is the opposite road from "use a smarter prompt to constrain the Agent." Hermes's bet is: rather than believing you can write an Agent that can't be fooled, admit it will be fooled, then record every step so you can investigate, replay, and catch it the moment it does something bad.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > If you're just playing around locally, the default defense at the three chokepoints is enough. But the moment you plan to deploy Hermes as a 24/7 always-on service that's also wired to tools that can read your data, you absolutely must turn on observability too, pick either Langfuse or NeMo Relay. An unattended Agent with no telemetry is a black box; you have no idea who it spent this week working for.
 
 The next chapter wraps up this part. We pull back to a higher vantage point and talk about a bigger question: a self-improving Agent that builds its own harness, how far can it really go, and where are its limits?

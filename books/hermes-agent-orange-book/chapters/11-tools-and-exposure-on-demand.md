@@ -29,9 +29,9 @@ The old book said Hermes had "40+ tools," which was the official README's public
 
 The numbers don't line up because two concepts got conflated, and we need to pry them apart.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| Tool like web_search, terminal, image_generate. There are 64 of these. | : the actual function the model can call. Things | Toolset example, web={web_search, web_extract}. There are about 50 of these. | : an alias that bundles tools into groups. For |
+| 推荐 | 不推荐 |
+| --- | --- |
+| Tool: the actual function the model can call. Things like web_search, terminal, image_generate. There are 64 of these. | Toolset: an alias that bundles tools into groups. For example, web={web_search, web_extract}. There are about 50 of these. |
 
 Why split them into two layers? Because "what to expose to the model" and "how to organize by function" are two different things. Tools are the atoms; toolsets are the combo meals. As you'll see, this layering is exactly the foundation for "exposure on demand."
 
@@ -59,7 +59,7 @@ Hermes's answer is two layers of gating. The first layer is toolset grouping; th
 
 Many tools don't show up unconditionally—they carry a `check_fn` gating function and only enter the model's visible tool list when runtime conditions are met. Let me give a few real examples so you can see how restrained this design is.
 
-> A few examples of check_fn gating: send_message only appears when the gateway is running; the Home Assistant tools only appear if you've configured HASS_TOKEN; computer_use only appears if the desktop driver is installed; the 9 kanban tools only appear when you've been spawned by the Kanban scheduler. Not installed, not configured, not triggered—and the model simply can't see them.
+> **A few examples of check_fn gating:** send_message only appears when the gateway is running; the Home Assistant tools only appear if you've configured HASS_TOKEN; computer_use only appears if the desktop driver is installed; the 9 kanban tools only appear when you've been spawned by the Kanban scheduler. Not installed, not configured, not triggered—and the model simply can't see them.
 
 There's also one safety narrowing that I think is cleverly designed. In a webhook scenario—say someone opens a PR or leaves a comment that triggers Hermes—the content may come from an untrusted third party. In that scenario Hermes exposes only the four safest tools (search, extract, view images, ask for clarification), and grants zero local execution privileges. Because the text in a webhook may hide a prompt injection, and if the model gets tricked into running terminal, it's game over. This writes the threat model directly into the tool-exposure rules.
 
@@ -69,21 +69,14 @@ The second gating layer is new in v0.16.0. It's called progressive tool disclosu
 
 Once it's on, MCP tools and non-core plugin tools are no longer listed directly into the tool array the model sees. Instead they're replaced by three bridging tools: tool_search, tool_describe, tool_call. When the model needs something, it searches for what tools exist, looks up how to use one, then calls it. It's like a library switching from "all the books spread out in front of you" to "here's a search desk."
 
-> Model wants to do something tool_search finds available tools
-
-→ →
-
-> tool_describe checks usage tool_call invokes it
-
-→
+Model wants to do something → tool_search finds available tools → tool_describe checks usage → tool_call invokes it
 
 Two rules here strike me as well-measured. One is that core tools are never deferred—the source puts it bluntly: "Always load means always load. No exceptions." The batch of most-used tools that should stay visible throughout stays visible throughout, no detours. The other is a threshold gate: when the deferrable tools take up less than 10% of context, this whole search mechanism just idles and the tool array is passed through unchanged. Translation: if there aren't many tools, don't bother. The mechanism that saves context must not become a new burden itself.
 
 The most interesting bit is a line in the source comments: this tool catalog is stateless, rebuilt every turn. Why not cache it? Because they explicitly took a lesson from OpenClaw.
 
-| 注意 |
-| --- |
-
+> **注意**
+>
 > OpenClaw once stepped on a landmine: it cached the tool catalog at the session level, and the cache drifted from the live tool registry, causing tools to silently disappear. The user thought a tool was still there, but the model couldn't see it—and no error was raised. Hermes's comments name and cite this regression bug directly, and choose to rebuild every turn rather than cache, purely to dodge the same pit.
 
 I'm especially fond of this kind of "I watched someone else trip, so I'm walking around this rock" engineering comment. It isn't abstract best practice—it's firsthand experience, learned the hard way. This progressive disclosure is essentially an open-source implementation of Anthropic's "load tools on demand" idea, solving the very real problem of context getting blown out by tool definitions once you've connected too many MCPs.

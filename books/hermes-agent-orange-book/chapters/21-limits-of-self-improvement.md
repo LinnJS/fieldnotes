@@ -41,11 +41,7 @@ v0.16.0 ships with a thing called the Curator, a real maintainer running in the 
 
 But go dig into `agent/curator.py` and you'll find every one of its actions is gated by three locks, and those three locks happen to be the engineering definition of "on the loop."
 
-> dry-run, report first never delete, only archive
-
-→ →
-
-> snapshot before acting, rollback ready
+dry-run, report first → never delete, only archive → snapshot before acting, rollback ready
 
 First lock, dry-run preview. `hermes curator run --dry-run` does a pass that only produces a report and touches nothing in the library. Whatever the Agent wants to merge, whatever it wants to archive, it lists for you first, and you decide whether to actually run it after reviewing. The human isn't kicked out of the loop, the human stands on the loop reading the report.
 
@@ -55,7 +51,7 @@ Third lock, snapshot before acting. Every time the Curator is about to actually 
 
 And there's a more subtle boundary, which I think is the cleverest stroke in the whole design: provenance. Hermes records "who made you" for every Skill. Hand-written ones, ones installed from the community, ones shipped out of the box, all get a protected mark, and the Curator may not touch a single one of them. The only thing it can move is the part the Agent forked and grew itself.
 
-> What this means: the "blast radius" of self-improvement is locked inside the Agent's own backyard. It can mess with the things it grew itself, but it can't touch the ones you wrote by hand and trust. If something goes wrong, the only patch that gets ruined is its own.
+> **What this means:** the "blast radius" of self-improvement is locked inside the Agent's own backyard. It can mess with the things it grew itself, but it can't touch the ones you wrote by hand and trust. If something goes wrong, the only patch that gets ruined is its own.
 
 Lay all four of these side by side, dry-run, the no-delete blacklist, snapshots, and provenance, and Fowler's abstract yardstick finally gets source-level markings. Hermes clearly picked "on the loop": the Agent runs on its own, but you can watch, intercept, roll back, and draw the boundary of its activity at any time.
 
@@ -71,9 +67,9 @@ That line stings. It's essentially saying: all those things inside my process, t
 
 Most products tell the marketing story the other way around: I've got N layers of AI protection, each one makes you safer. Hermes goes and labels every single one of its own in-process defenses as "not a boundary," then throws the real trust anchor over to the operating system.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| Drop the whole Agent process into an OS sandbox (Docker / OpenShell / a remote host) so the filesystem, network, and processes are all constrained by the OS. This is a real boundary. |  | Pile up approval regexes, redaction rules, and pattern scans inside the Agent process and count on them to block adversarial output. This is just a heuristic, not a wall. |  |
+| 推荐 | 不推荐 |
+| --- | --- |
+| Drop the whole Agent process into an OS sandbox (Docker / OpenShell / a remote host) so the filesystem, network, and processes are all constrained by the OS. This is a real boundary. | Pile up approval regexes, redaction rules, and pattern scans inside the Agent process and count on them to block adversarial output. This is just a heuristic, not a wall. |
 
 This kind of honesty comes at a cost. Admitting "the protection inside my process is not a boundary" means voluntarily giving up a very sellable pitch. But it buys something sturdier: you know exactly what's protecting you. Not a pile of regexes that might be bypassed, but a layer of OS-level isolation.
 

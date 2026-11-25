@@ -33,9 +33,9 @@ With no constraint in place, it'll very likely reach a conclusion that looks per
 
 The trouble starts right there. The environment gets fixed soon enough, the browser tool works fine again, but that rule is still sitting in the skill. So for the next several months, every time you ask it to go online, it cites the line it wrote itself and tells you: the browser tool doesn't work, can't do it.
 
-The comment in the Hermes source code nails this phenomenon, so let me quote it directly (from `agent/background_review.py` ):
+The comment in the Hermes source code nails this phenomenon, so let me quote it directly (from `agent/background_review.py`):
 
-> Original: Negative claims about tools or features ('browser tools do not work', 'X tool is broken'). These harden into refusals the agent cites against itself for months after the actual problem was fixed.
+> **Original:** Negative claims about tools or features ('browser tools do not work', 'X tool is broken'). These harden into refusals the agent cites against itself for months after the actual problem was fixed.
 
 "Harden into refusals the agent cites against itself." I find that phrasing remarkably clear-eyed. A system that's supposed to get smarter the more it's used ends up digging itself a long-term pit, precisely because of its ability to learn.
 
@@ -47,15 +47,15 @@ In other words, Hermes defaults to learning, biased toward writing more rules ra
 
 A human mistake and an environment failure look almost identical. Both are "I tried, it failed." Yet the correct response to each is worlds apart.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| I got the command arguments wrong fault, worth learning, don't mess it up next time | → that's my | this machine just happens to not have that binary installed environment, not something to learn as a permanent rule | → that's a temporary state of the |
+| 推荐 | 不推荐 |
+| --- | --- |
+| I got the command arguments wrong → that's my fault, worth learning, don't mess it up next time | this machine just happens to not have that binary installed → that's a temporary state of the environment, not something to learn as a permanent rule |
 
 An agent that only knows how to "learn from failure" can't tell these two apart. It treats the second kind as the first, dutifully learning a temporary environment glitch as a permanent self-imposed limit. This is the real second-order risk of self-improvement: it doesn't lie in the ability to learn itself, but in the lack of judgment about whether a given failure even deserves to be remembered.
 
 ## The blacklist: spelling out exactly what's off-limits to learn
 
-Hermes' countermeasure isn't complicated, but it's solid: that review prompt includes a dedicated "do not learn" list (again from `background_review.py` ). Before the retrospective sub-agent decides whether to write a skill, it has to run through this blacklist first.
+Hermes' countermeasure isn't complicated, but it's solid: that review prompt includes a dedicated "do not learn" list (again from `background_review.py`). Before the retrospective sub-agent decides whether to write a skill, it has to run through this blacklist first.
 
 | Blacklist category | Typical examples | Why it can't be learned |
 | --- | --- | --- |
@@ -67,9 +67,8 @@ Behind this blacklist sits a plain criterion, which I'll put in everyday terms: 
 
 Telling "real knowledge" apart from "temporary state" comes down to exactly this. Getting command arguments wrong is a general rule, worth learning; one particular machine not having a package installed is a temporary state, not worth learning. Before the agent puts pen to paper on a skill, it first has to ask itself: would this rule still hold on a different environment, a different machine? If not, the blacklist stops it cold.
 
-| 注意 |
-| --- |
-
+> **注意**
+>
 > This insight is something the old book didn't have at all. Two months ago Hermes was still just the idea of "writes memory, builds skills," and back then nobody realized that the real hard part of self-improvement isn't "how to make it learn," but "how to stop it from learning the wrong things." The blacklist is the most mature thing to grow out of these two months.
 
 ## If it learns wrong anyway, provenance locks the blast radius
@@ -80,7 +79,7 @@ It relies on the provenance (origin tracking) covered in §05: every skill carri
 
 So even if the blacklist has a slip and some bad rule slips through into an agent-created skill, all it can contaminate is the agent's own little plot of land. Whatever came factory-shipped, whatever you installed from the community Hub, whatever you wrote by hand — all of it stays safe. The source comment puts it bluntly: a skill the user had the foreground agent write belongs to the user, and the Curator is never allowed to touch it.
 
-> Blast radius: a skill the agent writes badly while self-learning will, at worst, contaminate its own little plot. It can't reach the configuration you carefully maintain, can't reach the trusted, security-scanned skills from the community. The cost of self-improvement is strictly fenced into a small, controllable circle.
+> **Blast radius:** a skill the agent writes badly while self-learning will, at worst, contaminate its own little plot. It can't reach the configuration you carefully maintain, can't reach the trusted, security-scanned skills from the community. The cost of self-improvement is strictly fenced into a small, controllable circle.
 
 This layer of design is, I think, where the real craft shows. §05 covered how the Curator never deletes, only archives, and takes a tar.gz snapshot before each run so a whole round can be rolled back. Provenance adds one more layer on top: it simply doesn't let self-improvement's effects spill beyond the agent's own plot. A blacklist up front to stop it from learning the wrong things, provenance after the fact to fence in the blast radius — one before, one after, putting this slightly dangerous-sounding thing called "self-evolution" into a cage that won't spin out of control.
 

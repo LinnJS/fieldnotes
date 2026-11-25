@@ -25,7 +25,7 @@ Two months ago, Hermes' Skills were just "a pile of bundled templates." Today it
 
 ## Where Skills come from: three sources in one directory
 
-All of Hermes' Skills land in the same directory, `~/.hermes/skills/` . That's its single source of truth. Open this directory and the Skills you see come from three completely different sources, yet they coexist peacefully.
+All of Hermes' Skills land in the same directory, `~/.hermes/skills/`. That's its single source of truth. Open this directory and the Skills you see come from three completely different sources, yet they coexist peacefully.
 
 | Source | How it got there | Trust level |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ The source is full of traces of compatibility with it. Frontmatter fields like `
 
 Portable to what degree? A SKILL.md written for Claude Code can be copied straight into Codex's Skill directory and just run, behaving identically. The same file is recognized on Codex CLI, Gemini CLI, GitHub Copilot, Cursor—any platform that has adopted the standard.
 
-> The network effect is accelerating: at the old book's baseline the number of tools adopting this standard was "11+"; two months later it's "26+." The bigger the standard's pie, the more accumulated value whoever bets on it gets to eat.
+> **The network effect is accelerating:** at the old book's baseline the number of tools adopting this standard was "11+"; two months later it's "26+." The bigger the standard's pie, the more accumulated value whoever bets on it gets to eat.
 
 How does Hermes cash in on this dividend? Very directly. It can install Skill repos originally built for the Claude Code or Codex ecosystems—say the official Skill repos from openai, anthropic, huggingface—and use them as-is. It even built a migration path for OpenClaw, because both sides feed on the same standard, so Skills can move over almost losslessly.
 
@@ -65,11 +65,7 @@ The signal here matters more than the feature itself. When hardware vendors star
 
 More Skills create a real problem: cram them all into context and you can't afford the tokens. Hermes' answer is progressive disclosure, loading in three tiers.
 
-> Level 0Level 1Level 2
-
-→ →
-
-> name + description onlyexpand the full textfetch a referenced file
+Level 0 name + description only → Level 1 expand the full text → Level 2 fetch a referenced file
 
 At the first tier, the agent only gets each Skill's name, description, and category—a few thousand tokens is enough to list every Skill. At this tier it judges "which one is useful this time." Only when it actually needs one does it move to the second tier and load that Skill's full text. If the full text in turn points to some reference material, only then does it go to the third tier and fetch that file.
 
@@ -91,25 +87,18 @@ Fifty thousand strange Skills sounds tempting, but there's a real attack surface
 
 How Hermes handles this is a piece of design worth spelling out. Community Skills are not installed bare; they first have to pass a mandatory security scanner. It uses static analysis to find known bad patterns—data exfiltration, prompt injection, destructive commands, persistent backdoors.
 
-> Scan and grade Download to isolated area
-
-→ →
-
-> safe/caution/dangerous
-
-> Hits disk only if it passes audit log written throughout
+Download to isolated area → Scan and grade safe/caution/dangerous → Hits disk only if it passes audit log written throughout
 
 Paired with the scan is a three-tier trust grading that decides how strictly to treat the scan results:
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| builtin: ships with Hermes, never scanned, always trusted; trusted (openai/anthropic only): allows caution-level results through |  | community (everything else): any suspicious finding is blocked outright, unless you manually add --force to force the install |  |
+| 推荐 | 不推荐 |
+| --- | --- |
+| builtin: ships with Hermes, never scanned, always trusted; trusted (openai/anthropic only): allows caution-level results through | community (everything else): any suspicious finding is blocked outright, unless you manually add --force to force the install |
 
 This mechanism connects neatly to topics like Skill poisoning. The dividend and the risk of open standards are two sides of one coin: it lets you freeload off the entire ecosystem, and it gives all of that ecosystem's filth a channel into your machine. Hermes' answer is isolated scanning plus tiered trust— loosen up a bit for big-vendor official sources, and treat unknown Skills of dubious origin as thieves by default. I think that boundary is drawn pretty soberly.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > Practical tip: for your own use, prefer installing Skills from the trusted tap (openai/anthropic/huggingface/NVIDIA)—these have official backing. Before installing from a community source like ClawHub, spend a minute reading the SKILL.md body, especially checking whether it demands network access, wants your keys, or has weird commands. Isolated scanning catches known bad patterns, but your common sense is the last gate.
 
 Putting this section together: Hermes bet on the open standard and got the speed of "freeloading an entire Claude/Codex ecosystem in two months," with even NVIDIA showing up to supply it. The price is having to face the poisoning surface of 50,000 strange Skills, so it backstops that with isolated scanning and three-tier trust. This is a well-thought-out trade-off: if you want the standard's network effect, you have to pay the security bill—do both, instead of taking only the dividend and ignoring the risk.

@@ -33,7 +33,7 @@ This isn't hypothetical. The background-review prompt contains one line with a p
 
 Curator exists for exactly that side effect. It was born in v0.12.0, the version the team flat-out named «The Curator release,» with a confident subtitle: Hermes Agent now maintains itself. It had started maintaining itself.
 
-> Continuing the metaphor from §04: background review handles proliferation, Curator handles apoptosis — and Curator is precisely the «apoptosis engine» we're taking apart here. Karpathy has said something similar: for a learning system, forgetting matters as much as learning.
+> **Continuing the metaphor from §04:** background review handles proliferation, Curator handles apoptosis — and Curator is precisely the «apoptosis engine» we're taking apart here. Karpathy has said something similar: for a learning system, forgetting matters as much as learning.
 
 ## How it gets woken up
 
@@ -41,9 +41,7 @@ Curator isn't a scheduled job that runs forever in the background. There's no cr
 
 By default both gates have to pass:
 
-> ≥ 7 days since last run agent idle ≥ 2 hours fork one maintenance run
-
-\+ →
+≥ 7 days since last run + agent idle ≥ 2 hours → fork one maintenance run
 
 There's also a detail I rather like: after a fresh install, the very first tick doesn't do anything right away. It records the «last run time» as right now, forcing itself to wait out a full 7-day cycle. The comment puts it bluntly: messing with your Skill library the moment you've just run `hermes update` would be a terrible experience. You get a whole week to pin the ones you care about and opt out of the ones you don't want.
 
@@ -51,9 +49,7 @@ There's also a detail I rather like: after a fresh install, the very first tick 
 
 When Curator actually gets to work, it splits into two steps. The first step calls no large model at all — it's a pure-function state machine that mechanically advances each Skill through its lifecycle based on «how long since this Skill was last used.»
 
-> active stale archived
-
-unused 30 days → unused 90 days →
+active unused 30 days → stale unused 90 days → archived
 
 What's interesting about this state machine is that it's reversible and deterministic. A Skill marked stale snaps back to active the moment it gets used once more. No mysticism, no large-model judgment, just arithmetic on timestamps. A pinned Skill skips this step entirely — no matter how long it sits, it won't be touched.
 
@@ -83,26 +79,25 @@ By this point you may, like me, feel an instinctive unease: letting an AI automa
 
 This is exactly the core of §05. Curator isn't automation with the gas pedal floored; its brakes are heavy — heavy enough that I think they're worth going through one by one.
 
-## Layer one: never delete, only archive
+### Layer one: never delete, only archive
 
-The source file header states an invariant: Never auto-deletes — only archives. Archive is recoverable. What «archive» means is moving the Skill directory into `~/.hermes/skills/.archive/` , ready to `restore` at any time. Curator has no «delete» action; the harshest thing it can do is move something into the drawer next door.
+The source file header states an invariant: Never auto-deletes — only archives. Archive is recoverable. What «archive» means is moving the Skill directory into `~/.hermes/skills/.archive/`, ready to `restore` at any time. Curator has no «delete» action; the harshest thing it can do is move something into the drawer next door.
 
-## Layer two: snapshot before acting
+### Layer two: snapshot before acting
 
-Before every formal maintenance run, Curator first tars the entire skills directory into a tar.gz snapshot — including `.archive/` — and stores it in `.curator_backups/` , with a UTC timestamp for a filename.
+Before every formal maintenance run, Curator first tars the entire skills directory into a tar.gz snapshot — including `.archive/` — and stores it in `.curator_backups/`, with a UTC timestamp for a filename.
 
-| 注意 |
-| --- |
-
+> **注意**
+>
 > This means that even if this round archives something wrong, a single `hermes curator rollback` undoes the whole round — including what it archived this time and what was archived before, all recovered. The snapshot stores the old archives too, so the rollback is genuine «time travel,» not just undoing the most recent step.
 
-## Layer three: dry-run preview
+### Layer three: dry-run preview
 
 Don't trust it to run on its own? `hermes curator run --dry-run` makes it list everything it plans to do this round, without touching a single character of your library. You review the report, and if it looks OK, you do a live run.
 
 This maps onto Martin Fowler's well-known framework: the relationship between a human and an automated system can be in the loop (hands-on for everything), on the loop (supervising from the side, able to intervene), or out of the loop (fully hands-off). Hermes clearly chose on the loop — you don't have to watch its every step, but the report is reviewable at any time and the result is reversible at any time. It hasn't kicked you out.
 
-## Layer four: provenance locks the blast radius
+### Layer four: provenance locks the blast radius
 
 The most elegant one is here. How does Curator know which Skills it may touch and which it must not touch at all? It relies on each Skill's «origin» marker.
 
@@ -113,22 +108,21 @@ The most elegant one is here. How does Curator know which Skills it may touch an
 | user-requested in the foreground | You explicitly asked the agent to write it | Yours; Curator never lays a finger on it |
 | made by the agent's background review | Forked off and created by the agent itself | This is Curator's only jurisdiction |
 
-Under the hood it relies on a contextvar: when the background-review fork runs, the write source is tagged `background_review` , and only Skills created from this source get stamped `created_by: agent` and fall under Curator's jurisdiction. Anything you hand-wrote or installed is always safe.
+Under the hood it relies on a contextvar: when the background-review fork runs, the write source is tagged `background_review`, and only Skills created from this source get stamped `created_by: agent` and fall under Curator's jurisdiction. Anything you hand-wrote or installed is always safe.
 
 This sentence is worth pausing on: the blast radius of the agent's self-evolution is strictly locked inside its own private plot. The only things it can reclaim are the things it grew itself. Between your property and its property there's a property line drawn at the source-code level.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > One easily confused detail: pinning a Skill blocks deletion, archiving, and merging — not content improvement. A pinned Skill can still be improved by Curator; pin protects «it won't disappear,» not «it won't change.»
 
 ## What this brake answers
 
 «Will self-evolution spin out of control» is the question hanging over every system of this kind. Many products answer it vaguely — nothing more than «we have safety mechanisms» and «we monitor continuously.» Hermes's answer is a set of concrete designs you can point to in the source and read aloud.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| Never delete (archive-only, recoverable) + tar.gz snapshot before each run + dry-run preview + provenance locking the blast radius. Each one answers a specific «what if it goes wrong.» |  | «We have a comprehensive safety mechanism that guarantees the controllability of the self-evolution process»: reassuring to hear, useless when something actually breaks. |  |
+| 推荐 | 不推荐 |
+| --- | --- |
+| Never delete (archive-only, recoverable) + tar.gz snapshot before each run + dry-run preview + provenance locking the blast radius. Each one answers a specific «what if it goes wrong.» | «We have a comprehensive safety mechanism that guarantees the controllability of the self-evolution process»: reassuring to hear, useless when something actually breaks. |
 
 I think this is the right way to «install brakes.» Brakes don't limit how fast the car can go — they're what makes you dare to drive it fast. Precisely because it never deletes, can roll back, and can't touch your stuff, that aggressive «learn as much as possible» review dares to actually be aggressive. Without this set of brakes, you simply wouldn't dare let an AI automatically edit your tool library.
 

@@ -52,7 +52,7 @@ Fan-out sounds the simplest: slice one big job into N pieces and run them all at
 
 Hermes' P1 doesn't work that way. Every task it fans out is a standalone operating-system process. The scheduler atomically claims all N tasks and spawns N real processes. None of them depends on another; if one crashes it doesn't affect the rest, and the crashed one can even be reclaimed and run again.
 
-> Key point: "Concurrency" can grow in two ways. One is in-process clones (fragile, dependent on the lifecycle of the upstream SDK), the other is separate, independent OS processes (recoverable when they crash, auditable when they finish). Hermes picks the latter throughout — this is the "dumb core" philosophy from the last section carried into the collaboration layer.
+> **Key point:** "Concurrency" can grow in two ways. One is in-process clones (fragile, dependent on the lifecycle of the upstream SDK), the other is separate, independent OS processes (recoverable when they crash, auditable when they finish). Hermes picks the latter throughout — this is the "dumb core" philosophy from the last section carried into the collaboration layer.
 
 ## P3 Voting: let a few Agents argue it out, then bring one in to judge
 
@@ -68,15 +68,7 @@ P8 is the flagship example in the design docs, and the one that best illustrates
 
 Imagine you need to manage 50 social accounts, each running a maintenance pass every few hours. With the traditional mindset, you'd probably go find an RPA tool and configure a pile of flows. Hermes' approach is: one expert profile, N parallel tasks, one independent workspace directory per account, with a scheduled job generating a card for each account at fixed intervals.
 
-> One insta-manager profile cron creates a card per account each round
-
-→ →
-
-> One independent workspace per account
-
-→
-
-> Failures auto-reclaimed when the claim lock expires
+One insta-manager profile → cron creates a card per account each round → One independent workspace per account → Failures auto-reclaimed when the claim lock expires
 
 Whichever account dies in a given round, its claim lock expires on schedule and the next round automatically reclaims and reruns it. Each account's history stays in the task event log, fully auditable.
 
@@ -90,15 +82,14 @@ Two months ago, Hermes could already have "different sub-Agents use different mo
 
 On the task table this maps to a `model_override` field. When the scheduler spawns the worker process for this task, if a model is pinned on the card, it adds `-m` on the command line to carry it through.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| Writing boilerplate, running formatting, doing simple classification save money and time | → pin a cheap, fast model, | Cracking hard problems, doing critical reasoning, writing the core plan model, spend where it's worth spending | → pin an expensive, strong |
+| 推荐 | 不推荐 |
+| --- | --- |
+| Writing boilerplate, running formatting, doing simple classification → pin a cheap, fast model, save money and time | Cracking hard problems, doing critical reasoning, writing the core plan → pin an expensive, strong model, spend where it's worth spending |
 
 The official phrasing is "cheap models do the boilerplate, expensive models do the hard sub-tasks." Behind that line is a very concrete bit of accounting: a workflow with a dozen-odd cards might have only two or three that truly need a top-tier model, while the rest run perfectly fine on a cheap one. The economics of multi-Agent ultimately come down to whether you're willing to tune the model card by card.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > When designing your own Agent team, don't rush to put every card on the strongest model. Go through the tasks once and sort them by "difficulty": hand the boilerplate and retrieval work to cheap models, and save your top-tier budget for the steps that genuinely require reasoning. For a workflow that runs often, that price difference adds up to a lot.
 
 ## goal_mode: pulling the Ralph loop into the core
@@ -115,11 +106,11 @@ This is yet another example of the same idea from the last section: Ralph isn't 
 
 Finally, let's talk scale. When your Agent team grows from "a few cards" to "several business lines," Hermes gives you three layers of isolation, from coarse to fine granularity.
 
-| Level | Isolation How to use it When to use it strength |
-| --- | --- |
-| Multiple Boards | HardEach board gets its own database +Businesses fully separated, boundaryworkspace directory + scheduling viewinvisible to each other |
-| Multiple Tenants | SoftA `tenant` tag within a board for softOne expert team serving multiple namespacefilteringbusinesses |
-| Multiple gateways | Process level Multiple gateways runningDifferent profiles each running concurrently, but only one holds thetheir own thing, spreading the schedulerload |
+| Level | Isolation strength | How to use it | When to use it |
+| --- | --- | --- | --- |
+| Multiple Boards | Hard boundary | Each board gets its own database + workspace directory + scheduling view | Businesses fully separated, invisible to each other |
+| Multiple Tenants | Soft namespace | A `tenant` tag within a board for soft filtering | One expert team serving multiple businesses |
+| Multiple gateways | Process level | Multiple gateways running concurrently, but only one holds the scheduler | Different profiles each running their own thing, spreading the load |
 
 One official line makes the relationship between the first two layers clear: tenant is soft filtering, the board is the hard isolation boundary. The same expert fleet can serve multiple businesses with different tenant tags, keeping data apart through workspace paths and memory prefixes; if you truly need to split things up so nobody can see anyone else, just open two boards.
 

@@ -31,11 +31,7 @@ That's correct, but it's only half the story. A protocol has two ends, and Herme
 
 Here's a more down-to-earth analogy. MCP is like a USB-C port: your computer can plug in a USB drive and read its data (acting as host), and it can also plug into another computer and be read as an external drive itself (acting as device). Hermes is both host and device. It can call external MCP servers, and it can turn itself into an MCP server so other agents can call it.
 
-> Direction 1Direction 2 Hermes as client Same MCP protocolHermes as server
-
-↔ ↔
-
-> calls external servercalled by other agents
+Direction 1 Hermes as client calls external server ↔ Same MCP protocol ↔ Direction 2 Hermes as server called by other agents
 
 Let's pull these two directions apart, and along the way cover the third thing sandwiched in between— the officially reviewed catalog.
 
@@ -49,7 +45,7 @@ This capability has been around since older versions, but the foundation is soli
 | HTTP (StreamableHTTP) | Remote service | Cloud-hosted MCP, like Linear and other products that bundle their own service |
 | SSE | Remote service (streaming) | Long-lived connections where the server needs to keep pushing |
 
-The config lives under `mcp_servers` in `~/.hermes/config.yaml` . Once connected, an external server's tools get registered into Hermes's own tool table, and the model calls them exactly the same way it calls built-in tools. This matters—to the model, "web_search" and some tool from an external MCP look identical; it doesn't need to know where the tool came from.
+The config lives under `mcp_servers` in `~/.hermes/config.yaml`. Once connected, an external server's tools get registered into Hermes's own tool table, and the model calls them exactly the same way it calls built-in tools. This matters—to the model, "web_search" and some tool from an external MCP look identical; it doesn't need to know where the tool came from.
 
 Per-server, you can also tune the details: timeout, whether this server's tools can run concurrently, whether to send a Bearer auth header, whether to let the server initiate LLM requests back. These are the screws you'd actually turn in a real production environment.
 
@@ -59,9 +55,9 @@ The part that really shows craftsmanship is OAuth. Hermes implements the full MC
 
 Hooking up MCP in older versions had a hidden barrier: you had to go find a trustworthy MCP server on GitHub yourself, read its docs yourself, and write the config yourself. Pick the wrong one, configure it wrong, connect to a problematic server—the risk was all yours.
 
-The new version closes this gap with a Nous officially reviewed catalog. It works just like its skill catalog: type `hermes mcp` to enter an interactive picker, choose one, install with one click, fill in the credentials it prompts for during install, and those get written automatically into your local `.env` .
+The new version closes this gap with a Nous officially reviewed catalog. It works just like its skill catalog: type `hermes mcp` to enter an interactive picker, choose one, install with one click, fill in the credentials it prompts for during install, and those get written automatically into your local `.env`.
 
-> "In the catalog = reviewed": every MCP that makes it into this official catalog has been merged through PR review. That means Nous has done a trust-screening pass for you, and you no longer have to gamble on whether some unfamiliar GitHub repo is safe.
+> **"In the catalog = reviewed":** every MCP that makes it into this official catalog has been merged through PR review. That means Nous has done a trust-screening pass for you, and you no longer have to gamble on whether some unfamiliar GitHub repo is safe.
 
 Here I have to stick to the facts. I've seen material claiming "MCP lets Hermes connect to 6,000-plus apps," but I couldn't find a primary source for that number in the v0.16.0 source code or release notes, so I can't write it that way. The accurate framing is two sentences:
 
@@ -69,10 +65,10 @@ First, on capability: Hermes can connect to any MCP server (all three of stdio/H
 
 Second, the officially reviewed catalog currently lists only two:
 
-| MCP in the catalog | Connection Notes method |
-| --- | --- |
-| Linear | Remote HTTP +Zero local install, `hermes mcp install linear` , authorize and go native OAuth 2.1 |
-| n8n | stdio bridge (gitExposes 11 tools, only 8 read-only ones on by default; write operations clone + venv)(activate/deactivate, read container logs, etc.) are trimmed out by default, turn them on as needed |
+| MCP in the catalog | Connection method | Notes |
+| --- | --- | --- |
+| Linear | Remote HTTP + native OAuth 2.1 | Zero local install, `hermes mcp install linear`, authorize and go |
+| n8n | stdio bridge (git clone + venv) | Exposes 11 tools, only 8 read-only ones on by default; write operations (activate/deactivate, read container logs, etc.) are trimmed out by default, turn them on as needed |
 
 The default config for n8n is worth a closer look. By default it turns off every tool that changes anything, leaving only the read-only ones; if you want write operations you have to flip them on yourself. This is a "least privilege by default" stance—you get the read capability up front, and you have to explicitly ask for the write capability. That kind of restraint is uncommon in agent tooling.
 
@@ -82,15 +78,14 @@ In the latest version, this catalog has also moved into the browser-based admin 
 
 This is the direction most easily overlooked, but the one I find most interesting.
 
-Type one line, `hermes mcp serve` , and Hermes starts a stdio MCP server. Now it's no longer the one calling tools, but the one being called. Tools that are themselves MCP clients—Claude Code, Cursor, Codex—can turn around and use Hermes as an external tool.
+Type one line, `hermes mcp serve`, and Hermes starts a stdio MCP server. Now it's no longer the one calling tools, but the one being called. Tools that are themselves MCP clients—Claude Code, Cursor, Codex—can turn around and use Hermes as an external tool.
 
 What capabilities does it expose? Counting in the source code, there are 10 tools, all centered on the idea of "conversations": list all current conversations, read the message history of a conversation, send a message into a conversation, poll for new events, manage approval requests, plus one tool to list all channels. And these operations are cross-platform—every conversation you've connected on Telegram, Discord, or Lark can be accessed uniformly through this one MCP interface.
 
 In plain terms: from inside Claude Code, you can directly read and reply to your Telegram conversation with Hermes. Hermes becomes a "conversation hub," and other agents that connect in through MCP can operate the whole pile of messaging platforms it manages.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > There's a fun line in the source comments saying this interface "mirrors OpenClaw's 9-tool MCP bridge," with Hermes adding one extra channel-listing tool to round it out to 10. This is business as usual in open source—you see a good interface shape from a competitor and build one just like it, only more complete. When writing a book, this kind of firsthand detail is far more persuasive than a vague "powerful features."
 
 ## When to use MCP, when to use native tools

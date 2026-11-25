@@ -165,7 +165,8 @@
         "GitHub's license detector reports NOASSERTION for the repository.",
         "The license file requires its copyright notice and permission notice in all copies. The README adds that attribution is appreciated but not required.",
         "The README says the first edition used CC BY-NC-SA 4.0 and that the book is released under the MIT License starting with edition 2.0. The recorded evidence is the license file at the pinned commit.",
-        "The English edition v260607 is the second edition and predates the Chinese third edition v261020. The README's errata section says the data-collection inference in section 03 is wrong, that the Chinese edition v261020 corrects it, and that the English edition v260607 has not been regenerated."
+        "The English edition v260607 is the second edition and predates the Chinese third edition v261020. The README's errata section says the data-collection inference in section 03 is wrong, that the Chinese edition v261020 corrects it, and that the English edition v260607 has not been regenerated.",
+        "The chapters are machine-extracted from the pinned PDF. No person has read them against the source yet."
       ],
       "official_urls": {
         "hosted_editions": [

@@ -25,7 +25,7 @@ Two months ago, Hermes's multi-agent capability was a single function. Two month
 
 ## The old-book era: one tool was the entire estate
 
-Flip back to the old book from two months ago, and Hermes's multi-agent chapter was honestly pretty thin. It had a single primitive, called `delegate_task` .
+Flip back to the old book from two months ago, and Hermes's multi-agent chapter was honestly pretty thin. It had a single primitive, called `delegate_task`.
 
 The mechanism is easy to grasp: the parent agent forks a short-lived child agent, hands it a task, and then blocks waiting for the return. The child runs in an isolated session, spits back a summary, and then vanishes. Three concurrent at most. You could let different child agents use different models — a strong model for reasoning, a fast model for search — and that was about it.
 
@@ -37,9 +37,9 @@ On April 25, 2026, Nous Research dropped a PDF in the repo called the Hermes Kan
 
 On the Abstract of that title page, a few sentences were written with absolute conviction:
 
-> From the design doc (title page): Status: DESIGN ONLY. No implementation accompanies this document. / The kernel requires no changes to `run_agent.py` , no new core tools.
+> **From the design doc (title page):** Status: DESIGN ONLY. No implementation accompanies this document. / The kernel requires no changes to `run_agent.py`, no new core tools.
 
-Translated: this is only a design, no implementation comes with it. The kernel needs no changes to a single line of `run_agent.py` , and no new core tools.
+Translated: this is only a design, no implementation comes with it. The kernel needs no changes to a single line of `run_agent.py`, and no new core tools.
 
 The whole spec carries this restraint-to-the-point-of-obsession minimalism. It draws the boundaries of the kernel crisply, as if measured with a ruler:
 
@@ -59,19 +59,18 @@ It's a beautiful design. The problem is, it couldn't keep itself in check.
 
 By v0.16.0, I went through the code that actually shipped against this spec, line by line. The gap was wide enough to be a little funny.
 
-| 推 | 荐 | 不推 | 荐 |
-| --- | --- | --- | --- |
-| The design doc said: 6 states · 4 tables · 0 new tools · 1 CLI subcommand |  | The shipped code is: 9 states · 7 tables · a whole kanban\_\* toolset · 30+ CLI subcommands |  |
+| 推荐 | 不推荐 |
+| --- | --- |
+| The design doc said: 6 states · 4 tables · 0 new tools · 1 CLI subcommand | The shipped code is: 9 states · 7 tables · a whole kanban\_\* toolset · 30+ CLI subcommands |
 
 Every single one was breached. The state machine grew three extras: `triage` (someone casually tossing in a rough idea), `scheduled` (tasks waiting on time, not on people), and `review` (a review gate). The tables went from 4 to 7, and the column count of the core `tasks` table alone exploded from a dozen or so to around thirty.
 
-The biggest slap to the face is that line, "no new core tools." In the actual code, every time the dispatcher spawns a worker, it stuffs the whole set of `kanban_show` , `kanban_complete` , `kanban_block` tools straight into its schema. These are exactly the new core tools.
+The biggest slap to the face is that line, "no new core tools." In the actual code, every time the dispatcher spawns a worker, it stuffs the whole set of `kanban_show`, `kanban_complete`, `kanban_block` tools straight into its schema. These are exactly the new core tools.
 
 That milestone happened at v0.15.0, and the official release notes put it bluntly: "Kanban grew into a real multi-agent platform — 104 PRs." A minimalist design manifesto, fed mouthful by mouthful by real-world demand across 104 PRs into a platform.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > This gap between "design doc vs. shipped implementation" is itself one of the best specimens for watching how an open-source project evolves. It says one thing: restraint is a posture, but the shape of real users' work keeps pouring stuff into the kernel. A team that can write "exactly four tables" will, two months later, push the tables to 7 anyway — because someone actually wants to use it to manage 50 Instagram accounts. This isn't a design failure; it's design negotiating with reality.
 
 ## delegate_task didn't die, it got demoted
@@ -100,13 +99,7 @@ In plain terms: `delegate_task` is a single function call, forgotten the moment 
 
 String this reversal together and Hermes's multi-agent evolution path over these two months is actually quite clear.
 
-> delegate_taskv1 spec104 PRs
-
-→ → →
-
-> one functionminimalist manifestofed fat
-
-> Kanban persistent Kanban platform
+delegate_task one function → v1 spec minimalist manifesto → 104 PRs fed fat → Kanban persistent Kanban platform
 
 A Kanban platform backed by SQLite, cross-process, able to survive a single point of failure. It has automatic task decomposition, swarm topologies, scheduled tasks, per-task model overrides, circuit-breaker retries, multi-tenancy, and multiple boards. The next few sections will unpack each of these one by one.
 

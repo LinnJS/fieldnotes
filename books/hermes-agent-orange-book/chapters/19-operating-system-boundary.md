@@ -29,7 +29,7 @@ The old version of Hermes from two months back had almost nothing on security. I
 
 By v0.16.0, it had grown a 332-line SECURITY.md. The skeleton of the whole document can be boiled down to one line straight from the official docs:
 
-> Official quote: "The only security boundary against an adversarial LLM is the operating system."
+> **Official quote:** "The only security boundary against an adversarial LLM is the operating system."
 
 The first time I read that line, I was a little surprised. Agent products on the market are all competing over who has more layers of protection: input filtering, output redaction, dangerous-command detection, tool allowlists, layer stacked on layer, and it all sounds reassuring. Hermes's docs come right out and say it: none of these in-process things constitute real isolation.
 
@@ -39,28 +39,25 @@ Its logic is actually very Feynman. Every character an LLM spits out can be infl
 
 This is the single most important distinction in the chapter. Hermes lumps all the in-process security components together as "heuristics," and calls OS-level isolation the "boundary." The two words can't be mixed up.
 
-| In-process What it does Why it isn't a boundary component |
-| --- |
-| Approval gate Detects common destructive shellThe shell is Turing-complete; blacklisting it commands before execution, pops up ais structurally impossible to make dialog for you to confirmexhaustive |
-| OutputStrips strings that look like secrets out of theA motivated output producer can always redactiondisplay layerwork around it |
-| Skills Guard Scans a skill awaiting installation forA Skill executes arbitrary Python at import injection patternstime; reading the description won't stop the code |
+| In-process component | What it does | Why it isn't a boundary |
+| --- | --- | --- |
+| Approval gate | Detects common destructive shell commands before execution, pops up a dialog for you to confirm | The shell is Turing-complete; blacklisting it is structurally impossible to make exhaustive |
+| Output redaction | Strips strings that look like secrets out of the display layer | A motivated output producer can always work around it |
+| Skills Guard | Scans a skill awaiting installation for injection patterns | A Skill executes arbitrary Python at import time; reading the description won't stop the code |
 
 This distinction has a particularly honest corollary, written into the "Scope" section of the docs: bypassing these heuristics is not a vulnerability. If you figure out how to slip past the approval gate with a regex, or how to fool the redaction, Hermes welcomes you to file an issue, but it won't go through a private disclosure channel or publish a security advisory. Because it never treated these as a boundary in the first place. Getting around something that was never meant to be airtight doesn't count as "breaking through."
 
 Conversely, what does count as a real vulnerability? Escaping declared OS isolation, unauthorized access to external interfaces, credentials leaking that should have been stripped—these touch the real boundary, and only these fall inside the security scope.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > I rather admire this attitude. "Out of scope doesn't mean not worth reporting." The approval gate can always catch a few more patterns, redaction can always get smarter, but admitting their ceiling is far more responsible than pretending they're impenetrable.
 
 ## So what does a real boundary look like
 
 Since there's no boundary inside the process, the operator has to actively pick an OS-level isolation posture. Hermes offers two paths.
 
-> Terminal backend isolation Whole-process wrapping
-
-or
+Terminal backend isolation or Whole-process wrapping
 
 The first is terminal backend isolation. The shell commands the LLM produces get thrown into a container, remote host, or cloud sandbox to run, and the file read/write tools go through this backend too, unable to reach paths the backend hasn't exposed. It can govern what the agent does through the shell and files, but it can't govern anything the agent does inside its own Python process: the code execution tool, MCP sub-processes, plugin loading, Skill loading—these are all imported into the same interpreter.
 
@@ -84,15 +81,21 @@ Even if you've chosen an OS boundary, the most concrete piece of code in the con
 
 Its order of execution hides the whole design philosophy.
 
-`1` Sandbox backend: pass straight through If you're already inside an OS sandbox like Docker or modal, in-process approval is unnecessary, so it passes straight through. This is fully consistent with the "the only boundary is the OS" stance: once you have a real boundary, the heuristics can step aside.
+1. Sandbox backend: pass straight through
 
-`2` Hard floor: block unconditionally There's a class of commands with no recovery path: `rm -rf /` , `mkfs` , `dd` writing to a raw device, shutdown/reboot, fork bombs. These get blocked unconditionally, before YOLO mode even takes effect. The comment puts it bluntly: "Turning on YOLO means trusting the agent to touch your files and services, not trusting it to wipe your disk or shut down your machine."
+   If you're already inside an OS sandbox like Docker or modal, in-process approval is unnecessary, so it passes straight through. This is fully consistent with the "the only boundary is the OS" stance: once you have a real boundary, the heuristics can step aside.
 
-`3` YOLO bypass + pattern detection Once past the hard floor, it's YOLO's turn to let everything through, or else pattern-match command by command with a session approval cache. Roughly 50 regexes, covering disk destruction, privilege abuse, SQL drop-database, remote code execution, sudo escalation, git force-push, and so on.
+2. Hard floor: block unconditionally
+
+   There's a class of commands with no recovery path: `rm -rf /` , `mkfs`, `dd` writing to a raw device, shutdown/reboot, fork bombs. These get blocked unconditionally, before YOLO mode even takes effect. The comment puts it bluntly: "Turning on YOLO means trusting the agent to touch your files and services, not trusting it to wipe your disk or shut down your machine."
+
+3. YOLO bypass + pattern detection
+
+   Once past the hard floor, it's YOLO's turn to let everything through, or else pattern-match command by command with a session approval cache. Roughly 50 regexes, covering disk destruction, privilege abuse, SQL drop-database, remote code execution, sudo escalation, git force-push, and so on.
 
 There's one detail that really shows how "in-process components are untrusted" gets carried down into the implementation. YOLO mode is frozen at module import time, rather than reading the environment variable on every call. The comment explains why: if it read os.environ every time, any Skill inside the process could quietly set this variable and instantly bypass all approvals—a ready-made prompt-injection privilege-escalation path. Freezing it dead at the moment of import shuts that path down.
 
-The approval gate also has a layer of "self-protection" that's specific to agents: it forbids the agent from killing its own gateway process, forbids `docker compose down` , and forbids it from shutting itself off. An agent that can run autonomously has to be guarded against chopping off the hand that manages it.
+The approval gate also has a layer of "self-protection" that's specific to agents: it forbids the agent from killing its own gateway process, forbids `docker compose down`, and forbids it from shutting itself off. An agent that can run autonomously has to be guarded against chopping off the hand that manages it.
 
 Going further, a command flagged by a pattern can also be handed to an auxiliary LLM acting as a "security reviewer," which returns allow, deny, or escalate-to-human. There's actually a tension here worth chewing on: using one LLM to judge whether another LLM's output is safe is, internally, a little at odds with the stance that "an LLM's output is a string influenced by the attacker." So when it fails, it always escalates conservatively to a human—it doesn't gamble.
 
@@ -104,9 +107,8 @@ When Hermes passes environment variables to low-trust in-process components—sh
 
 Why do this? Because there was a real attack path. The source comments record a class of now-fixed vulnerability: a malicious Skill registered `ANTHROPIC_TOKEN` and `OPENAI_API_KEY` as passthrough variables, grabbed those credentials inside the code execution sub-process, and thereby broke through the sandbox's credential wiping. The fix was decisive: provider credentials go on the blacklist, and a Skill cannot override them.
 
-| 注意 |
-| --- |
-
+> **注意**
+>
 > But the docs honestly note at the same time: credential stripping itself isn't containment either. Any component running inside the agent process can read everything the agent itself can read, including credentials in memory. The only real mitigation is one thing: the operator reviewing the code before installing it. The boundary for third-party Skills and plugins is always "read its Python before you install it," not reading its description file.
 
 ## What this approach means

@@ -29,9 +29,7 @@ The last section was about the inside of the Gateway: 23 platforms, the registry
 
 This section is about the front of house: where exactly you talk to Hermes from. Same brain, same memory and Skills, but now it has three faces. I call them three postures, and each one is really a different usage habit underneath.
 
-> IM platforms Native desktop app Browser admin panel
-
-→ →
+IM platforms → Native desktop app → Browser admin panel
 
 These three faces aren't mutually exclusive. You can write code in the desktop app during the day, keep chatting over Telegram from bed at night, and your wife can tweak a config for you from the browser panel. They all point at the same Agent.
 
@@ -55,11 +53,11 @@ But the genuinely clever part isn't "they built a client." It's that this client
 
 You can point the desktop app on your laptop at a remote Gateway: your own homelab, a hosted box, even a teammate's server. It connects over an encrypted WebSocket, and you log in with OAuth or a username and password.
 
-> This is "thin client + heavy compute, separated": the laptop only runs a lightweight GUI, while the heavy Agent—the one that actually eats compute and holds your API key—runs where it belongs. Your MacBook's fan stays quiet; the real work happens on the server.
+> **This is "thin client + heavy compute, separated":** the laptop only runs a lightweight GUI, while the heavy Agent—the one that actually eats compute and holds your API key—runs where it belongs. Your MacBook's fan stays quiet; the real work happens on the server.
 
 I think this step is an upgrade on the old book's narrative. The standard move used to be "$5 VPS + Telegram"—a cheap cloud box runs the Agent, your phone is the remote control. Now there's a smoother path: the VPS runs the Gateway, and the desktop app is the decent-looking front end.
 
-Add another layer: each profile can point at a different remote host, you can run sessions from multiple profiles concurrently in one window, and you can even reference another conversation across profiles with `@session` . One laptop hooked up to both your personal box and your work box, with no collisions.
+Add another layer: each profile can point at a different remote host, you can run sessions from multiple profiles concurrently in one window, and you can even reference another conversation across profiles with `@session`. One laptop hooked up to both your personal box and your work box, with no collisions.
 
 ## Posture three: a full-featured admin panel in the browser
 
@@ -82,13 +80,12 @@ Beyond the three postures there's a fourth entry point, pointed in a somewhat di
 
 Hermes built an ACP adapter that, via the Agent Client Protocol, lets it plug into VS Code, Zed, and JetBrains as the backend Agent. It doesn't try to take over the editor; it goes to be the swappable Agent behind the editor.
 
-The engineering trade-off on this line is interesting. In the editor scenario, Hermes uses a deliberately trimmed-down toolset called `hermes-acp` , which cuts the IM-only capabilities—sending messages, reading things aloud, popping up clarification bubbles—and keeps only what's relevant to writing code: terminal, file read/write, patching, browser, Skill, memory.
+The engineering trade-off on this line is interesting. In the editor scenario, Hermes uses a deliberately trimmed-down toolset called `hermes-acp`, which cuts the IM-only capabilities—sending messages, reading things aloud, popping up clarification bubbles—and keeps only what's relevant to writing code: terminal, file read/write, patching, browser, Skill, memory.
 
 So inside the editor it doesn't text you and doesn't recite poetry; it focuses on writing code. The install is clean too, a one-click `uvx` install with no npm dependencies dragged along. Zed's ACP Registry already lists it, so Zed users can use it with a single click.
 
-| 核 | 心 | 建议 |
-| --- | --- | --- |
-
+> **核心建议**
+>
 > If you're already on Claude Code or Cursor, you can think of the ACP line like this: Hermes wants to be the "swappable brain" inside your editor. Your editor stays the same, the Agent doing the work behind it becomes Hermes—and that Agent carries the memory and Skills you've accumulated across platforms.
 
 ## 16 languages, and a complete Simplified Chinese
