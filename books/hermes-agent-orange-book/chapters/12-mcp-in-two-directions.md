@@ -57,7 +57,7 @@ Hooking up MCP in older versions had a hidden barrier: you had to go find a trus
 
 The new version closes this gap with a Nous officially reviewed catalog. It works just like its skill catalog: type `hermes mcp` to enter an interactive picker, choose one, install with one click, fill in the credentials it prompts for during install, and those get written automatically into your local `.env`.
 
-> **"In the catalog = reviewed":** every MCP that makes it into this official catalog has been merged through PR review. That means Nous has done a trust-screening pass for you, and you no longer have to gamble on whether some unfamiliar GitHub repo is safe.
+> **"In the catalog = reviewed"**: every MCP that makes it into this official catalog has been merged through PR review. That means Nous has done a trust-screening pass for you, and you no longer have to gamble on whether some unfamiliar GitHub repo is safe.
 
 Here I have to stick to the facts. I've seen material claiming "MCP lets Hermes connect to 6,000-plus apps," but I couldn't find a primary source for that number in the v0.16.0 source code or release notes, so I can't write it that way. The accurate framing is two sentences:
 
