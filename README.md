@@ -297,9 +297,9 @@ separate decision.
   a quote wrongly attributed to Addy Osmani. The passage has not been identified in
   the English text, so no chapter of that book carries an erratum.
 - The mirrored English edition of Hermes Agent trails the Chinese edition. The
-  author's README says the data-collection inference in its §03 is wrong and that
-  the Chinese edition corrects it. That chapter records the erratum in its
-  frontmatter and keeps the English text as printed.
+  author's README says the data-collection inference in the book's §03 is wrong
+  and that the Chinese edition corrects it. That chapter records the erratum in
+  its frontmatter and keeps the English text as printed.
 - The `Upstream sync` workflow starts only from the default branch on a weekly
   schedule and has not run on GitHub yet.
 - The check of the built site holds each page to a list of elements, attributes,
