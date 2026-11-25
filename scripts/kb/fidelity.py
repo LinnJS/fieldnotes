@@ -363,13 +363,19 @@ def compare(
         )
     parts.extend(problems)
     if not (added or removed) and similarity < SIMILARITY_FLOOR:
-        # The scored list is the one that failed, so the first difference is named there and
-        # never inside a block that a reorder already accounts for.
+        # The scored list is the one that failed, so the first difference is named there. With
+        # a reorder in place that list holds the extraction's reading of the block, which the
+        # chapter file does not, and the message says so.
         first = _first_difference(scored, source)
+        reader = (
+            "the chapter, read with its accepted reorders in place, reads"
+            if applied
+            else "the chapter reads"
+        )
         parts.append(
             f"The chapter {chapter_id} has the words of its source in a different order. The "
             f"similarity is {similarity:.3f} and must be at least {SIMILARITY_FLOOR}. They "
-            f'first differ where the chapter reads "{_context(scored, first)}" and the '
+            f'first differ where {reader} "{_context(scored, first)}" and the '
             f'source reads "{_context(source, first)}".'
         )
     message = " ".join(parts)

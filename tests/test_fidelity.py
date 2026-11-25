@@ -750,6 +750,15 @@ def test_a_reorder_whose_extraction_is_over_the_word_limit_fails() -> None:
     )
 
 
+def test_an_order_failure_with_a_reorder_in_place_says_the_record_is_in_place() -> None:
+    moved = CHAPTER_BODY + "\n\n" + PANEL_TABLE
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, moved, reorders=[PANEL_REORDER])
+
+    assert not result.passed
+    assert "where the chapter, read with its accepted reorders in place, reads" in result.message
+
+
 def test_both_readings_may_be_pasted_as_markdown() -> None:
     marked = "\n".join(f"> {line}" for line in PANEL_TABLE.split("\n"))
     marked = marked.replace("| Do |", "| **Do** |").replace(
