@@ -7,7 +7,7 @@ references:
     note: Defines the harness as the layer that equips a single agent run, and separates it from the loop layer above it.
   - resource: hermes-agent-orange-book
     chapter: hermes-agent-orange-book/three-engines-of-self-improvement
-    note: Describes the three background mechanisms through which Hermes Agent grows its own harness, which are a post-turn review that writes skills and memory, a curator that maintains them, and a goal loop that keeps a session running until a judge finds the goal met.
+    note: Describes the three background mechanisms through which Hermes Agent grows its own harness, which are a post-turn review that writes skills and memory, a curator that maintains the skill library, and a goal loop that keeps a session running until a judge finds the goal met.
   - resource: hermes-agent-orange-book
     chapter: hermes-agent-orange-book/curator-brakes-for-self-evolution
     note: Describes the curator that consolidates and archives the skills an agent wrote for itself, and its safeguards of archiving instead of deleting, a snapshot before each run, a dry run, and a limit to agent-created skills.
