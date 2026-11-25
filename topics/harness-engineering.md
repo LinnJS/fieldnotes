@@ -7,10 +7,10 @@ references:
     note: Defines the harness as the layer that equips a single agent run, and separates it from the loop layer above it.
   - resource: hermes-agent-orange-book
     chapter: hermes-agent-orange-book/three-engines-of-self-improvement
-    note: Describes the three background mechanisms through which Hermes Agent grows its own harness, which are a post-turn review that writes skills and memory, a curator that maintains the skill library, and a goal loop that keeps a session running until a judge finds the goal met.
+    note: Describes the three background mechanisms by which Hermes Agent builds its own harness. A post-turn review writes skills and memory, a curator maintains the skill library, and a goal loop keeps a session running until a judge finds the goal met.
   - resource: hermes-agent-orange-book
     chapter: hermes-agent-orange-book/curator-brakes-for-self-evolution
-    note: Describes the curator that consolidates and archives the skills an agent wrote for itself, and its safeguards of archiving instead of deleting, a snapshot before each run, a dry run, and a limit to agent-created skills.
+    note: Describes the curator that consolidates and archives the skills an agent wrote for itself. Its safeguards are that it archives instead of deleting, takes a snapshot before each run, offers a dry run, and acts only on agent-created skills.
   - resource: deepseek-harness-orange-book
     note: Its README describes a first-hand run of DeepSeek's open-source agent harness that records its system prompt and default boot manifest. The book is in Chinese.
   - resource: harness-engineering-orange-book

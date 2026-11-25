@@ -13,7 +13,7 @@ references:
     note: Describes how Hermes Agent keeps a large tool set from crowding the model's context, through toolsets, conditional tool exposure, on-demand tool discovery, and plugin-based providers.
   - resource: hermes-agent-orange-book
     chapter: hermes-agent-orange-book/mcp-in-two-directions
-    note: Describes Hermes Agent as both an MCP client, with its transports, OAuth, and a reviewed catalog, and an MCP server that other agents call, and when to choose MCP over a native tool.
+    note: Describes Hermes Agent as an MCP client, with its transports, OAuth, and a reviewed catalog, and as an MCP server that other agents call. It also says when to choose MCP over a native tool.
   - resource: codex-orange-book
     note: Its README lists a chapter on Skills, MCP, Automations, and /goal as the extension layers of Codex.
   - resource: claude-code-orange-book

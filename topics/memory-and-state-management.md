@@ -13,7 +13,7 @@ references:
     note: Shows how to give a first loop a state file so that unfinished work carries over to the next run.
   - resource: hermes-agent-orange-book
     chapter: hermes-agent-orange-book/three-layers-of-memory
-    note: Describes three layers of agent memory, and how persistent memory is written to disk at once but shown to the model as a snapshot frozen for the session and scanned for injected content.
+    note: Describes three layers of agent memory. Persistent memory is written to disk immediately, but the model sees a snapshot that is frozen for the session and scanned for injected content.
   - resource: hermes-agent-orange-book
     chapter: hermes-agent-orange-book/session-search
     note: Describes session search that returns stored messages from a full-text index instead of LLM summaries, and how it handles Chinese text.

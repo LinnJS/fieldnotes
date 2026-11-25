@@ -433,7 +433,7 @@
           "chapter": "hermes-agent-orange-book/three-engines-of-self-improvement",
           "license_id": "MIT",
           "mirror_status": "mirrored",
-          "note": "Describes the three background mechanisms through which Hermes Agent grows its own harness, which are a post-turn review that writes skills and memory, a curator that maintains the skill library, and a goal loop that keeps a session running until a judge finds the goal met.",
+          "note": "Describes the three background mechanisms by which Hermes Agent builds its own harness. A post-turn review writes skills and memory, a curator maintains the skill library, and a goal loop keeps a session running until a judge finds the goal met.",
           "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
@@ -441,7 +441,7 @@
           "chapter": "hermes-agent-orange-book/curator-brakes-for-self-evolution",
           "license_id": "MIT",
           "mirror_status": "mirrored",
-          "note": "Describes the curator that consolidates and archives the skills an agent wrote for itself, and its safeguards of archiving instead of deleting, a snapshot before each run, a dry run, and a limit to agent-created skills.",
+          "note": "Describes the curator that consolidates and archives the skills an agent wrote for itself. Its safeguards are that it archives instead of deleting, takes a snapshot before each run, offers a dry run, and acts only on agent-created skills.",
           "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
@@ -505,7 +505,7 @@
           "chapter": "hermes-agent-orange-book/three-layers-of-memory",
           "license_id": "MIT",
           "mirror_status": "mirrored",
-          "note": "Describes three layers of agent memory, and how persistent memory is written to disk at once but shown to the model as a snapshot frozen for the session and scanned for injected content.",
+          "note": "Describes three layers of agent memory. Persistent memory is written to disk immediately, but the model sees a snapshot that is frozen for the session and scanned for injected content.",
           "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
@@ -585,7 +585,7 @@
           "chapter": "hermes-agent-orange-book/mcp-in-two-directions",
           "license_id": "MIT",
           "mirror_status": "mirrored",
-          "note": "Describes Hermes Agent as both an MCP client, with its transports, OAuth, and a reviewed catalog, and an MCP server that other agents call, and when to choose MCP over a native tool.",
+          "note": "Describes Hermes Agent as an MCP client, with its transports, OAuth, and a reviewed catalog, and as an MCP server that other agents call. It also says when to choose MCP over a native tool.",
           "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
