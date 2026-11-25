@@ -9,7 +9,11 @@ references:
     chapter: loop-engineering-orange-book/generator-and-evaluator
     note: Gives the example of an evaluator connected to Playwright MCP so that it can use a page and not only read its code.
   - resource: hermes-agent-orange-book
-    note: Its README lists a part on the tools, MCP support, and messaging platforms of Hermes Agent.
+    chapter: hermes-agent-orange-book/tools-and-exposure-on-demand
+    note: Describes how Hermes Agent keeps a large tool set from crowding the model's context, through toolsets, conditional tool exposure, on-demand tool discovery, and plugin-based providers.
+  - resource: hermes-agent-orange-book
+    chapter: hermes-agent-orange-book/mcp-in-two-directions
+    note: Describes Hermes Agent as both an MCP client, with its transports, OAuth, and a reviewed catalog, and an MCP server that other agents call, and when to choose MCP over a native tool.
   - resource: codex-orange-book
     note: Its README lists a chapter on Skills, MCP, Automations, and /goal as the extension layers of Codex.
   - resource: claude-code-orange-book
@@ -40,7 +44,8 @@ references:
 
 - [§04 Six Parts: What a Loop Is Built From](../books/loop-engineering-orange-book/chapters/04-six-parts-of-a-loop.md)
 - [§05 Generator and Evaluator: Why an AI Can't Grade Its Own Code](../books/loop-engineering-orange-book/chapters/05-generator-and-evaluator.md)
-- `hermes-agent-orange-book`. Run `python3 scripts/resolve.py hermes-agent-orange-book` for its official URL.
+- [§11 64 Tools and Exposure on Demand](../books/hermes-agent-orange-book/chapters/11-tools-and-exposure-on-demand.md)
+- [§12 MCP in Two Directions](../books/hermes-agent-orange-book/chapters/12-mcp-in-two-directions.md)
 - `codex-orange-book`. Run `python3 scripts/resolve.py codex-orange-book` for its official URL.
 - `claude-code-orange-book`. Run `python3 scripts/resolve.py claude-code-orange-book` for its official URL.
 - `deepseek-harness-orange-book`. Run `python3 scripts/resolve.py deepseek-harness-orange-book` for its official URL.

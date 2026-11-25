@@ -6,7 +6,11 @@ references:
     chapter: loop-engineering-orange-book/from-prompt-to-context-to-loop
     note: Defines the harness as the layer that equips a single agent run, and separates it from the loop layer above it.
   - resource: hermes-agent-orange-book
-    note: Its README presents Hermes Agent as a product built from the five harness components of instructions, constraints, feedback, memory, and orchestration.
+    chapter: hermes-agent-orange-book/three-engines-of-self-improvement
+    note: Describes the three background mechanisms through which Hermes Agent grows its own harness, which are a post-turn review that writes skills and memory, a curator that maintains them, and a goal loop that keeps a session running until a judge finds the goal met.
+  - resource: hermes-agent-orange-book
+    chapter: hermes-agent-orange-book/curator-brakes-for-self-evolution
+    note: Describes the curator that consolidates and archives the skills an agent wrote for itself, and its safeguards of archiving instead of deleting, a snapshot before each run, a dry run, and a limit to agent-created skills.
   - resource: deepseek-harness-orange-book
     note: Its README describes a first-hand run of DeepSeek's open-source agent harness that records its system prompt and default boot manifest. The book is in Chinese.
   - resource: harness-engineering-orange-book
@@ -28,7 +32,8 @@ references:
 ## Where to read
 
 - [§02 From Prompt to Context to Loop](../books/loop-engineering-orange-book/chapters/02-from-prompt-to-context-to-loop.md)
-- `hermes-agent-orange-book`. Run `python3 scripts/resolve.py hermes-agent-orange-book` for its official URL.
+- [§04 Build, Repair, Continue: Three Engines of Self-Improvement](../books/hermes-agent-orange-book/chapters/04-three-engines-of-self-improvement.md)
+- [§05 Curator: Brakes for Self-Evolution](../books/hermes-agent-orange-book/chapters/05-curator-brakes-for-self-evolution.md)
 - `deepseek-harness-orange-book`. Run `python3 scripts/resolve.py deepseek-harness-orange-book` for its official URL.
 - `harness-engineering-orange-book`. Run `python3 scripts/resolve.py harness-engineering-orange-book` for its official URL.
 - `claude-code-source-analysis-orange-book`. Run `python3 scripts/resolve.py claude-code-source-analysis-orange-book` for its official URL.

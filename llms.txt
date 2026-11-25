@@ -73,16 +73,16 @@ These books are cataloged with their license evidence. Read them at the author's
 ## Topics
 
 - [Agent Architecture](topics/agent-architecture.md): `agent-architecture`, 6 references.
-- [Agent Orchestration](topics/agent-orchestration.md): `agent-orchestration`, 7 references.
+- [Agent Orchestration](topics/agent-orchestration.md): `agent-orchestration`, 8 references.
 - [Agent Reliability](topics/agent-reliability.md): `agent-reliability`, 3 references.
-- [Agent Security](topics/agent-security.md): `agent-security`, 4 references.
+- [Agent Security](topics/agent-security.md): `agent-security`, 5 references.
 - [Coding Agents](topics/coding-agents.md): `coding-agents`, 6 references.
 - [Context Engineering](topics/context-engineering.md): `context-engineering`, 4 references.
 - [Development Workflows](topics/development-workflows.md): `development-workflows`, 8 references.
 - [Evaluation and Testing](topics/evaluation-and-testing.md): `evaluation-and-testing`, 4 references.
-- [Harness Engineering](topics/harness-engineering.md): `harness-engineering`, 5 references.
-- [Memory and State Management](topics/memory-and-state-management.md): `memory-and-state-management`, 8 references.
-- [Tool Use and Integration](topics/tool-use-and-integration.md): `tool-use-and-integration`, 9 references.
+- [Harness Engineering](topics/harness-engineering.md): `harness-engineering`, 6 references.
+- [Memory and State Management](topics/memory-and-state-management.md): `memory-and-state-management`, 9 references.
+- [Tool Use and Integration](topics/tool-use-and-integration.md): `tool-use-and-integration`, 10 references.
 
 ## Indexes
 
