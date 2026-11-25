@@ -766,6 +766,59 @@ def test_a_schema_violation_is_a_finding_that_gives_the_json_path(library_copy: 
     assert "$.mirror_status" in findings[0].message
 
 
+REORDER = (
+    "    - chapter: fixture-mirrored-book/choosing-a-pond\n"
+    "      page: 4\n"
+    "      passage: A basin. A tub.\n"
+    "      extraction: A tub. A basin.\n"
+    "      reason: Page 4 prints the two lines in this order.\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("reorders", "path"),
+    [
+        ("", "$.extraction_profile: 'accepted_reorders' is a required property"),
+        (REORDER.replace("      page: 4\n", ""), "$.extraction_profile.accepted_reorders[0]"),
+        (REORDER.replace("page: 4", "page: 0"), "$.extraction_profile.accepted_reorders[0].page"),
+        (
+            REORDER.replace("passage: A basin. A tub.", "passage: ''"),
+            "$.extraction_profile.accepted_reorders[0].passage",
+        ),
+        (REORDER + "      note: extra\n", "$.extraction_profile.accepted_reorders[0]"),
+    ],
+    ids=["no-key", "no-page", "page-zero", "empty-passage", "unknown-key"],
+)
+def test_an_accepted_reorder_that_breaks_the_schema_is_a_finding_that_gives_the_json_path(
+    library_copy: Path, reorders: str, path: str
+) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "  accepted_reorders: []\n",
+        f"  accepted_reorders:\n{reorders}" if reorders else "",
+    )
+
+    findings = [finding for finding in run_checks(library_copy) if finding.rule == "invalid-file"]
+
+    assert located(findings) == [("invalid-file", f"books/{MIRRORED}/metadata.yaml", None)]
+    assert path in findings[0].message
+
+
+def test_angle_brackets_and_backticks_in_an_accepted_reorder_are_not_findings(
+    library_copy: Path,
+) -> None:
+    replace_in(
+        library_copy / "books" / MIRRORED / "metadata.yaml",
+        "  accepted_reorders: []\n",
+        "  accepted_reorders:\n"
+        + REORDER.replace("A basin. A tub.", "'<A basin.> `A tub.`'").replace(
+            "A tub. A basin.", "'`A tub.` <A basin.>'"
+        ),
+    )
+
+    assert markup_findings(library_copy) == []
+
+
 def test_a_chapter_with_broken_frontmatter_is_a_finding(library_copy: Path) -> None:
     replace_in(
         library_copy / "books" / MIRRORED / "chapters" / "02-choosing-a-pond.md",

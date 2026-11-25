@@ -20,6 +20,7 @@ from kb.schema import LoadError, load_yaml_file
 
 __all__ = [
     "AcceptedDifference",
+    "AcceptedReorder",
     "Catalog",
     "ChapterFile",
     "Collection",
@@ -407,6 +408,30 @@ class AcceptedDifference:
 
 
 @dataclass(frozen=True)
+class AcceptedReorder:
+    """A block of a chapter that a person put back in the order its page prints.
+
+    The extraction read the block in another order, for example across two boxes that the page
+    prints side by side. The fidelity check scores the block as the extraction reads it, so the
+    record has to hold both readings, each found once in its own text.
+
+    Attributes:
+        chapter: Id of the chapter that holds the block.
+        page: Page of the source file that the block starts on, counted from 1.
+        passage: The block as the page prints it, copied from the chapter. It may hold Markdown.
+        extraction: The same block as a fresh extraction reads it, copied from a draft. It may
+            hold Markdown.
+        reason: What the page shows and how the extraction read it.
+    """
+
+    chapter: str
+    page: int
+    passage: str
+    extraction: str
+    reason: str
+
+
+@dataclass(frozen=True)
 class ExtractionProfile:
     """How to turn a book's pinned source file into chapters.
 
@@ -416,6 +441,7 @@ class ExtractionProfile:
         excluded_pages: Pages left out of extraction, counted from 1.
         sections: The slug and part fixed for each section.
         accepted_differences: Word differences a person has accepted, per chapter.
+        accepted_reorders: Blocks a person put back in the order the page prints, per chapter.
     """
 
     roles: tuple[RoleRule, ...]
@@ -423,6 +449,7 @@ class ExtractionProfile:
     excluded_pages: tuple[int, ...]
     sections: tuple[SectionAssignment, ...]
     accepted_differences: tuple[AcceptedDifference, ...]
+    accepted_reorders: tuple[AcceptedReorder, ...]
 
 
 @dataclass(frozen=True)
@@ -760,6 +787,16 @@ def _extraction_profile(data: dict[str, Any] | None) -> ExtractionProfile | None
                 reason=difference["reason"],
             )
             for difference in data["accepted_differences"]
+        ),
+        accepted_reorders=tuple(
+            AcceptedReorder(
+                chapter=reorder["chapter"],
+                page=int(reorder["page"]),
+                passage=reorder["passage"],
+                extraction=reorder["extraction"],
+                reason=reorder["reason"],
+            )
+            for reorder in data["accepted_reorders"]
         ),
     )
 

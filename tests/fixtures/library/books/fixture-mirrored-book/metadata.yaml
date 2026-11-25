@@ -140,6 +140,7 @@ extraction_profile:
       slug: recovering-a-sunk-boat
       part: "Part Two: Water"
   accepted_differences: []
+  accepted_reorders: []
 
 notices:
   - Test fixture. This book and its text are invented for automated tests.

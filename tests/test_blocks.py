@@ -42,6 +42,7 @@ def make_profile(*, excluded_pages: tuple[int, ...] = ()) -> ExtractionProfile:
         excluded_pages=excluded_pages,
         sections=(),
         accepted_differences=(),
+        accepted_reorders=(),
     )
 
 
