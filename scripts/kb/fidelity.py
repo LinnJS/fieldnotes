@@ -27,8 +27,8 @@ The record applies when the chapter holds the first reading once, the source hol
 once, and the two differ by no word beyond what ``accepted_differences`` lists for the chapter.
 The second rule then scores the chapter with the extraction's reading in place of the block. The
 first rule always compares the chapter as written, and a record that does not apply fails the
-chapter. One record holds at most ``REORDER_WORD_LIMIT`` words, so no record can switch the
-second rule off for a whole chapter.
+chapter. Each reading of one record holds at most ``REORDER_WORD_LIMIT`` words, so no record
+can switch the second rule off for a whole chapter.
 
 Errata live in a chapter's frontmatter. They are not chapter text and take no part.
 """
@@ -67,10 +67,11 @@ SIMILARITY_FLOOR = 0.98
 """Lowest sequence similarity between the words of a chapter and of its source that passes."""
 
 REORDER_WORD_LIMIT = 200
-"""Most words the block of one accepted reorder may hold, counted as the chapter holds it.
+"""Most words each reading of one accepted reorder may hold.
 
-A record scores its block as the extraction reads it, so a record with no limit could cover a
-whole chapter.
+A record scores its block as the extraction reads it, so a record with no limit on either
+reading could cover a whole chapter. A short passage paired with a long extraction would put
+the long reading in place of a few words.
 """
 
 _WORDS_NAMED = 8
@@ -449,6 +450,12 @@ def _apply_reorders(
             problems.append(
                 f"{named} has a passage of {len(passage)} words, and a reorder may hold at "
                 f"most {REORDER_WORD_LIMIT}."
+            )
+            continue
+        if len(extraction) > REORDER_WORD_LIMIT:
+            problems.append(
+                f"{named} has an extraction of {len(extraction)} words, and a reorder may hold "
+                f"at most {REORDER_WORD_LIMIT}."
             )
             continue
         in_chapter = _runs(chapter, passage)

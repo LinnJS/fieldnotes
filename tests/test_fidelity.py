@@ -720,6 +720,36 @@ def test_a_reorder_over_a_whole_shuffled_chapter_fails_on_the_word_limit() -> No
     assert result.similarity < SIMILARITY_FLOOR
 
 
+def test_a_reorder_whose_extraction_is_over_the_word_limit_fails() -> None:
+    # A short passage paired with a long extraction would score the long reading in place of
+    # one word, so the limit holds for the extraction as well.
+    gone = [f"gone{number}" for number in range(REORDER_WORD_LIMIT)]
+    extraction = " ".join(["Anchor", *gone])
+    source = with_panel(SOURCE_TEXT, extraction)
+    body = with_panel(CHAPTER_BODY, "Anchor", "\n\n")
+    dropped = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=tuple(gone),
+        words_added=(),
+        reason="Listed so that the words of the chapter balance.",
+    )
+    record = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage="Anchor",
+        extraction=extraction,
+        reason="Recorded to excuse the order of words the chapter does not hold.",
+    )
+
+    result = compare(CHAPTER_ID, source, body, [dropped], reorders=[record])
+
+    assert (result.words_removed, result.words_added) == ((), ())
+    assert not result.passed
+    assert f"an extraction of 201 words, and a reorder may hold at most {REORDER_WORD_LIMIT}" in (
+        result.message
+    )
+
+
 def test_both_readings_may_be_pasted_as_markdown() -> None:
     marked = "\n".join(f"> {line}" for line in PANEL_TABLE.split("\n"))
     marked = marked.replace("| Do |", "| **Do** |").replace(

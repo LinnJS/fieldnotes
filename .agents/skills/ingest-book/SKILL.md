@@ -110,7 +110,7 @@ The check compares each chapter with a fresh extraction of the source, word by w
 
 When the chapter matches the page and the extraction is the one that is wrong, list the words under `extraction_profile.accepted_differences` with the chapter id, `words_removed`, `words_added`, and a reason that names the page. Use this only for words you compared with the page yourself.
 
-When a chapter fails on order after you put a block back in the order its page prints, record the block under `extraction_profile.accepted_reorders`. Record one whole block per entry, such as a whole panel or a whole table, and only after you compared it with the page. Copy `passage` from the repaired chapter and `extraction` from the draft under `build/ingest/<id>/`, give the `page` the block starts on, and write a `reason` that says what the page shows and how the extraction read it. A word that the block restores or splits still goes under `accepted_differences`. A block of more than 200 words cannot be recorded, so stop and report it.
+When a chapter fails on order after you put a block back in the order its page prints, record the block under `extraction_profile.accepted_reorders`. Record one whole block per entry, such as a whole panel or a whole table, and only after you compared it with the page. Copy `passage` from the repaired chapter and `extraction` from the draft under `build/ingest/<id>/`, give the `page` the block starts on, and write a `reason` that says what the page shows and how the extraction read it. A word that the block restores or splits still goes under `accepted_differences`. A block that holds more than 200 words in either reading cannot be recorded, so stop and report it.
 
 If a chapter cannot pass without rewording the source, stop and report it.
 

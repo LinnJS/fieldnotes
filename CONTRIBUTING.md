@@ -56,7 +56,8 @@ You may:
   another order, such as two boxes printed side by side. Record it in the book's
   `extraction_profile.accepted_reorders` with the chapter, the page, the block as
   the chapter holds it (`passage`), the block as a fresh draft holds it
-  (`extraction`), and the reason. One record holds at most 200 words.
+  (`extraction`), and the reason. Each reading of a record holds at most 200
+  words.
 - Change `extraction_status` to `human-reviewed` after you have read the whole
   chapter against the source pages.
 
