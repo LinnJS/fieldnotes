@@ -221,7 +221,7 @@ extraction_profile:
     - chapter: hermes-agent-orange-book/meet-hermes
       words_removed: ["女", "娲", "skill", "达", "尔", "文", "skill", "核", "心", "建议"]
       words_added: ["女娲.skill", "达尔文.skill", "核心建议"]
-      reason: "Page 6 prints the project names 女娲.skill and 达尔文.skill as single words, and page 7 prints the callout label 核心建议 as one word. The extraction splits each into separate runs."
+      reason: "Page 6 prints the project names 女娲.skill and 达尔文.skill as single words, and page 7 prints the callout label 核心建议 as one word. The extraction splits each into separate words."
     - chapter: hermes-agent-orange-book/one-brain-many-faces
       words_removed: ["6grant", "backendswhat", "Curatorstale", "memorystored", "providersessions", "OrchestrationSub-agent", "scheduledone", "layertasks", "boarddo", "推", "荐", "不推", "荐"]
       words_added: ["layer", "+", "6", "backends", "grant", "what", "Curator", "stale", "memory", "provider", "stored", "sessions", "Orchestration", "Sub-agent", "scheduled", "tasks", "board", "one", "do", "推荐", "不推荐"]
@@ -229,7 +229,7 @@ extraction_profile:
     - chapter: hermes-agent-orange-book/why-nous-built-this
       words_removed: ["推", "荐", "不推", "荐", "核", "心", "建议"]
       words_added: ["推荐", "不推荐", "核心建议"]
-      reason: "Page 15 prints the panel labels 推荐 and 不推荐 and page 16 prints the callout label 核心建议, each as one word. The extraction splits each label into separate runs."
+      reason: "Page 15 prints the panel labels 推荐 and 不推荐 and page 16 prints the callout label 核心建议, each as one word. The extraction splits each label into separate words."
     - chapter: hermes-agent-orange-book/three-engines-of-self-improvement
       words_removed: ["BuildRepairContinue", "ReviewCuratorGoals", "activestale", "activestale", "核", "心", "建议"]
       words_added: ["Build", "Review", "Repair", "Curator", "Continue", "Goals", "active", "active", "stale", "stale", "核心建议"]
@@ -237,7 +237,7 @@ extraction_profile:
     - chapter: hermes-agent-orange-book/curator-brakes-for-self-evolution
       words_removed: ["核", "心", "建议", "推", "荐", "不推", "荐"]
       words_added: ["核心建议", "推荐", "不推荐"]
-      reason: "Page 25 prints the callout label 核心建议 and page 26 prints the panel labels 推荐 and 不推荐, each as one word. The extraction splits each label into separate runs."
+      reason: "Page 25 prints the callout label 核心建议 and page 26 prints the panel labels 推荐 and 不推荐, each as one word. The extraction splits each label into separate words."
     - chapter: hermes-agent-orange-book/what-not-to-learn
       words_removed: ["推", "荐", "不推", "荐"]
       words_added: ["推荐", "不推荐"]
