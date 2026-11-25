@@ -19,11 +19,11 @@ errata:
   - description: >-
       The upstream README's errata section says the data-collection inference under "Motive one"
       on page 13 is wrong. Hermes Agent's official FAQ says it collects no telemetry or usage data
-      and keeps conversations, memory, and skills on the user's machine, so the chain from users'
-      real usage to Nous's training data breaks at its first link. The erratum adds that the
-      data-flywheel argument later in the section falls with it, while the Portal and OpenClaw
-      motives still stand. The Chinese edition v261020 corrects the text. This chapter keeps the
-      English v260607 text as printed.
+      and keeps conversations, memory, and skills on the user's machine, so the first step of the
+      chain from users' real usage to Nous's training data does not happen. The erratum adds that
+      the data-flywheel argument later in the section does not hold either, while the Portal and
+      OpenClaw motives still hold. The Chinese edition v261020 corrects the text. This chapter
+      keeps the English v260607 text as printed.
     source_url: https://github.com/alchaincyf/hermes-agent-orange-book/blob/b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692/README.md#errata
 ---
 
