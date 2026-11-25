@@ -149,7 +149,11 @@ def _check(root: Path, resource: Resource) -> int:
             f"{failed} of {len(report.results)} chapters do not match the source file.",
             "Restore the wording of the source in each chapter that failed. If a chapter is "
             "right and the extraction is wrong, list the words under accepted_differences in "
-            f"{BOOKS_DIR}/{resource.id}/{METADATA_FILE} with the chapter id and a reason.",
+            f"{BOOKS_DIR}/{resource.id}/{METADATA_FILE} with the chapter id and a reason. If a "
+            "chapter holds a block in the order its page prints and the extraction reads it in "
+            "another order, record it under accepted_reorders with the chapter id, the page, "
+            "the block as the chapter holds it, the block as a fresh draft holds it, and a "
+            "reason.",
         )
     mislabeled = sum(bool(result.frontmatter) for result in report.results)
     if mislabeled:

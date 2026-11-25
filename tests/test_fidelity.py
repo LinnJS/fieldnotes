@@ -6,9 +6,21 @@ from pathlib import Path
 
 import pytest
 from kb import fidelity
-from kb.catalog import AcceptedDifference, Resource, load_chapters, load_resource
+from kb.catalog import (
+    AcceptedDifference,
+    AcceptedReorder,
+    Resource,
+    load_chapters,
+    load_resource,
+)
 from kb.checks import Finding, run_checks
-from kb.fidelity import SIMILARITY_FLOOR, check_book, compare, report_lines
+from kb.fidelity import (
+    REORDER_WORD_LIMIT,
+    SIMILARITY_FLOOR,
+    check_book,
+    compare,
+    report_lines,
+)
 from kb.ingest import ExtractedBook
 
 MIRRORED = "fixture-mirrored-book"
@@ -377,6 +389,470 @@ def test_an_accepted_difference_the_chapter_does_not_have_fails() -> None:
     assert (result.words_removed, result.words_added) == (("Maria",), ("Marta",))
 
 
+# Two boxes that a page prints side by side. The chapter holds them as a two-column table, and a
+# fresh extraction reads across the boxes line by line.
+DO = [
+    "Wax the twine before the first turn.",
+    "Pull each turn tight against the last.",
+    "Keep every turn square to the rope.",
+    "Trim both ends close to the whipping.",
+]
+AVOID = [
+    "Never use dry twine on wet rope.",
+    "Never leave a turn loose or crossed.",
+    "Never let the turns climb the lay.",
+    "Never leave a long tail to snag.",
+]
+PANEL_TABLE = "\n".join(
+    ["| Do | Avoid |", "| --- | --- |", f"| {' '.join(DO)} | {' '.join(AVOID)} |"]
+)
+PANEL_EXTRACTION = "\n".join(
+    ["Do Avoid", *(f"{do} {avoid}" for do, avoid in zip(DO, AVOID, strict=True))]
+)
+
+
+def with_panel(text: str, panel: str, joiner: str = "\n") -> str:
+    """Put a panel in front of the twenty-first step, where a page would print it."""
+    assert STEPS[20] in text
+    return text.replace(STEPS[20], f"{panel}{joiner}{STEPS[20]}")
+
+
+PANEL_SOURCE = with_panel(SOURCE_TEXT, PANEL_EXTRACTION)
+PANEL_BODY = with_panel(CHAPTER_BODY, PANEL_TABLE, "\n\n")
+PANEL_REORDER = AcceptedReorder(
+    chapter=CHAPTER_ID,
+    page=4,
+    passage=PANEL_TABLE,
+    extraction=PANEL_EXTRACTION,
+    reason="Page 4 prints two boxes side by side, and the extraction reads across them.",
+)
+
+
+def reversed_first_steps(body: str) -> str:
+    lines = body.split("\n")
+    first = lines.index(STEPS[0])
+    return "\n".join([*lines[:first], *reversed(lines[first : first + 20]), *lines[first + 20 :]])
+
+
+def test_a_block_put_back_in_page_order_fails_on_order_when_nothing_records_it() -> None:
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY)
+
+    assert not result.passed
+    assert (result.words_removed, result.words_added) == ((), ())
+    assert result.similarity < SIMILARITY_FLOOR
+    assert "order" in result.message
+
+
+def test_a_recorded_reorder_is_scored_as_the_extraction_reads_it() -> None:
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[PANEL_REORDER])
+
+    assert result.passed
+    assert result.message == ""
+    assert result.similarity == 1.0
+    assert result.similarity_as_written is not None
+    assert result.similarity_as_written < SIMILARITY_FLOOR
+
+
+def test_a_reorder_recorded_for_another_chapter_changes_nothing() -> None:
+    elsewhere = dataclasses.replace(PANEL_REORDER, chapter="rope-book/coiling")
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[elsewhere])
+
+    assert not result.passed
+    assert result.similarity < SIMILARITY_FLOOR
+    assert result.similarity_as_written is None
+
+
+def test_a_reorder_whose_passage_the_chapter_no_longer_holds_fails() -> None:
+    put_back = with_panel(CHAPTER_BODY, PANEL_EXTRACTION, "\n\n")
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, put_back, reorders=[PANEL_REORDER])
+
+    assert compare(CHAPTER_ID, PANEL_SOURCE, put_back).passed
+    assert not result.passed
+    assert "on page 4" in result.message
+    assert "the chapter does not hold" in result.message
+
+
+def test_a_reorder_whose_extraction_the_source_does_not_hold_fails() -> None:
+    misread = dataclasses.replace(
+        PANEL_REORDER, extraction=PANEL_EXTRACTION.replace("Do Avoid", "Avoid Do")
+    )
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[misread])
+
+    assert not result.passed
+    assert "the source does not hold" in result.message
+    assert "fresh draft" in result.message
+
+
+def test_a_reorder_whose_two_readings_are_the_same_fails() -> None:
+    nothing = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage=STEPS[0],
+        extraction=STEPS[0],
+        reason="Recorded although the extraction reads the step as the page prints it.",
+    )
+
+    result = compare(CHAPTER_ID, SOURCE_TEXT, CHAPTER_BODY, reorders=[nothing])
+
+    assert not result.passed
+    assert "no reorder to record" in result.message
+
+
+def test_a_word_changed_inside_a_recorded_block_fails_on_the_words() -> None:
+    changed = PANEL_BODY.replace("Wax the twine", "Oil the twine")
+    recorded = dataclasses.replace(
+        PANEL_REORDER, passage=PANEL_TABLE.replace("Wax the twine", "Oil the twine")
+    )
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, changed, reorders=[recorded])
+
+    assert not result.passed
+    assert (result.words_removed, result.words_added) == (("Wax",), ("Oil",))
+    assert "does not have the words of its source" in result.message
+    assert "Words only in the passage: Oil." in result.message
+    assert "Words only in the extraction: Wax." in result.message
+
+
+def test_a_reorder_that_pairs_its_passage_with_other_words_of_the_source_fails() -> None:
+    other_words = "\n".join([*PANEL_EXTRACTION.split("\n")[1:], STEPS[20]])
+    paired = dataclasses.replace(PANEL_REORDER, extraction=other_words)
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[paired])
+
+    assert not result.passed
+    assert "accepted_differences does not list" in result.message
+    assert "Words only in the passage: Do, Avoid." in result.message
+    assert result.similarity < SIMILARITY_FLOOR
+
+
+GLUED = "turn.Never"
+GLUED_EXTRACTION = PANEL_EXTRACTION.replace("first turn. Never", "first turn.Never")
+GLUED_SPLIT = AcceptedDifference(
+    chapter=CHAPTER_ID,
+    words_removed=(GLUED,),
+    words_added=("turn", "Never"),
+    reason="The extraction glues the last word of the left box to the first of the right.",
+)
+
+
+def test_a_recorded_block_with_a_glued_word_passes_only_when_the_split_is_accepted() -> None:
+    source = with_panel(SOURCE_TEXT, GLUED_EXTRACTION)
+    recorded = dataclasses.replace(PANEL_REORDER, extraction=GLUED_EXTRACTION)
+
+    accepted = compare(CHAPTER_ID, source, PANEL_BODY, [GLUED_SPLIT], reorders=[recorded])
+    unaccepted = compare(CHAPTER_ID, source, PANEL_BODY, reorders=[recorded])
+
+    assert GLUED in GLUED_EXTRACTION
+    assert accepted.passed
+    assert accepted.similarity == 1.0
+    assert not unaccepted.passed
+    assert "on page 4" in unaccepted.message
+    assert "accepted_differences does not list" in unaccepted.message
+
+
+def test_two_restored_words_in_a_recorded_block_need_two_listed_words() -> None:
+    dropped = PANEL_EXTRACTION.replace("Never use", "use").replace(
+        "Never leave a turn", "leave a turn"
+    )
+    source = with_panel(SOURCE_TEXT, dropped)
+    recorded = dataclasses.replace(PANEL_REORDER, extraction=dropped)
+
+    def restored(*listed: str) -> AcceptedDifference:
+        return AcceptedDifference(
+            chapter=CHAPTER_ID,
+            words_removed=(),
+            words_added=listed,
+            reason="The extraction drops a word that the page prints in the right box.",
+        )
+
+    once = compare(CHAPTER_ID, source, PANEL_BODY, [restored("Never")], reorders=[recorded])
+    twice = compare(
+        CHAPTER_ID, source, PANEL_BODY, [restored("Never", "Never")], reorders=[recorded]
+    )
+
+    assert not once.passed
+    assert "on page 4" in once.message
+    assert "Words only in the passage: Never." in once.message
+    assert twice.passed
+
+
+def test_two_reorders_cannot_claim_the_same_listed_word() -> None:
+    # The chapter drops "cord" from the opening line and restores it in two table rows, so the
+    # words balance with "cord" listed once. Each row's record claims that one listed word.
+    source = SOURCE_TEXT.replace("of a rope from", "of a rope cord from")
+    body = CHAPTER_BODY.replace("| Waxed flax |", "| Waxed flax cord |").replace(
+        "| Tarred hemp |", "| Tarred hemp cord |"
+    )
+    restored = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=(),
+        words_added=("cord",),
+        reason="Listed once, while two records each claim the word.",
+    )
+
+    def row(passage: str, extraction: str) -> AcceptedReorder:
+        return AcceptedReorder(
+            chapter=CHAPTER_ID,
+            page=4,
+            passage=passage,
+            extraction=extraction,
+            reason="Page 4 prints the word in this row.",
+        )
+
+    rows = [
+        row("| Waxed flax cord | Twelve | Reef knot |", "Waxed flax Twelve Reef knot"),
+        row("| Tarred hemp cord | Nine | Sewn through |", "Tarred hemp Nine Sewn through"),
+    ]
+
+    result = compare(CHAPTER_ID, source, body, [restored], reorders=rows)
+
+    assert (result.words_removed, result.words_added) == ((), ())
+    assert not result.passed
+    assert "on page 4" in result.message
+    assert "Words only in the passage: cord." in result.message
+
+
+def test_a_record_over_a_glued_word_that_moved_nothing_lifts_the_score() -> None:
+    source = SOURCE_TEXT.replace("Waxed flax Twelve", "Waxed flaxTwelve")
+    split = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=("flaxTwelve",),
+        words_added=("flax", "Twelve"),
+        reason="The extraction glues two cells of a row.",
+    )
+    row = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage="| Waxed flax | Twelve | Reef knot |",
+        extraction="Waxed flaxTwelve Reef knot",
+        reason="The extraction glues two cells of a row.",
+    )
+
+    result = compare(CHAPTER_ID, source, CHAPTER_BODY, [split], reorders=[row])
+
+    assert result.passed
+    assert result.similarity_as_written is not None
+    assert result.similarity == 1.0 > result.similarity_as_written
+
+
+def test_a_second_reorder_that_nothing_records_still_fails_on_order() -> None:
+    result = compare(
+        CHAPTER_ID, PANEL_SOURCE, reversed_first_steps(PANEL_BODY), reorders=[PANEL_REORDER]
+    )
+
+    assert not result.passed
+    assert result.similarity < SIMILARITY_FLOOR
+    assert "different order" in result.message
+
+
+def test_a_passage_the_chapter_holds_more_than_once_fails_as_ambiguous() -> None:
+    vague = dataclasses.replace(PANEL_REORDER, passage="the twine lies")
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[vague])
+
+    assert not result.passed
+    assert "the chapter holds 40 times" in result.message
+
+
+def test_an_extraction_the_source_holds_more_than_once_fails_as_ambiguous() -> None:
+    vague = dataclasses.replace(PANEL_REORDER, extraction="lies flat beside")
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[vague])
+
+    assert not result.passed
+    assert "the source holds 40 times" in result.message
+
+
+def test_two_reorders_of_one_chapter_that_overlap_fail() -> None:
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[PANEL_REORDER, PANEL_REORDER])
+
+    assert not result.passed
+    assert "overlaps the accepted reorder on page 4" in result.message
+
+
+def big_panel(extra: str) -> tuple[str, str, AcceptedReorder]:
+    """Build a panel whose page reading holds exactly the word limit, plus any extra words."""
+    half = REORDER_WORD_LIMIT // 2
+    left = [f"left{number}" for number in range(half)]
+    right = [f"right{number}" for number in range(half)]
+    passage = " ".join([extra, *left, *right]).strip()
+    rows = [left[start : start + 10] + right[start : start + 10] for start in range(0, half, 10)]
+    extraction = "\n".join([extra, *(" ".join(row) for row in rows)]).strip()
+    reorder = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage=passage,
+        extraction=extraction,
+        reason="Page 4 prints two long boxes side by side.",
+    )
+    return with_panel(SOURCE_TEXT, extraction), with_panel(CHAPTER_BODY, passage, "\n\n"), reorder
+
+
+def test_a_reorder_of_the_word_limit_applies_and_one_word_more_fails() -> None:
+    at_limit = compare(CHAPTER_ID, *big_panel("")[:2], reorders=[big_panel("")[2]])
+    source, body, over = big_panel("Board")
+
+    beyond = compare(CHAPTER_ID, source, body, reorders=[over])
+
+    assert REORDER_WORD_LIMIT == 200
+    assert at_limit.passed
+    assert not beyond.passed
+    assert f"201 words, and a reorder may hold at most {REORDER_WORD_LIMIT}" in beyond.message
+
+
+def test_a_reorder_over_a_whole_shuffled_chapter_fails_on_the_word_limit() -> None:
+    shuffled = reversed_first_steps(CHAPTER_BODY)
+    everything = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage=shuffled,
+        extraction=SOURCE_TEXT,
+        reason="Recorded to pass a chapter whose steps are out of order.",
+    )
+
+    result = compare(CHAPTER_ID, SOURCE_TEXT, shuffled, reorders=[everything])
+
+    assert not result.passed
+    assert f"may hold at most {REORDER_WORD_LIMIT}" in result.message
+    assert result.similarity < SIMILARITY_FLOOR
+
+
+def test_a_reorder_whose_extraction_is_over_the_word_limit_fails() -> None:
+    # A short passage paired with a long extraction would score the long reading in place of
+    # one word, so the limit holds for the extraction as well.
+    gone = [f"gone{number}" for number in range(REORDER_WORD_LIMIT)]
+    extraction = " ".join(["Anchor", *gone])
+    source = with_panel(SOURCE_TEXT, extraction)
+    body = with_panel(CHAPTER_BODY, "Anchor", "\n\n")
+    dropped = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=tuple(gone),
+        words_added=(),
+        reason="Listed so that the words of the chapter balance.",
+    )
+    record = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage="Anchor",
+        extraction=extraction,
+        reason="Recorded to excuse the order of words the chapter does not hold.",
+    )
+
+    result = compare(CHAPTER_ID, source, body, [dropped], reorders=[record])
+
+    assert (result.words_removed, result.words_added) == ((), ())
+    assert not result.passed
+    assert f"an extraction of 201 words, and a reorder may hold at most {REORDER_WORD_LIMIT}" in (
+        result.message
+    )
+
+
+def test_a_reorder_with_no_words_in_a_reading_fails() -> None:
+    empty = dataclasses.replace(PANEL_REORDER, passage="| --- |")
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[empty])
+
+    assert not result.passed
+    assert "has no words in its passage or in its extraction" in result.message
+
+
+def test_two_reorders_of_one_chapter_both_apply_in_either_order() -> None:
+    # The row stands before the panel and its two readings differ in length, so the panel is
+    # found where the chapter holds it only if the row is put in place after it.
+    source = with_panel(
+        SOURCE_TEXT.replace("Waxed flax Twelve", "Waxed flaxTwelve"), PANEL_EXTRACTION
+    )
+    split = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=("flaxTwelve",),
+        words_added=("flax", "Twelve"),
+        reason="The extraction glues two cells of a row.",
+    )
+    row = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage="| Waxed flax | Twelve | Reef knot |",
+        extraction="Waxed flaxTwelve Reef knot",
+        reason="The extraction glues two cells of a row.",
+    )
+
+    forward = compare(CHAPTER_ID, source, PANEL_BODY, [split], reorders=[row, PANEL_REORDER])
+    backward = compare(CHAPTER_ID, source, PANEL_BODY, [split], reorders=[PANEL_REORDER, row])
+
+    for result in (forward, backward):
+        assert result.passed, result.message
+        assert result.similarity == 1.0
+
+
+def test_two_reorders_whose_extractions_overlap_in_the_source_fail() -> None:
+    source = with_panel(SOURCE_TEXT, "Alder Birch Cedar Dogwood")
+    body = with_panel(CHAPTER_BODY, "Birch Alder\n\nDogwood Cedar", "\n\n")
+    birch = AcceptedDifference(
+        chapter=CHAPTER_ID,
+        words_removed=("Birch",),
+        words_added=("Birch",),
+        reason="Listed so that the second record may claim the word.",
+    )
+    first = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=4,
+        passage="Birch Alder",
+        extraction="Alder Birch",
+        reason="Page 4 prints the two trees in this order.",
+    )
+    second = AcceptedReorder(
+        chapter=CHAPTER_ID,
+        page=5,
+        passage="Dogwood Cedar",
+        extraction="Birch Cedar Dogwood",
+        reason="Page 5 prints the two trees in this order.",
+    )
+
+    result = compare(CHAPTER_ID, source, body, [birch], reorders=[first, second])
+
+    assert not result.passed
+    assert "on page 5 overlaps the accepted reorder on page 4" in result.message
+
+
+def test_an_order_failure_with_a_reorder_in_place_says_the_record_is_in_place() -> None:
+    moved = CHAPTER_BODY + "\n\n" + PANEL_TABLE
+
+    result = compare(CHAPTER_ID, PANEL_SOURCE, moved, reorders=[PANEL_REORDER])
+
+    assert not result.passed
+    assert "where the chapter, read with its accepted reorders in place, reads" in result.message
+
+
+def test_both_readings_may_be_pasted_as_markdown() -> None:
+    marked = "\n".join(f"> {line}" for line in PANEL_TABLE.split("\n"))
+    marked = marked.replace("| Do |", "| **Do** |").replace(
+        "Wax the twine", "[Wax the twine](https://example.invalid/wax)"
+    )
+    recorded = dataclasses.replace(PANEL_REORDER, passage=marked)
+
+    assert compare(CHAPTER_ID, PANEL_SOURCE, PANEL_BODY, reorders=[recorded]).passed
+
+
+DRY = "https://example.invalid/dry-twine"
+PULL = "https://example.invalid/pull-tight"
+
+
+def test_a_recorded_reorder_does_not_excuse_links_in_another_order() -> None:
+    linked = PANEL_BODY.replace("Pull each turn", f"[Pull each turn]({PULL})").replace(
+        "Never use dry twine", f"[Never use dry twine]({DRY})"
+    )
+
+    result = compare(
+        CHAPTER_ID, PANEL_SOURCE, linked, source_links=(DRY, PULL), reorders=[PANEL_REORDER]
+    )
+
+    assert not result.passed
+    assert f"Link 1 points at {PULL}, where the source points at {DRY}." in result.message
+
+
 def test_every_fixture_chapter_matches_the_committed_source(fixture_library_root: Path) -> None:
     book = load_resource(fixture_library_root, MIRRORED)
     chapters = load_chapters(fixture_library_root, MIRRORED)
@@ -546,6 +1022,68 @@ def test_a_swapped_link_destination_in_a_chapter_is_a_finding(library_copy: Path
 
     assert located(findings) == [("fidelity-chapter", SUNK.as_posix())]
     assert "Destinations only in the source: 01-folding-the-hull.md." in findings[0].message
+
+
+LIFT = (
+    "Lift the boat by its keel fold and never by the brim. Let it drain bow down, then dry it "
+    "flat under a book."
+)
+FLAT = "> A boat that dries flat will fold again. A boat that dries crumpled is a paper ball."
+
+
+def record_sunk_reorder(root: Path, page: int) -> None:
+    """Swap two blocks of the sunk-boat chapter and record the swap for the given page."""
+    replace_in(root / SUNK, f"{LIFT}\n\n{FLAT}", f"{FLAT}\n\n{LIFT}")
+    replace_in(
+        root / METADATA,
+        "  accepted_reorders: []\n",
+        "  accepted_reorders:\n"
+        "    - chapter: fixture-mirrored-book/recovering-a-sunk-boat\n"
+        f"      page: {page}\n"
+        "      passage: |-\n"
+        f"        {FLAT}\n"
+        "\n"
+        f"        {LIFT}\n"
+        "      extraction: |-\n"
+        f"        {LIFT}\n"
+        f"        {FLAT[2:]}\n"
+        "      reason: The page prints the quote before the paragraph.\n",
+    )
+
+
+def test_two_blocks_swapped_in_a_chapter_are_a_finding_until_a_reorder_records_them(
+    library_copy: Path,
+) -> None:
+    replace_in(library_copy / SUNK, f"{LIFT}\n\n{FLAT}", f"{FLAT}\n\n{LIFT}")
+
+    unrecorded = fidelity_findings(library_copy)
+
+    assert located(unrecorded) == [("fidelity-chapter", SUNK.as_posix())]
+    assert "different order" in unrecorded[0].message
+    assert "accepted_differences" in unrecorded[0].fix
+    assert "accepted_reorders" in unrecorded[0].fix
+    replace_in(library_copy / SUNK, f"{FLAT}\n\n{LIFT}", f"{LIFT}\n\n{FLAT}")
+    record_sunk_reorder(library_copy, page=6)
+    assert run_checks(library_copy) == []
+
+
+def test_a_reorder_that_names_a_page_outside_its_chapter_is_a_finding(library_copy: Path) -> None:
+    record_sunk_reorder(library_copy, page=5)
+
+    findings = fidelity_findings(library_copy)
+
+    assert located(findings) == [("fidelity-chapter", SUNK.as_posix())]
+    assert "page 5" in findings[0].message
+    assert "pages 6 to 6" in findings[0].message
+
+
+def test_a_reorder_that_names_a_page_after_its_chapter_is_a_finding(library_copy: Path) -> None:
+    record_sunk_reorder(library_copy, page=7)
+
+    findings = fidelity_findings(library_copy)
+
+    assert located(findings) == [("fidelity-chapter", SUNK.as_posix())]
+    assert "page 7" in findings[0].message
 
 
 def test_source_text_that_fits_no_role_rule_is_a_finding(library_copy: Path) -> None:

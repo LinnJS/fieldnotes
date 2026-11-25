@@ -400,7 +400,14 @@
     },
     "extraction_profile": {
       "additionalProperties": false,
-      "required": ["roles", "section_start", "excluded_pages", "sections", "accepted_differences"],
+      "required": [
+        "roles",
+        "section_start",
+        "excluded_pages",
+        "sections",
+        "accepted_differences",
+        "accepted_reorders"
+      ],
       "properties": {
         "roles": {
           "description": "Rules that give a span of text its role. They are tried in order and the first match wins.",
@@ -484,6 +491,34 @@
                 "description": "Words the chapter has and the extraction lacks.",
                 "type": "array",
                 "items": { "type": "string", "minLength": 1 }
+              },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "accepted_reorders": {
+          "description": "Blocks of a chapter that a person put back in the order the page prints, each with the reading of a fresh extraction.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["chapter", "page", "passage", "extraction", "reason"],
+            "properties": {
+              "chapter": { "$ref": "#/$defs/chapter_id" },
+              "page": {
+                "description": "Page of the source file that the block starts on, counted from 1.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "passage": {
+                "description": "The block as the page prints it, copied from the chapter.",
+                "type": "string",
+                "minLength": 1
+              },
+              "extraction": {
+                "description": "The same block as a fresh extraction reads it, copied from a draft.",
+                "type": "string",
+                "minLength": 1
               },
               "reason": { "type": "string", "minLength": 1 }
             }

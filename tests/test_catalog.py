@@ -10,6 +10,7 @@ import yaml
 from jsonschema import Draft202012Validator
 from kb.catalog import (
     AcceptedDifference,
+    AcceptedReorder,
     Catalog,
     Collection,
     Edition,
@@ -263,6 +264,35 @@ def test_mirrored_book_record_carries_the_extraction_profile(fixture_library_roo
         ),
     )
     assert profile.accepted_differences == ()
+    assert profile.accepted_reorders == ()
+
+
+def test_an_accepted_reorder_loads_with_its_page_and_both_readings(library_copy: Path) -> None:
+    def add_reorder(data: dict[str, Any]) -> None:
+        data["extraction_profile"]["accepted_reorders"] = [
+            {
+                "chapter": f"{MIRRORED}/choosing-a-pond",
+                "page": 3,
+                "passage": "| Still | Moving |\n| --- | --- |\n| A basin. A tub. | A brook. |",
+                "extraction": "Still Moving\nA basin. A brook.\nA tub.",
+                "reason": "Page 3 prints two boxes side by side, and the extraction reads across.",
+            }
+        ]
+
+    edit_yaml(metadata_path(library_copy, MIRRORED), add_reorder)
+
+    profile = load_resource(library_copy, MIRRORED).extraction_profile
+
+    assert profile is not None
+    assert profile.accepted_reorders == (
+        AcceptedReorder(
+            chapter=f"{MIRRORED}/choosing-a-pond",
+            page=3,
+            passage="| Still | Moving |\n| --- | --- |\n| A basin. A tub. | A brook. |",
+            extraction="Still Moving\nA basin. A brook.\nA tub.",
+            reason="Page 3 prints two boxes side by side, and the extraction reads across.",
+        ),
+    )
 
 
 def test_accepted_word_differences_load_with_their_chapter_and_reason(library_copy: Path) -> None:

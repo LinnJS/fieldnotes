@@ -843,7 +843,11 @@ def _check_fidelity(library: Library) -> list[Finding]:
                 fix=(
                     "Restore the wording of the source in the chapter. If the chapter is right "
                     "and the extraction is wrong, list the words under accepted_differences in "
-                    f"{_metadata_path(resource.id)} with the chapter id and a reason."
+                    f"{_metadata_path(resource.id)} with the chapter id and a reason. If the "
+                    "chapter holds a block in the order its page prints and the extraction "
+                    "reads it in another order, record it under accepted_reorders with the "
+                    "chapter id, the page, the block as the chapter holds it, the block as a "
+                    "fresh draft holds it, and a reason."
                 ),
             )
             for chapter_file, result in zip(chapters, report.results, strict=True)
@@ -1556,10 +1560,11 @@ RECORD_UNRENDERED_FIELDS: Mapping[SchemaName, frozenset[str]] = {
             "license.locations_checked",
             # Regular expressions that the upstream sync matches file names with.
             "edition_patterns",
-            # A regular expression and a list of words that only the extraction and the
-            # fidelity check read.
+            # A regular expression, a list of words, and blocks of the author's text that only
+            # the extraction and the fidelity check read.
             "extraction_profile.section_start",
             "extraction_profile.accepted_differences",
+            "extraction_profile.accepted_reorders",
         }
     ),
 }
