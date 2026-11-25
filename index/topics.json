@@ -88,9 +88,9 @@
         {
           "chapter": null,
           "license_id": "MIT",
-          "mirror_status": "eligible",
+          "mirror_status": "mirrored",
           "note": "Its README lists a part on multi-agent work and orchestration in Hermes Agent, from delegated tasks to a Kanban platform.",
-          "quote_permitted": false,
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -160,9 +160,9 @@
         {
           "chapter": null,
           "license_id": "MIT",
-          "mirror_status": "eligible",
+          "mirror_status": "mirrored",
           "note": "Its README lists a part on deployment, security, and boundaries for Hermes Agent, including the operating system boundary and what it calls Promptware defense.",
-          "quote_permitted": false,
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -416,9 +416,9 @@
         {
           "chapter": null,
           "license_id": "MIT",
-          "mirror_status": "eligible",
+          "mirror_status": "mirrored",
           "note": "Its README presents Hermes Agent as a product built from the five harness components of instructions, constraints, feedback, memory, and orchestration.",
-          "quote_permitted": false,
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -480,9 +480,9 @@
         {
           "chapter": null,
           "license_id": "MIT",
-          "mirror_status": "eligible",
+          "mirror_status": "mirrored",
           "note": "Its README lists a part on the three-layer memory and session search of Hermes Agent.",
-          "quote_permitted": false,
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {
@@ -544,9 +544,9 @@
         {
           "chapter": null,
           "license_id": "MIT",
-          "mirror_status": "eligible",
+          "mirror_status": "mirrored",
           "note": "Its README lists a part on the tools, MCP support, and messaging platforms of Hermes Agent.",
-          "quote_permitted": false,
+          "quote_permitted": true,
           "resource": "hermes-agent-orange-book"
         },
         {

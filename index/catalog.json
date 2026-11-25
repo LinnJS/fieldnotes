@@ -113,11 +113,33 @@
         "native_name": "花叔",
         "url": "https://github.com/alchaincyf"
       },
-      "chapters": [],
+      "chapters": [
+        "hermes-agent-orange-book/meet-hermes",
+        "hermes-agent-orange-book/one-brain-many-faces",
+        "hermes-agent-orange-book/why-nous-built-this",
+        "hermes-agent-orange-book/three-engines-of-self-improvement",
+        "hermes-agent-orange-book/curator-brakes-for-self-evolution",
+        "hermes-agent-orange-book/what-not-to-learn",
+        "hermes-agent-orange-book/three-layers-of-memory",
+        "hermes-agent-orange-book/session-search",
+        "hermes-agent-orange-book/skill-system-and-open-standards",
+        "hermes-agent-orange-book/commanding-a-swarm-of-agents",
+        "hermes-agent-orange-book/tools-and-exposure-on-demand",
+        "hermes-agent-orange-book/mcp-in-two-directions",
+        "hermes-agent-orange-book/platforms-and-self-growing-gateway",
+        "hermes-agent-orange-book/three-ways-to-talk",
+        "hermes-agent-orange-book/delegate-task-to-kanban",
+        "hermes-agent-orange-book/dumb-core-userspace-decoration",
+        "hermes-agent-orange-book/collaboration-patterns-and-cost-control",
+        "hermes-agent-orange-book/deployment",
+        "hermes-agent-orange-book/operating-system-boundary",
+        "hermes-agent-orange-book/promptware-defense-and-observability",
+        "hermes-agent-orange-book/limits-of-self-improvement"
+      ],
       "collection": "orange-books",
-      "edition": null,
-      "edition_behind": false,
-      "edition_language": null,
+      "edition": "v260607",
+      "edition_behind": true,
+      "edition_language": "en",
       "id": "hermes-agent-orange-book",
       "languages": [
         "zh",
@@ -125,10 +147,15 @@
       ],
       "license_evidence": "license-file",
       "license_id": "MIT",
-      "license_path": null,
+      "license_path": "books/hermes-agent-orange-book/LICENSE",
       "license_permalink": "https://github.com/alchaincyf/hermes-agent-orange-book/blob/b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692/LICENSE",
-      "mirror_status": "eligible",
-      "newer_editions": [],
+      "mirror_status": "mirrored",
+      "newer_editions": [
+        {
+          "language": "zh",
+          "version": "v261020"
+        }
+      ],
       "newest_editions": {
         "en": "v260607",
         "zh": "v261020"
@@ -156,9 +183,13 @@
         "repository": "https://github.com/alchaincyf/hermes-agent-orange-book",
         "site": "https://www.huasheng.ai/orange-books/hermes-agent/"
       },
-      "path": null,
-      "quote_permitted": false,
-      "source": null,
+      "path": "books/hermes-agent-orange-book",
+      "quote_permitted": true,
+      "source": {
+        "path": "Hermes-Agent-The-Complete-Guide-v260607.pdf",
+        "repository": "alchaincyf/hermes-agent-orange-book",
+        "revision": "b6e53a8e11e00c8b14b2f72d6b4f1ce71fef6692"
+      },
       "title": {
         "english": "Hermes Agent 2.0: The Complete Guide",
         "english_official": true,

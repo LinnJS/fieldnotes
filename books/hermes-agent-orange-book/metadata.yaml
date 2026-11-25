@@ -106,7 +106,7 @@ permissions:
   share_alike: false
   third_party_rights: false
 
-mirror_status: eligible
+mirror_status: mirrored
 
 pinned_source:
   repository: alchaincyf/hermes-agent-orange-book
@@ -115,9 +115,115 @@ pinned_source:
   sha256: 250eaee552121313db913893404b9b1574c7f2ea7b06d25e8641054a51642d59
   edition: v260607
   language: en
-  local_path: null
+  local_path: source/Hermes-Agent-The-Complete-Guide-v260607.pdf
 
-extraction_profile: null
+extraction_profile:
+  roles:
+    - role: section-label
+      font_size: 24.0
+      max_indent: 48.0
+    - role: body
+      font_size: 24.0
+      min_indent: 48.0
+    - role: section-title
+      font_size: 26.7
+    - role: lede
+      font_size: 15.3
+    - role: heading
+      font_size: 17.3
+    - role: heading
+      font_size: 14.7
+    - role: body
+      font_size: 14.0
+    - role: kicker
+      font_size: 13.3
+      max_indent: 48.0
+    - role: quote
+      font_size: 13.3
+      min_indent: 48.0
+    - role: table-header
+      font_size: 11.3
+    - role: table-cell
+      font_size: 12.7
+    - role: code
+      font_size: 12.0
+  section_start: '^§\d{2}$'
+  excluded_pages:
+    - 1
+    - 2
+    - 3
+    - 104
+  sections:
+    - title: "Meet Hermes: An Agent That Grows Its Own Skills"
+      slug: meet-hermes
+      part: "Part 1: What It Is"
+    - title: "60-Second Overview: One Brain, Many Faces"
+      slug: one-brain-many-faces
+      part: "Part 1: What It Is"
+    - title: "Why Nous Built This"
+      slug: why-nous-built-this
+      part: "Part 1: What It Is"
+    - title: "Build, Repair, Continue: Three Engines of Self-Improvement"
+      slug: three-engines-of-self-improvement
+      part: "Part 2: The Reins Grow Themselves"
+    - title: "Curator: Brakes for Self-Evolution"
+      slug: curator-brakes-for-self-evolution
+      part: "Part 2: The Reins Grow Themselves"
+    - title: "The Most Important Lesson Is What Not to Learn"
+      slug: what-not-to-learn
+      part: "Part 2: The Reins Grow Themselves"
+    - title: "Three Layers of Memory: From Goldfish to Old Friend"
+      slug: three-layers-of-memory
+      part: "Part 3: How It Remembers You"
+    - title: "Session Search: Taking Back the Work LLMs Should Not Do"
+      slug: session-search
+      part: "Part 3: How It Remembers You"
+    - title: "The Skill System and the Open-Standard Dividend"
+      slug: skill-system-and-open-standards
+      part: "Part 3: How It Remembers You"
+    - title: "One Agent Commanding a Swarm of Agents"
+      slug: commanding-a-swarm-of-agents
+      part: "Part 3: How It Remembers You"
+    - title: "64 Tools and Exposure on Demand"
+      slug: tools-and-exposure-on-demand
+      part: "Part 4: Connecting Everything"
+    - title: "MCP in Two Directions"
+      slug: mcp-in-two-directions
+      part: "Part 4: Connecting Everything"
+    - title: "23 Platforms and a Self-Growing Gateway"
+      slug: platforms-and-self-growing-gateway
+      part: "Part 4: Connecting Everything"
+    - title: "Three Ways to Talk to It"
+      slug: three-ways-to-talk
+      part: "Part 4: Connecting Everything"
+    - title: "From delegate_task to a Kanban Platform"
+      slug: delegate-task-to-kanban
+      part: "Part 5: Multi-Agent & Orchestration"
+    - title: "Dumb Core, Userspace Decoration"
+      slug: dumb-core-userspace-decoration
+      part: "Part 5: Multi-Agent & Orchestration"
+    - title: "Eight Collaboration Patterns and Per-Card Cost Control"
+      slug: collaboration-patterns-and-cost-control
+      part: "Part 5: Multi-Agent & Orchestration"
+    - title: "Deploy: From Sending Commands to Sending Installers"
+      slug: deployment
+      part: "Part 6: Deployment, Security & Boundaries"
+    - title: "The Only Boundary Is the Operating System"
+      slug: operating-system-boundary
+      part: "Part 6: Deployment, Security & Boundaries"
+    - title: "Promptware Defense and Observability"
+      slug: promptware-defense-and-observability
+      part: "Part 6: Deployment, Security & Boundaries"
+    - title: "How Far Can a Self-Improving Agent Go"
+      slug: limits-of-self-improvement
+      part: "Part 6: Deployment, Security & Boundaries"
+  accepted_differences:
+    - chapter: hermes-agent-orange-book/why-nous-built-this
+      words_removed: [推, 荐, 不推, 荐, 核, 心, 建议]
+      words_added: [推荐, 不推荐, 核心建议]
+      reason: >-
+        Page 15 prints the panel labels 推荐 and 不推荐 and page 16 prints the callout label 核心建议,
+        each as one word. The extraction splits each label into separate runs.
 
 notices:
   - >-
