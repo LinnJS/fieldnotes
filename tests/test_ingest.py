@@ -246,6 +246,7 @@ def test_chapters_written_from_the_drafts_pass_the_fidelity_check(
         "  pass  fixture-mirrored-book/choosing-a-pond  similarity 1.000",
         "  pass  fixture-mirrored-book/recovering-a-sunk-boat  similarity 1.000",
         "Accepted differences: 0",
+        "Accepted reorders: 0",
         "Chapters checked: 3. Failed: 0.",
     ]
     # A draft carries no erratum and no review status, so the committed chapter index does not
@@ -505,6 +506,75 @@ def test_check_prints_the_accepted_differences(
         "  fixture-mirrored-book/choosing-a-pond  removed: none  added: short  "
         "reason: The source page prints the word and the extraction drops it.\n"
     ) in output
+
+
+LIFT = (
+    "Lift the boat by its keel fold and never by the brim. Let it drain bow down, then dry it "
+    "flat under a book."
+)
+FLAT = "> A boat that dries flat will fold again. A boat that dries crumpled is a paper ball."
+
+
+def swap_sunk_blocks(root: Path) -> None:
+    replace_in(root / CHAPTERS / SUNK, f"{LIFT}\n\n{FLAT}", f"{FLAT}\n\n{LIFT}")
+
+
+def test_check_prints_each_accepted_reorder_and_both_similarities(
+    library_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    swap_sunk_blocks(library_copy)
+    replace_in(
+        library_copy / METADATA,
+        "  accepted_reorders: []\n",
+        "  accepted_reorders:\n"
+        "    - chapter: fixture-mirrored-book/recovering-a-sunk-boat\n"
+        "      page: 6\n"
+        "      passage: |-\n"
+        f"        {FLAT}\n"
+        "\n"
+        f"        {LIFT}\n"
+        "      extraction: |-\n"
+        f"        {LIFT}\n"
+        f"        {FLAT[2:]}\n"
+        "      reason: The page prints the quote before the paragraph.\n",
+    )
+
+    code = run(library_copy, "--check")
+
+    output = capsys.readouterr().out
+    assert code == 0
+    assert "  pass  fixture-mirrored-book/recovering-a-sunk-boat  similarity 1.000 (" in output
+    assert " as written)\n" in output
+    assert "Accepted reorders: 1\n" in output
+    assert (
+        "  fixture-mirrored-book/recovering-a-sunk-boat  page 6  41 words  "
+        "reason: The page prints the quote before the paragraph.\n"
+    ) in output
+
+
+def test_check_prints_no_accepted_reorder_for_a_book_that_records_none(
+    library_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    code = run(library_copy, "--check")
+
+    output = capsys.readouterr().out
+    assert code == 0
+    assert "Accepted reorders: 0\nChapters checked: 3. Failed: 0.\n" in output
+    assert "as written" not in output
+
+
+def test_a_chapter_that_fails_on_order_is_told_where_both_records_go(
+    library_copy: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    swap_sunk_blocks(library_copy)
+
+    code = run(library_copy, "--check")
+
+    output = capsys.readouterr()
+    assert code == 1
+    assert "different order" in output.out
+    assert "accepted_differences" in output.err
+    assert "accepted_reorders" in output.err
 
 
 def test_a_book_the_catalog_does_not_list_is_an_error(

@@ -843,7 +843,11 @@ def _check_fidelity(library: Library) -> list[Finding]:
                 fix=(
                     "Restore the wording of the source in the chapter. If the chapter is right "
                     "and the extraction is wrong, list the words under accepted_differences in "
-                    f"{_metadata_path(resource.id)} with the chapter id and a reason."
+                    f"{_metadata_path(resource.id)} with the chapter id and a reason. If the "
+                    "chapter holds a block in the order its page prints and the extraction "
+                    "reads it in another order, record it under accepted_reorders with the "
+                    "chapter id, the page, the block as the chapter holds it, the block as a "
+                    "fresh draft holds it, and a reason."
                 ),
             )
             for chapter_file, result in zip(chapters, report.results, strict=True)

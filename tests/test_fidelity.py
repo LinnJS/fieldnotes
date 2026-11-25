@@ -954,6 +954,8 @@ def test_two_blocks_swapped_in_a_chapter_are_a_finding_until_a_reorder_records_t
 
     assert located(unrecorded) == [("fidelity-chapter", SUNK.as_posix())]
     assert "different order" in unrecorded[0].message
+    assert "accepted_differences" in unrecorded[0].fix
+    assert "accepted_reorders" in unrecorded[0].fix
     replace_in(library_copy / SUNK, f"{FLAT}\n\n{LIFT}", f"{LIFT}\n\n{FLAT}")
     record_sunk_reorder(library_copy, page=6)
     assert run_checks(library_copy) == []

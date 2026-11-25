@@ -680,13 +680,17 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
     Returns:
         The lines to print: the source file, one line per chapter with the message of each
         failure and each differing frontmatter field below it, one line per section that no
-        chapter holds, one line per span that is in no section, every accepted difference of
-        the book with its reason, and a count.
+        chapter holds, one line per span that is in no section, every accepted difference and
+        every accepted reorder of the book with its reason, and a count. The line of a chapter
+        that an accepted reorder applies to gives its similarity as written as well.
     """
     lines = [] if report.source is None else [f"Source: {report.source.as_posix()}"]
     for result in report.results:
         verdict = "pass" if result.passed and not result.frontmatter else "FAIL"
-        lines.append(f"  {verdict}  {result.chapter}  similarity {result.similarity:.3f}")
+        line = f"  {verdict}  {result.chapter}  similarity {result.similarity:.3f}"
+        if result.similarity_as_written is not None:
+            line += f" ({result.similarity_as_written:.3f} as written)"
+        lines.append(line)
         if not result.passed:
             lines.append(f"        {result.message}")
         lines.extend(f"        {difference}" for difference in result.frontmatter)
@@ -701,6 +705,13 @@ def report_lines(resource: Resource, report: BookFidelity) -> list[str]:
         f"  {difference.chapter}  removed: {', '.join(difference.words_removed) or 'none'}  "
         f"added: {', '.join(difference.words_added) or 'none'}  reason: {difference.reason}"
         for difference in accepted
+    )
+    reorders = () if profile is None else profile.accepted_reorders
+    lines.append(f"Accepted reorders: {len(reorders)}")
+    lines.extend(
+        f"  {reorder.chapter}  page {reorder.page}  "
+        f"{len(words(markdown_text(reorder.passage)))} words  reason: {reorder.reason}"
+        for reorder in reorders
     )
     failed = sum(not result.passed or bool(result.frontmatter) for result in report.results)
     count = f"Chapters checked: {len(report.results)}. Failed: {failed}."
