@@ -40,6 +40,7 @@ from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, replace
 from difflib import SequenceMatcher
 from pathlib import Path
+from typing import NamedTuple
 
 from kb.blocks import Section, section_links, section_text
 from kb.catalog import AcceptedDifference, AcceptedReorder, ChapterFile, Resource
@@ -69,7 +70,7 @@ REORDER_WORD_LIMIT = 200
 """Most words the block of one accepted reorder may hold, counted as the chapter holds it.
 
 A record scores its block as the extraction reads it, so a record with no limit could cover a
-whole chapter. The largest table of the mirrored books holds fewer words than this.
+whole chapter.
 """
 
 _WORDS_NAMED = 8
@@ -332,12 +333,11 @@ def compare(
     chapter = words(markdown_text(chapter_body))
 
     # A positive count is a word the chapter has too often, a negative one a word it lacks.
+    own_accepted = [difference for difference in accepted if difference.chapter == chapter_id]
     balance = Counter(chapter)
     balance.subtract(source)
-    for difference in accepted:
-        if difference.chapter == chapter_id:
-            balance.update(word for listed in difference.words_removed for word in words(listed))
-            balance.subtract(word for listed in difference.words_added for word in words(listed))
+    balance.update(_listed_words(own_accepted, removed=True))
+    balance.subtract(_listed_words(own_accepted, removed=False))
 
     shared = _first_difference(chapter, source)
     added = _in_reading_order(
@@ -346,9 +346,10 @@ def compare(
     removed = _in_reading_order(
         source[shared:], {word: -count for word, count in balance.items() if count < 0}
     )
-    own = [reorder for reorder in reorders if reorder.chapter == chapter_id]
-    own_accepted = [difference for difference in accepted if difference.chapter == chapter_id]
-    scored, applied, problems = _apply_reorders(chapter_id, chapter, source, own, own_accepted)
+    own_reorders = [reorder for reorder in reorders if reorder.chapter == chapter_id]
+    scored, applied, problems = _apply_reorders(
+        chapter_id, chapter, source, own_reorders, own_accepted
+    )
     similarity = SequenceMatcher(None, source, scored, autojunk=False).ratio()
     as_written = SequenceMatcher(None, source, chapter, autojunk=False).ratio() if applied else None
 
@@ -392,6 +393,25 @@ def compare(
     )
 
 
+class _Placement(NamedTuple):
+    """Where an accepted reorder that applies stands, and the words that score in its place."""
+
+    span: range
+    source_span: range
+    page: int
+    extraction: list[str]
+
+
+def _listed_words(differences: Sequence[AcceptedDifference], *, removed: bool) -> list[str]:
+    """List every word that accepted differences remove from the source, or that they add."""
+    return [
+        word
+        for difference in differences
+        for listed in (difference.words_removed if removed else difference.words_added)
+        for word in words(listed)
+    ]
+
+
 def _apply_reorders(
     chapter_id: str,
     chapter: list[str],
@@ -414,19 +434,9 @@ def _apply_reorders(
     """
     # A word the two readings differ by must be listed, and two records cannot claim one
     # listed word between them, so each record takes its words from what is left.
-    left_added = Counter(
-        word
-        for difference in accepted
-        for listed in difference.words_added
-        for word in words(listed)
-    )
-    left_removed = Counter(
-        word
-        for difference in accepted
-        for listed in difference.words_removed
-        for word in words(listed)
-    )
-    placed: list[tuple[range, range, int, list[str]]] = []
+    left_added = Counter(_listed_words(accepted, removed=False))
+    left_removed = Counter(_listed_words(accepted, removed=True))
+    placed: list[_Placement] = []
     problems: list[str] = []
     for reorder in reorders:
         passage = words(markdown_text(reorder.passage))
@@ -442,22 +452,28 @@ def _apply_reorders(
             )
             continue
         in_chapter = _runs(chapter, passage)
-        if len(in_chapter) != 1:
+        if not in_chapter:
             problems.append(
                 f"{named} has a passage that the chapter does not hold. The chapter may have "
                 "changed since the reorder was recorded."
-                if not in_chapter
-                else f"{named} has a passage that the chapter holds {len(in_chapter)} times. "
+            )
+            continue
+        if len(in_chapter) > 1:
+            problems.append(
+                f"{named} has a passage that the chapter holds {len(in_chapter)} times. "
                 "Lengthen the passage until the chapter holds it once."
             )
             continue
         in_source = _runs(source, extraction)
-        if len(in_source) != 1:
+        if not in_source:
             problems.append(
                 f"{named} has an extraction that the source does not hold. Copy the block from "
                 "a fresh draft."
-                if not in_source
-                else f"{named} has an extraction that the source holds {len(in_source)} times. "
+            )
+            continue
+        if len(in_source) > 1:
+            problems.append(
+                f"{named} has an extraction that the source holds {len(in_source)} times. "
                 "Lengthen both readings until the source holds the extraction once."
             )
             continue
@@ -483,9 +499,9 @@ def _apply_reorders(
         source_span = range(in_source[0], in_source[0] + len(extraction))
         overlapped = next(
             (
-                page
-                for taken, taken_source, page, _ in placed
-                if _overlap(span, taken) or _overlap(source_span, taken_source)
+                taken.page
+                for taken in placed
+                if _overlap(span, taken.span) or _overlap(source_span, taken.source_span)
             ),
             None,
         )
@@ -494,12 +510,12 @@ def _apply_reorders(
             continue
         left_added -= needs_added
         left_removed -= needs_removed
-        placed.append((span, source_span, reorder.page, extraction))
+        placed.append(_Placement(span, source_span, reorder.page, extraction))
 
     scored = list(chapter)
     # From the end, so that a replacement of another length leaves earlier positions in place.
-    for span, _, _, extraction in sorted(placed, key=lambda item: item[0].start, reverse=True):
-        scored[span.start : span.stop] = extraction
+    for placement in sorted(placed, key=lambda taken: taken.span.start, reverse=True):
+        scored[placement.span.start : placement.span.stop] = placement.extraction
     return scored, len(placed), problems
 
 
@@ -519,7 +535,6 @@ def _overlap(first: range, second: range) -> bool:
 
 
 def _first_difference(ours: Sequence[str], theirs: Sequence[str]) -> int:
-    """Return the position of the first word where two sequences differ."""
     return next(
         (
             index
