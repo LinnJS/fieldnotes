@@ -65,8 +65,9 @@ Reviewing the two MIT records yourself is the first task on the checklist below.
 
 ## Mirror an eligible book
 
-Hermes Agent is eligible today. The `ingest-book` skill in
-`.agents/skills/ingest-book/SKILL.md` has the full procedure. The outline:
+No book is eligible today, because Hermes Agent, the last one, is now mirrored.
+The `ingest-book` skill in `.agents/skills/ingest-book/SKILL.md` has the full
+procedure. The outline:
 
 1. On a branch, set `mirror_status: mirrored` in the record. Your merge of the pull
    request is the approval.
